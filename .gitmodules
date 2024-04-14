@@ -1,0 +1,3 @@
+[submodule "syoch-robotics"]
+	path = syoch-robotics
+	url = git@github.com:nnctroboticsclub/syoch-robotics
