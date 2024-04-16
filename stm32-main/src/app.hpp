@@ -9,10 +9,6 @@
 #include <robotics/utils/neopixel.hpp>
 
 #include "communication.hpp"
-#include "components/upper.hpp"
-#include "components/swerve.hpp"
-
-#include <robotics/utils/neopixel.hpp>
 
 class App {
   class Impl;
@@ -20,8 +16,6 @@ class App {
  public:
   struct Config {
     Communication::Config com;
-
-    robotics::component::Swerve::Config swerve_config;
 
     bool can1_debug;
   };

@@ -58,7 +58,7 @@ void Communication::AddCAN1Debug() {
 }
 
 void Communication::Report() {
-  switch () {
+  switch (report_counter) {
     case 0:
     case 1:
     case 2:
