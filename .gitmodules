@@ -1,3 +1,18 @@
 [submodule "syoch-robotics"]
 	path = syoch-robotics
 	url = git@github.com:nnctroboticsclub/syoch-robotics
+[submodule "common_libs/bno055"]
+	path = common_libs/bno055
+	url = git@github.com:nnctroboticsclub/bno055
+[submodule "common_libs/ikako_c620"]
+	path = common_libs/ikako_c620
+	url = git@github.com:nnctroboticsclub/ikako_c620
+[submodule "common_libs/ikakoMDC"]
+	path = common_libs/ikakoMDC
+	url = git@github.com:nnctroboticsclub/ikakoMDC
+[submodule "common_libs/ikarashiCAN_mk2"]
+	path = common_libs/ikarashiCAN_mk2
+	url = git@github.com:nnctroboticsclub/ikarashiCAN_mk2
+[submodule "common_libs/mbed-os"]
+	path = common_libs/mbed-os
+	url = git@github.com:ARMmbed/mbed-os
