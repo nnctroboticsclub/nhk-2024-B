@@ -12,9 +12,10 @@ void Communication::InitCAN() {
   can_.Init();
   driving_->Init();
   printf("\e[1;32m|\e[m \e[32m|\e[m \e[33m-\e[m Adding Handlers\n");
-  can_.OnMessage(0x61 + project::kCanId, [this](std::vector<uint8_t> data) {  //
-    value_store_.Pass(data);
-  });
+  can_.OnMessage(0x7ff, 0x50 + project::kCanId,
+                 [this](std::uint32_t, std::vector<uint8_t> data) {  //
+                   value_store_.Pass(data);
+                 });
 }
 
 Communication::Communication(Config &config)
