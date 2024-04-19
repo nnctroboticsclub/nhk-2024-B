@@ -29,13 +29,24 @@ graph LR
 | 0 | x |   |   |   |   |   |   |   |   |   |ikarashiCAN         |
 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |C620                |
 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |^                   |
-| 1 | 0 | 0 | 0 | n |   |   |Dev|   |   |   |Config for (Dev)[n] |
-| 1 | 0 | 0 | 1 | n |   |   |Dev|   |   |   |Config Applied      |
+| 1 | 0 | 0 | 0 | 0 | n |   |Dev|   |   |   |Config for (Dev)[n] |
+| 1 | 0 | 0 | 0 | 1 | n |   |Dev|   |   |   |Config Applied      |
+| 1 | 0 | 0 | 1 | 0 | n |   |Dev|   |   |   |Config Request      |
+| 1 | 0 | 0 | 1 | 1 | 0 | 0 |Dev|   |   |   |Reset Notify        |
+| 1 | 0 | 0 | 1 | 1 | 0 | 1 |Dev|   |   |   |N/A                 |
+| 1 | 0 | 0 | 1 | 1 | 1 | 0 |Dev|   |   |   |N/A                 |
+| 1 | 0 | 0 | 1 | 1 | 1 | 1 |Dev|   |   |   |N/A                 |
 | 1 | 0 | 1 | 0 | 0 | 0 | 0 |Dev|   |   |   |Value store[Dev]    |
 | 1 | 0 | 1 | 0 | 0 | 0 | 1 |Dev|   |   |   |Report[Dev]         |
 | 1 | 0 | 1 | 0 | 0 | 1 | 0 |Dev|   |   |   |Pong from [Dev]     |
-| 1 | 0 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |Ping                |
-| 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |Keep Alive          |
+| 1 | 0 | 1 | 0 | 0 | 1 | 1 |Dev|   |   |   |Ping                |
+| 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |Keep Alive (IC)     |
+| 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 1 |Keep Alive (CTRL)   |
+| 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | x |N/A                 |
+| 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 1 | x | x |N/A                 |
+| 1 | 0 | 1 | 0 | 1 | 0 | 0 | 1 | x | x | x |N/A                 |
+| 1 | 0 | 1 | 0 | 1 | 0 | 1 | x | x | x | x |N/A                 |
+| 1 | 0 | 1 | 0 | 1 | 1 | x | x | x | x | x |N/A                 |
 | 1 | 1 | 1 | x |   |   |   |   |   |   |   |Stream              |
 
 ### Report
