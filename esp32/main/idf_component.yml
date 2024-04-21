@@ -1,0 +1,9 @@
+## IDF Component Manager Manifest File
+dependencies:
+  idf:
+    version: ">=4.1.0"
+
+  espressif/esp-idf-cxx: "^1.0.0-beta"
+
+  # nnctroboticsclub/data-proxy:
+  #   git: ssh://git@github.com/nnctroboticsclub/data-proxy.git
