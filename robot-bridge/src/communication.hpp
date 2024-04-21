@@ -29,7 +29,7 @@ class Communication {
 
  public:
   robotics::network::DistributedCAN can_;
-  std::unique_ptr<project::DrivingCANBus> driving_;
+  // std::unique_ptr<project::DrivingCANBus> driving_;
 
   project::ValueStore value_store_;
 

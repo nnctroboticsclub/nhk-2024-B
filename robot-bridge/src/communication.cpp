@@ -10,7 +10,7 @@ void Communication::InitCAN() {
   printf("\e[1;32m|\e[m \e[32m-\e[m Initializing CAN (Com)\n");
   printf("\e[1;32m|\e[m \e[32m|\e[m \e[33m-\e[m Initializing CAN Driver\n");
   can_.Init();
-  driving_->Init();
+  /* driving_->Init(); */
   printf("\e[1;32m|\e[m \e[32m|\e[m \e[33m-\e[m Adding Handlers\n");
   can_.OnMessage(0x7ff, 0x50 + project::kCanId,
                  [this](std::uint32_t, std::vector<uint8_t> data) {  //
@@ -22,13 +22,13 @@ Communication::Communication(Config &config)
     : can_(config.can.id,
            std::make_shared<robotics::network::SimpleCAN>(
                config.can.rx, config.can.tx, config.can.freqency)),
-      driving_(std::make_unique<project::DrivingCANBus>(new ikarashiCAN_mk2(
-          config.driving_can.rx, config.driving_can.tx, 0))),
+      /* driving_(std::make_unique<project::DrivingCANBus>(new ikarashiCAN_mk2(
+          config.driving_can.rx, config.driving_can.tx, 0))), */
       value_store_(config.value_store_config) {}
 
 void Communication::SendNonReactiveValues() {
-  this->driving_->Tick();
-  this->driving_->Send();
+  /* this->driving_->Tick();
+  this->driving_->Send(); */
 }
 
 void Communication::Init() { InitCAN(); }

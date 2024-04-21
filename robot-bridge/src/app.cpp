@@ -15,6 +15,8 @@ class App::Impl {
   //* Components
   //! some
 
+  Thread *main_thread;
+
  public:
   Impl(App::Config &config)
       : com(std::make_unique<Communication>(config.com)),
@@ -34,6 +36,10 @@ class App::Impl {
   void MainThread() {
     int i = 0;
     while (1) {
+      if (i % 10) {
+        com->can_.SendKeepAlive();
+      }
+
       i++;
 
       ThisThread::sleep_for(1ms);
@@ -50,6 +56,10 @@ class App::Impl {
 
   void Init() {
     printf("\e[1;32m-\e[m Init\n");
+
+    printf("\e[1;32m|\e[m \e[32m-\e[m Main Thread\n");
+    main_thread = new Thread(osPriorityNormal, 1024 * 4);
+    main_thread->start(callback(this, &App::Impl::MainThread));
 
     printf("\e[1;32m|\e[m \e[32m-\e[m EMC\n");
     emc->output.Link(emc_out);

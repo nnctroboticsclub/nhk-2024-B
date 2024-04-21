@@ -27,8 +27,8 @@ int main_pro() {
                              },
                          .driving_can =
                              {
-                                 .rx = PB_5,
-                                 .tx = PB_6,
+                                 .rx = PB_5, /* PB_5, */
+                                 .tx = PB_6, /* PB_6, */
                              },
                          .i2c =
                              {
@@ -40,11 +40,8 @@ int main_pro() {
                      },
                      .can1_debug = false};
 
-  printf("Ctor\n");
   App app(config);
-  printf("Init\n");
   app.Init();
-  printf("end-\n");
 
   while (1) {
     ThisThread::sleep_for(100s);
@@ -54,13 +51,8 @@ int main_pro() {
 }
 
 int main_switch() {
-  printf("main() started CAN_ID=%d\n", CAN_ID);
-
-  printf("Build information:\n");
-  printf("  - Build date: %s\n", __DATE__);
-  printf("  - Build time: %s\n", __TIME__);
-  printf("  - Analytics:\n");
-  printf("    - sizeof(App): %" PRIuPTR "\n", sizeof(App));
+  printf("main() started\n");
+  printf("Build: " __DATE__ " - " __TIME__ "\n");
 
   main_pro();
   return 0;
