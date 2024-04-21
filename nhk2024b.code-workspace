@@ -5,6 +5,15 @@
 		},
 		{
 			"path": "robot1-main"
+		},
+		{
+			"path": "robot-bridge"
+		},
+		{
+			"path": "robot-collect"
+		},
+		{
+			"path": "esp32"
 		}
 	],
 	"settings": {
@@ -67,7 +76,19 @@
 			"stop_token": "cpp",
 			"streambuf": "cpp",
 			"thread": "cpp",
-			"typeinfo": "cpp"
+			"typeinfo": "cpp",
+			"list": "cpp",
+			"map": "cpp",
+			"future": "cpp",
+			"mstd_mutex": "cpp",
+			"charconv": "cpp",
+			"format": "cpp",
+			"regex": "cpp",
+			"variant": "cpp",
+			"span": "cpp",
+			"mstd_iterator": "cpp",
+			"bitset": "cpp",
+			"set": "cpp"
 		}
 	}
 }
