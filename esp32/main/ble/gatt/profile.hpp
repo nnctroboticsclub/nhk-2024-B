@@ -1,10 +1,15 @@
 #pragma once
 
-#include "attr_db.hpp"
+#include "char.hpp"
+#include <sstream>
+#include <iomanip>
 
 #define HEART_RATE_SVC_INST_ID 0
 
 namespace ble::gatt {
+namespace internal {
+uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
+}
 static esp_ble_adv_params_t heart_rate_adv_params = {
     .adv_int_min = 0x100,
     .adv_int_max = 0x100,
@@ -13,18 +18,48 @@ static esp_ble_adv_params_t heart_rate_adv_params = {
     .channel_map = ADV_CHNL_ALL,
     .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
 };
-class GattsProfile {
+
+class Service {
   static constexpr const char *TAG = "Profile$";
 
-  uint8_t service_id_;
+ protected:  //* Protected members
+  std::vector<Characteristic> characteristics;
 
- protected:
-  ble::gatt::AttrDb attrs_;
+  void AddCharacteristic(Characteristic *characteristic) {
+    characteristics.push_back(*characteristic);
+  }
 
   virtual void Callback(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                         esp_ble_gatts_cb_param_t *param) = 0;
 
-  virtual void StartService() = 0;
+ private:
+  uint8_t service_id_;
+  uint16_t service_uuid_;
+
+  Attribute service_header_;
+
+  std::vector<Attribute> attributes;
+  std::vector<esp_gatts_attr_db_t> esp_attributes;
+
+  void CollectAttributes(std::vector<Attribute> &attributes) {
+    UpdateSettings();
+
+    service_header_.CollectAttributes(attributes);
+
+    for (auto &characteristic : characteristics) {
+      characteristic.CollectAttributes(attributes);
+    }
+  }
+
+  void UpdateSettings() {
+    service_header_.SetUUID(internal::primary_service_uuid)
+        .SetPermissions(Attribute::Perm::kRead)
+        .SetValue(service_uuid_);
+  }
+
+ public:
+  bool initialized = false;
+  virtual void Init() = 0;
 
  public:
   esp_gatts_cb_t gatts_cb;
@@ -32,16 +67,53 @@ class GattsProfile {
 
   void SetServiceId(uint8_t service_id) { service_id_ = service_id; }
 
+  void SetServiceUUID(uint16_t uuid) { service_uuid_ = uuid; }
+
   void CallCallback(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                     esp_ble_gatts_cb_param_t *param) {
     switch (event) {
-      case ESP_GATTS_REG_EVT:
+      case ESP_GATTS_REG_EVT: {
         ESP_LOGI(TAG, "REGISTER_APP_EVT, status %d, app_id %d",
                  param->reg.status, param->reg.app_id);
 
-        esp_ble_gatts_create_attr_tab(attrs_.GetDb().data(), gatts_if,
-                                      attrs_.GetDb().size(), service_id_);
+        attributes.clear();
+        CollectAttributes(attributes);
+
+        // convert to vector of esp_gatts_attr_db_t
+        esp_attributes.clear();
+        for (auto &attribute : attributes) {
+          esp_attributes.push_back(attribute);
+        }
+
+        ESP_LOGI(TAG, "Creating attribute table with %d esp-attributes",
+                 esp_attributes.size());
+
+        for (int i = 0; i < esp_attributes.size(); i++) {
+          std::stringstream ss;
+          ss << "Attribute " << i << ": ";
+          ss << std::setw(4) << std::setfill('0') << std::hex
+             << esp_attributes[i].att_desc.perm << " ";
+          ss << std::setw(4) << std::setfill('0') << std::hex
+             << esp_attributes[i].att_desc.max_length << ", ";
+
+          for (int j = 0; j < esp_attributes[i].att_desc.uuid_length; j++) {
+            ss << std::setw(2) << std::setfill('0') << std::hex
+               << (int)esp_attributes[i].att_desc.uuid_p[j];
+          }
+          ss << ", ";
+
+          for (int j = 0; j < esp_attributes[i].att_desc.length; j++) {
+            ss << std::setw(2) << std::setfill('0') << std::hex
+               << (int)esp_attributes[i].att_desc.value[j];
+          }
+
+          ESP_LOGI(TAG, "%s", ss.str().c_str());
+        }
+
+        esp_ble_gatts_create_attr_tab(esp_attributes.data(), gatts_if,
+                                      esp_attributes.size(), service_id_);
         break;
+      }
 
       case ESP_GATTS_CONNECT_EVT:
         ESP_LOGI(TAG, "ESP_GATTS_CONNECT_EVT");
@@ -58,16 +130,18 @@ class GattsProfile {
       case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
         ESP_LOGI(TAG, "The number handle = %x", param->add_attr_tab.num_handle);
         if (param->create.status == ESP_GATT_OK) {
-          if (param->add_attr_tab.num_handle == attrs_.GetDb().size()) {
-            attrs_.LoadHandles(param->add_attr_tab.handles,
-                               param->add_attr_tab.num_handle);
-            StartService();
+          if (param->add_attr_tab.num_handle == attributes.size()) {
+            ESP_LOGI(TAG,
+                     "Create attribute table successfully, the number "
+                     "handle = %d\n",
+                     param->add_attr_tab.num_handle);
+            esp_ble_gatts_start_service(param->add_attr_tab.handles[0]);
           } else {
             ESP_LOGE(
                 TAG,
                 "Create attribute table abnormally, num_handle (%d) doesn't "
                 "equal to attrs_.GetDb().size()(%d)",
-                param->add_attr_tab.num_handle, attrs_.GetDb().size());
+                param->add_attr_tab.num_handle, attributes.size());
           }
         } else {
           ESP_LOGE(TAG, " Create attribute table failed, error code = %x",

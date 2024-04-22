@@ -10,11 +10,11 @@
 namespace ble::gatt {
 class GATT {
   static constexpr const char *TAG = "GATT!";
-  std::vector<std::shared_ptr<GattsProfile>> prof_tab_ = {};
+  std::vector<std::shared_ptr<Service>> prof_tab_ = {};
   const char *device_name = "ESP32";
 
  public:
-  void AddProfile(std::shared_ptr<GattsProfile> profile) {
+  void AddProfile(std::shared_ptr<Service> profile) {
     prof_tab_.push_back(std::move(profile));
   }
 
@@ -25,7 +25,7 @@ class GATT {
     /* If event is register event, store the gatts_if for each profile */
     if (event == ESP_GATTS_REG_EVT) {
       esp_bt_dev_set_device_name(device_name);
-      esp_ble_gap_config_local_privacy(true);
+      /* esp_ble_gap_config_local_privacy(true); */
 
       if (param->reg.status == ESP_GATT_OK) {
         /* for (auto profile : prof_tab_) {
@@ -33,14 +33,20 @@ class GATT {
         } */
         prof_tab_[0]->gatts_if = gatts_if;
       } else {
-        ESP_LOGI(TAG, "Reg app failed, app_id %04x, status %d",
+        ESP_LOGE(TAG, "Reg app failed, app_id %04x, status %d",
                  param->reg.app_id, param->reg.status);
         return;
       }
+    } else if (event == ESP_GATTS_START_EVT) {
+      esp_ble_gap_start_advertising(&heart_rate_adv_params);
     }
 
     for (auto profile : prof_tab_) {
       if (gatts_if == ESP_GATT_IF_NONE || gatts_if == profile->gatts_if) {
+        if (!profile->initialized) {
+          profile->Init();
+          profile->initialized = true;
+        }
         profile->CallCallback(event, gatts_if, param);
       }
     }

@@ -31,9 +31,8 @@
 #include <vector>
 #include <memory>
 
-#include "ble/gatt/attr_db.hpp"
-#include "ble/gatt/profile.hpp"
 #include "ble/gatt/gatt.hpp"
+#include "ble/gatt/profile.hpp"
 #include "ble/gap.hpp"
 
 /*
@@ -108,17 +107,16 @@ static void __attribute__((unused)) remove_all_bonded_devices(void) {
   free(dev_list);
 }
 
-/// Heart Rate Sensor Service
-static const uint16_t heart_rate_svc = ESP_GATT_UUID_serial;
+namespace ble_can {
 
-static const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
-static const uint16_t character_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE;
-static const uint16_t character_client_config_uuid =
-    ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
-static const uint8_t char_prop_notify = ESP_GATT_CHAR_PROP_BIT_NOTIFY;
-static const uint8_t char_prop_read = ESP_GATT_CHAR_PROP_BIT_READ;
-static const uint8_t char_prop_read_write =
-    ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ;
+/* static const uint16_t heart_rate_svc = ESP_GATT_UUID_HEART_RATE_SVC; */
+/* const uint8_t heart_rate_svc[16] = {0x7e, 0x5c, 0xfd, 0x53, 0x1f, 0xe5,
+                                  0x82, 0x91, 0x19, 0x4d, 0xda, 0x51,
+                                  0x3e, 0xf2, 0xb6, 0x20}; */
+const uint16_t heart_rate_svc = ESP_GATT_UUID_HEART_RATE_SVC;
+const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
+
+const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
 
 /// Heart Rate Sensor Service - Heart Rate Measurement Characteristic, notify
 static const uint16_t heart_rate_meas_uuid = ESP_GATT_HEART_RATE_MEAS;
@@ -133,43 +131,74 @@ static uint8_t body_sensor_loc_val[1] = {0x00};
 static const uint16_t heart_rate_ctrl_point = ESP_GATT_HEART_RATE_CNTL_POINT;
 static uint8_t heart_ctrl_point[1] = {0x00};
 
-class Profile_CANStream : public ble::gatt::GattsProfile {
+/* const uint8_t bus_load_uuid[16] = {0x4c, 0x1f, 0x5e, 0x79, 0xb7, 0x5b,
+                                   0x7e, 0xbc, 0x7b, 0x46, 0x7e, 0xcb,
+                                   0x41, 0x1d, 0xef, 0x59}; */
+const uint16_t bus_load_uuid = 0x2a00;
+uint16_t bus_load_val = 0;
+
+struct bus_packet {
+  uint8_t op;
+  uint8_t len;
+  uint8_t data[8];
+};
+
+/* const uint8_t bus_rx_uuid[16] = {0xe8, 0x29, 0xe1, 0x89, 0x53, 0x74,
+                                 0x04, 0xa2, 0xfb, 0x4e, 0x3a, 0x61,
+                                 0xb2, 0x87, 0xff, 0x3e}; */
+const uint16_t bus_rx_uuid = 0x2a01;
+bus_packet bus_rx_val;
+
+/* const uint8_t bus_tx_uuid[16] = {0x4e, 0x9d, 0x73, 0xd5, 0x17, 0x62,
+                                 0xda, 0x81, 0x04, 0x4c, 0x1a, 0xd6,
+                                 0xf8, 0x7f, 0x07, 0x18}; */
+const uint16_t bus_tx_uuid = 0x2a02;
+bus_packet bus_tx_val;
+
+class CANStreamingService : public ble::gatt::Service {
   static constexpr const char *TAG = "Profile#CAN";
   enum attrs {
-    HRS_IDX_SVC,
-
-    HRS_IDX_HR_MEAS_CHAR,
-    HRS_IDX_HR_MEAS_VAL,
-    HRS_IDX_HR_MEAS_NTF_CFG,
-
-    HRS_IDX_BOBY_SENSOR_LOC_CHAR,
-    HRS_IDX_BOBY_SENSOR_LOC_VAL,
-
-    HRS_IDX_HR_CTNL_PT_CHAR,
-    HRS_IDX_HR_CTNL_PT_VAL,
+    kIdxSvc,
   };
 
  public:
-  Profile_CANStream() {
-    using enum ble::gatt::AttrDb::Perm;
-    attrs_.AddService(HRS_IDX_SVC, primary_service_uuid, heart_rate_svc, kRead);
-    attrs_.AddService(HRS_IDX_HR_MEAS_CHAR, character_declaration_uuid,
-                      char_prop_notify, kRead);
-    attrs_.AddService(HRS_IDX_HR_MEAS_VAL, heart_rate_meas_uuid, kRead);
-    attrs_.AddService(HRS_IDX_HR_MEAS_NTF_CFG, character_client_config_uuid,
-                      heart_measurement_ccc, kReadWrite);
-    attrs_.AddService(HRS_IDX_BOBY_SENSOR_LOC_CHAR, character_declaration_uuid,
-                      char_prop_read, kRead);
-    attrs_.AddService(HRS_IDX_BOBY_SENSOR_LOC_VAL, body_sensor_location_uuid,
-                      body_sensor_loc_val, kERead);
-    attrs_.AddService(HRS_IDX_HR_CTNL_PT_CHAR, character_declaration_uuid,
-                      char_prop_read_write, kRead);
-    attrs_.AddService(HRS_IDX_HR_CTNL_PT_VAL, heart_rate_ctrl_point,
-                      heart_ctrl_point, kEReadWrite);
-  }
+  CANStreamingService() {}
 
-  void StartService() override {
-    esp_ble_gatts_start_service(attrs_.GetEntry(HRS_IDX_SVC)->handle);
+  void Init() override {
+    this->SetServiceUUID(heart_rate_svc);
+
+    this->AddCharacteristic(
+        &(new ble::gatt::Characteristic())
+             ->SetUUID(heart_rate_meas_uuid)
+             .SetPermissions(ble::gatt::Attribute::Perm::kRead)
+             .SetProperties(ble::gatt::chararacteristic::Prop::kNotify)  //
+             .SetMaxValueLength(13)
+             .AddDescriptor(&(new ble::gatt::Attribute())
+                                 ->SetValue((uint8_t &)heart_measurement_ccc)
+                                 .SetUUID(character_client_config_uuid)
+                                 .SetMaxValueLength(2)
+                                 .SetPermissions(
+                                     ble::gatt::Attribute::Perm::kReadWrite)  //
+                            )                                                 //
+    );
+
+    this->AddCharacteristic(
+        &(new ble::gatt::Characteristic())
+             ->SetUUID(body_sensor_location_uuid)
+             .SetPermissions(ble::gatt::Attribute::Perm::kERead)       //
+             .SetProperties(ble::gatt::chararacteristic::Prop::kRead)  //
+             .SetValue(body_sensor_loc_val)                            //
+             .SetMaxValueLength(2)                                     //
+    );
+
+    this->AddCharacteristic(
+        &(new ble::gatt::Characteristic())
+             ->SetUUID(heart_rate_ctrl_point)
+             .SetPermissions(ble::gatt::Attribute::Perm::kEReadWrite)  //
+             .SetProperties(ble::gatt::chararacteristic::Prop::kRW)    //
+             .SetValue(heart_ctrl_point)
+             .SetMaxValueLength(2)  //
+    );
   }
 
   void Callback(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
@@ -187,6 +216,7 @@ class Profile_CANStream : public ble::gatt::GattsProfile {
     }
   }
 };
+}  // namespace ble_can
 
 ble::gap::GAP gap;
 ble::gatt::GATT gatt;
@@ -236,7 +266,7 @@ extern "C" void app_main(void) {
     return;
   }
 
-  gatt.AddProfile(std::make_unique<Profile_CANStream>());
+  gatt.AddProfile(std::make_unique<ble_can::CANStreamingService>());
 
   ret = esp_ble_gatts_register_callback([](esp_gatts_cb_event_t event,
                                            esp_gatt_if_t gatts_if,
