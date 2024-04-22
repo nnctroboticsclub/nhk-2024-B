@@ -35,20 +35,16 @@ class Attribute : public esp_gatts_attr_db_t {
                     .value = nullptr,
                 },
         }, handle(0), uuid_16_(0) {
-    ESP_LOGI("BLE:GATT:Attr", "Created Attribute at %p", this);
   }
 
-  Attribute &SetUUID(const uint16_t &uuid) {
+  Attribute &SetUUID(const uint16_t uuid) {
     this->uuid_16_ = uuid;
-    ESP_LOGI("BLE:GATT:Attr", "Setting UUID: %04X -> %p (this=%p)", uuid_16_,
-             &uuid_16_, this);
     att_desc.uuid_length = 2;
     att_desc.uuid_p = reinterpret_cast<uint8_t *>(&uuid_16_);
     return *this;
   }
 
   Attribute &SetUUID(const uint8_t uuid[16]) {
-    ESP_LOGI("BLE:GATT:Attr", "Setting UUID(128)");
     att_desc.uuid_length = 16;
     att_desc.uuid_p = (uint8_t *)uuid;
     return *this;
@@ -60,10 +56,17 @@ class Attribute : public esp_gatts_attr_db_t {
   }
 
   template <typename T>
-  Attribute &SetValue(T &value) {
-    att_desc.max_length = sizeof(value);
-    att_desc.length = sizeof(value);
-    att_desc.value = reinterpret_cast<uint8_t *>(&value);
+  Attribute &SetValue(T &value, size_t size = sizeof(T)) {
+    if (att_desc.value) {
+      delete att_desc.value;
+      att_desc.value = nullptr;
+    }
+
+    att_desc.max_length = size;
+    att_desc.length = size;
+    att_desc.value = new uint8_t[size];
+
+    memcpy(att_desc.value, &value, size);
     return *this;
   }
 

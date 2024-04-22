@@ -34,7 +34,6 @@ class Service {
 
  private:
   uint8_t service_id_;
-  uint16_t service_uuid_;
 
   Attribute service_header_;
 
@@ -53,8 +52,7 @@ class Service {
 
   void UpdateSettings() {
     service_header_.SetUUID(internal::primary_service_uuid)
-        .SetPermissions(Attribute::Perm::kRead)
-        .SetValue(service_uuid_);
+        .SetPermissions(Attribute::Perm::kRead);
   }
 
  public:
@@ -67,7 +65,11 @@ class Service {
 
   void SetServiceId(uint8_t service_id) { service_id_ = service_id; }
 
-  void SetServiceUUID(uint16_t uuid) { service_uuid_ = uuid; }
+  void SetServiceUUID(uint16_t uuid) { service_header_.SetValue(uuid); }
+
+  void SetServiceUUID(const uint8_t (&uuid)[16]) {
+    service_header_.SetValue(uuid, 16);
+  }
 
   void CallCallback(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                     esp_ble_gatts_cb_param_t *param) {

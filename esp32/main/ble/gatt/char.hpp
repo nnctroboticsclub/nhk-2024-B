@@ -71,8 +71,6 @@ class Characteristic {
     declare.SetUUID(internal::char_declare_uuid)
         .SetPermissions(Attribute::Perm::kRead)
         .SetMaxValueLength(2);
-
-    ESP_LOGI("BLE:GATT:Char", "Created Characteristic at %p", this);
   }
 
   Characteristic& SetProperties(Prop properties) {
@@ -82,8 +80,12 @@ class Characteristic {
   }
 
   Characteristic& SetUUID(uint16_t uuid) {
-    ESP_LOGI("BLE:GATT:Char", "Setting UUID: %4x -> %p (this=%p)", uuid, &value,
-             this);
+    value.SetUUID(uuid);
+
+    return *this;
+  }
+
+  Characteristic& SetUUID(const uint8_t uuid[16]) {
     value.SetUUID(uuid);
 
     return *this;

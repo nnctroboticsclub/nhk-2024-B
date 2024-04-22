@@ -109,32 +109,13 @@ static void __attribute__((unused)) remove_all_bonded_devices(void) {
 
 namespace ble_can {
 
-/* static const uint16_t heart_rate_svc = ESP_GATT_UUID_HEART_RATE_SVC; */
-/* const uint8_t heart_rate_svc[16] = {0x7e, 0x5c, 0xfd, 0x53, 0x1f, 0xe5,
+const uint8_t service_uuid[16] = {0x7e, 0x5c, 0xfd, 0x53, 0x1f, 0xe5,
                                   0x82, 0x91, 0x19, 0x4d, 0xda, 0x51,
-                                  0x3e, 0xf2, 0xb6, 0x20}; */
-const uint16_t heart_rate_svc = ESP_GATT_UUID_HEART_RATE_SVC;
-const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
+                                  0x3e, 0xf2, 0xb6, 0x20};
 
-const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
-
-/// Heart Rate Sensor Service - Heart Rate Measurement Characteristic, notify
-static const uint16_t heart_rate_meas_uuid = ESP_GATT_HEART_RATE_MEAS;
-static uint8_t heart_measurement_ccc[2] = {0x00, 0x00};
-
-/// Heart Rate Sensor Service -Body Sensor Location characteristic, read
-static const uint16_t body_sensor_location_uuid = ESP_GATT_BODY_SENSOR_LOCATION;
-static uint8_t body_sensor_loc_val[1] = {0x00};
-
-/// Heart Rate Sensor Service - Heart Rate Control Point characteristic,
-/// write&read
-static const uint16_t heart_rate_ctrl_point = ESP_GATT_HEART_RATE_CNTL_POINT;
-static uint8_t heart_ctrl_point[1] = {0x00};
-
-/* const uint8_t bus_load_uuid[16] = {0x4c, 0x1f, 0x5e, 0x79, 0xb7, 0x5b,
+const uint8_t bus_load_uuid[16] = {0x4c, 0x1f, 0x5e, 0x79, 0xb7, 0x5b,
                                    0x7e, 0xbc, 0x7b, 0x46, 0x7e, 0xcb,
-                                   0x41, 0x1d, 0xef, 0x59}; */
-const uint16_t bus_load_uuid = 0x2a00;
+                                   0x41, 0x1d, 0xef, 0x59};
 uint16_t bus_load_val = 0;
 
 struct bus_packet {
@@ -143,16 +124,14 @@ struct bus_packet {
   uint8_t data[8];
 };
 
-/* const uint8_t bus_rx_uuid[16] = {0xe8, 0x29, 0xe1, 0x89, 0x53, 0x74,
+const uint8_t bus_rx_uuid[16] = {0xe8, 0x29, 0xe1, 0x89, 0x53, 0x74,
                                  0x04, 0xa2, 0xfb, 0x4e, 0x3a, 0x61,
-                                 0xb2, 0x87, 0xff, 0x3e}; */
-const uint16_t bus_rx_uuid = 0x2a01;
+                                 0xb2, 0x87, 0xff, 0x3e};
 bus_packet bus_rx_val;
 
-/* const uint8_t bus_tx_uuid[16] = {0x4e, 0x9d, 0x73, 0xd5, 0x17, 0x62,
+const uint8_t bus_tx_uuid[16] = {0x4e, 0x9d, 0x73, 0xd5, 0x17, 0x62,
                                  0xda, 0x81, 0x04, 0x4c, 0x1a, 0xd6,
-                                 0xf8, 0x7f, 0x07, 0x18}; */
-const uint16_t bus_tx_uuid = 0x2a02;
+                                 0xf8, 0x7f, 0x07, 0x18};
 bus_packet bus_tx_val;
 
 class CANStreamingService : public ble::gatt::Service {
@@ -165,39 +144,38 @@ class CANStreamingService : public ble::gatt::Service {
   CANStreamingService() {}
 
   void Init() override {
-    this->SetServiceUUID(heart_rate_svc);
+    this->SetServiceUUID(service_uuid);
 
     this->AddCharacteristic(
         &(new ble::gatt::Characteristic())
-             ->SetUUID(heart_rate_meas_uuid)
+             ->SetUUID(bus_load_uuid)
+             .SetValue(bus_load_val)
              .SetPermissions(ble::gatt::Attribute::Perm::kRead)
              .SetProperties(ble::gatt::chararacteristic::Prop::kNotify)  //
-             .SetMaxValueLength(13)
-             .AddDescriptor(&(new ble::gatt::Attribute())
-                                 ->SetValue((uint8_t &)heart_measurement_ccc)
-                                 .SetUUID(character_client_config_uuid)
-                                 .SetMaxValueLength(2)
-                                 .SetPermissions(
-                                     ble::gatt::Attribute::Perm::kReadWrite)  //
-                            )                                                 //
+             .SetMaxValueLength(2)
+        /* .AddDescriptor(&(new ble::gatt::Attribute())
+                            ->SetValue((uint8_t &)heart_measurement_ccc)
+                            .SetUUID(ESP_GATT_UUID_CHAR_CLIENT_CONFIG)
+                            .SetMaxValueLength(2)
+                            .SetPermissions(
+                                ble::gatt::Attribute::Perm::kReadWrite)  //
+                       )                                                 // */
     );
 
     this->AddCharacteristic(
         &(new ble::gatt::Characteristic())
-             ->SetUUID(body_sensor_location_uuid)
+             ->SetUUID(bus_rx_uuid)
              .SetPermissions(ble::gatt::Attribute::Perm::kERead)       //
              .SetProperties(ble::gatt::chararacteristic::Prop::kRead)  //
-             .SetValue(body_sensor_loc_val)                            //
-             .SetMaxValueLength(2)                                     //
+             .SetValue(bus_rx_val)                                     //
     );
 
     this->AddCharacteristic(
         &(new ble::gatt::Characteristic())
-             ->SetUUID(heart_rate_ctrl_point)
-             .SetPermissions(ble::gatt::Attribute::Perm::kEReadWrite)  //
-             .SetProperties(ble::gatt::chararacteristic::Prop::kRW)    //
-             .SetValue(heart_ctrl_point)
-             .SetMaxValueLength(2)  //
+             ->SetUUID(bus_tx_uuid)
+             .SetPermissions(ble::gatt::Attribute::Perm::kEReadWrite)     //
+             .SetProperties(ble::gatt::chararacteristic::Prop::kWriteNR)  //
+             .SetValue(bus_rx_val)                                        //
     );
   }
 
