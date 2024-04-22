@@ -54,59 +54,6 @@
 
 #define GATTS_DEMO_CHAR_VAL_LEN_MAX 0x40
 
-/*
- *  Heart Rate PROFILE ATTRIBUTES
- ****************************************************************************************
- */
-
-/// Full HRS Database Description - Used to add attributes into the database
-
-static void show_bonded_devices(void) {
-  int dev_num = esp_ble_get_bond_device_num();
-  if (dev_num == 0) {
-    ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices number zero\n");
-    return;
-  }
-
-  esp_ble_bond_dev_t *dev_list =
-      (esp_ble_bond_dev_t *)malloc(sizeof(esp_ble_bond_dev_t) * dev_num);
-  if (!dev_list) {
-    ESP_LOGI(GATTS_TABLE_TAG, "malloc failed, return\n");
-    return;
-  }
-  esp_ble_get_bond_device_list(&dev_num, dev_list);
-  ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices number : %d", dev_num);
-
-  ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices list : %d", dev_num);
-  for (int i = 0; i < dev_num; i++) {
-    esp_log_buffer_hex(GATTS_TABLE_TAG, (void *)dev_list[i].bd_addr,
-                       sizeof(esp_bd_addr_t));
-  }
-
-  free(dev_list);
-}
-
-static void __attribute__((unused)) remove_all_bonded_devices(void) {
-  int dev_num = esp_ble_get_bond_device_num();
-  if (dev_num == 0) {
-    ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices number zero\n");
-    return;
-  }
-
-  esp_ble_bond_dev_t *dev_list =
-      (esp_ble_bond_dev_t *)malloc(sizeof(esp_ble_bond_dev_t) * dev_num);
-  if (!dev_list) {
-    ESP_LOGI(GATTS_TABLE_TAG, "malloc failed, return\n");
-    return;
-  }
-  esp_ble_get_bond_device_list(&dev_num, dev_list);
-  for (int i = 0; i < dev_num; i++) {
-    esp_ble_remove_bond_device(dev_list[i].bd_addr);
-  }
-
-  free(dev_list);
-}
-
 namespace ble_can {
 
 const uint8_t service_uuid[16] = {0x7e, 0x5c, 0xfd, 0x53, 0x1f, 0xe5,
@@ -118,8 +65,8 @@ const uint8_t bus_load_uuid[16] = {0x4c, 0x1f, 0x5e, 0x79, 0xb7, 0x5b,
                                    0x41, 0x1d, 0xef, 0x59};
 uint16_t bus_load_val = 0;
 
-struct bus_packet {
-  uint8_t op;
+struct BusPacket {
+  uint16_t op;
   uint8_t len;
   uint8_t data[8];
 };
@@ -127,12 +74,12 @@ struct bus_packet {
 const uint8_t bus_rx_uuid[16] = {0xe8, 0x29, 0xe1, 0x89, 0x53, 0x74,
                                  0x04, 0xa2, 0xfb, 0x4e, 0x3a, 0x61,
                                  0xb2, 0x87, 0xff, 0x3e};
-bus_packet bus_rx_val;
+BusPacket bus_rx_val;
 
 const uint8_t bus_tx_uuid[16] = {0x4e, 0x9d, 0x73, 0xd5, 0x17, 0x62,
                                  0xda, 0x81, 0x04, 0x4c, 0x1a, 0xd6,
                                  0xf8, 0x7f, 0x07, 0x18};
-bus_packet bus_tx_val;
+BusPacket bus_tx_val;
 
 class CANStreamingService : public ble::gatt::Service {
   static constexpr const char *TAG = "Profile#CAN";
@@ -165,9 +112,9 @@ class CANStreamingService : public ble::gatt::Service {
     this->AddCharacteristic(
         &(new ble::gatt::Characteristic())
              ->SetUUID(bus_rx_uuid)
-             .SetPermissions(ble::gatt::Attribute::Perm::kERead)       //
-             .SetProperties(ble::gatt::chararacteristic::Prop::kRead)  //
-             .SetValue(bus_rx_val)                                     //
+             .SetPermissions(ble::gatt::Attribute::Perm::kERead)         //
+             .SetProperties(ble::gatt::chararacteristic::Prop::kNotify)  //
+             .SetValue(bus_rx_val)                                       //
     );
 
     this->AddCharacteristic(
