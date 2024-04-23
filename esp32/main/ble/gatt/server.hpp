@@ -27,15 +27,11 @@ class Server {
 
   bool Write(uint16_t dest_handle, std::vector<uint8_t> &value,
              uint16_t offset = 0) {
-    ESP_LOGI(TAG, "OnWrite Callled.");
-    ESP_LOGI(TAG, "dest_handle: %d", dest_handle);
     for (auto &service : *services_) {
       if (service->OnWrite(dest_handle, value, offset)) {
-        ESP_LOGI(TAG, "OnWrite: found service.");
         return true;
       }
     }
-    ESP_LOGE(TAG, "Service Not found...");
     return false;
   }
 };

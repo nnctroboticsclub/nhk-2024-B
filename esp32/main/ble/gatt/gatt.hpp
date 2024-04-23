@@ -99,7 +99,6 @@ class GATT {
         break;
 
       case ESP_GATTS_WRITE_EVT: {
-        ESP_LOGI(TAG, "ESP_GATTS_WRITE_EVT");
         std::vector<uint8_t> data(param->write.value,
                                   param->write.value + param->write.len);
         if (servers_.find(param->write.conn_id) == servers_.end()) {

@@ -20,7 +20,7 @@ struct BusPacket {
   std::uint16_t op;
   std::uint8_t len;
   std::uint8_t data[8];
-};
+} __attribute__((packed));
 
 const std::uint8_t bus_rx_uuid[16] = {0xe8, 0x29, 0xe1, 0x89, 0x53, 0x74,
                                       0x04, 0xa2, 0xfb, 0x4e, 0x3a, 0x61,

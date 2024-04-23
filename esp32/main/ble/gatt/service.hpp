@@ -112,12 +112,9 @@ class Service {
   }
 
   bool OnWrite(uint16_t handle, std::vector<uint8_t> value, uint16_t offset) {
-    ESP_LOGI(TAG, "OnWrite called for handle %d", handle);
     for (auto &characteristic : characteristics) {
       auto &value_attr = characteristic->GetValueAttr();
 
-      ESP_LOGI(TAG, "Checking characteristic, handle=%d to %p",
-               value_attr.GetHandle(), &value_attr);
       if (value_attr.Write(handle, value, offset)) {
         return true;
       }
