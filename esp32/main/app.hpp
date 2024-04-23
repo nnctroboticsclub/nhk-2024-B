@@ -36,6 +36,8 @@
 #include "can_streaming.hpp"
 #include "ble/gap.hpp"
 
+#include <idf-robotics/can_driver.hpp>
+
 /*
  * DEFINES
  ****************************************************************************************
@@ -162,6 +164,10 @@ extern "C" void app_main(void) {
   auto ble = BLE::GetInstance();
 
   ble->Init();
+
+  ble::services::can_driver =
+      std::make_shared<robotics::network::CANDriver>(GPIO_NUM_15, GPIO_NUM_4);
+  ble::services::can_driver->Init();
 
   /* Just show how to clear all the bonded devices
    * Delay 30s, clear all the bonded devices

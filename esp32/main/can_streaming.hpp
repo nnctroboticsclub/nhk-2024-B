@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <esp_log.h>
+#include <idf-robotics/can_driver.hpp>
 
 #include "ble/gatt/service.hpp"
 
@@ -31,6 +32,8 @@ const std::uint8_t bus_tx_uuid[16] = {0x4e, 0x9d, 0x73, 0xd5, 0x17, 0x62,
                                       0xda, 0x81, 0x04, 0x4c, 0x1a, 0xd6,
                                       0xf8, 0x7f, 0x07, 0x18};
 BusPacket bus_tx_val;
+
+std::shared_ptr<robotics::network::CANDriver> can_driver = nullptr;
 
 class CANStreamingService : public ble::gatt::Service {
   static constexpr const char *TAG = "Profile#CAN";
@@ -82,6 +85,11 @@ class CANStreamingService : public ble::gatt::Service {
                    esp_log_buffer_hex(TAG, data.data(), data.size());
 
                    bus_tx_val = *(BusPacket *)data.data();
+                   if (can_driver) {
+                     std::vector<uint8_t> data = {
+                         bus_tx_val.data, bus_tx_val.data + bus_tx_val.len};
+                     can_driver->Send(bus_tx_val.op, data);
+                   }
                  })  //
     );
   }
