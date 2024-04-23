@@ -2,6 +2,7 @@
 
 #include <variant>
 #include <vector>
+#include <functional>
 #include <esp_gatts_api.h>
 
 namespace ble::gatt {
@@ -15,8 +16,12 @@ class Attribute : public esp_gatts_attr_db_t {
     kEReadWrite = ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED,
   };
 
-  uint16_t handle;
+  using OnWriteCallback =
+      std::function<void(std::vector<uint8_t> data, uint16_t offset)>;
+
   uint16_t uuid_16_;
+  uint16_t handle_ = -1;
+  OnWriteCallback on_write_;
 
  public:
   Attribute()
@@ -34,8 +39,11 @@ class Attribute : public esp_gatts_attr_db_t {
                     .length = 0,
                     .value = nullptr,
                 },
-        }, handle(0), uuid_16_(0) {
+        }, uuid_16_(0) {
   }
+
+  Attribute(const Attribute &) = delete;
+  Attribute &operator=(const Attribute &) = delete;
 
   Attribute &SetUUID(const uint16_t uuid) {
     this->uuid_16_ = uuid;
@@ -75,6 +83,41 @@ class Attribute : public esp_gatts_attr_db_t {
     return *this;
   }
 
-  void CollectAttributes(std::vector<Attribute> &db) { db.push_back(*this); }
+  Attribute &SetHandle(uint16_t handle) {
+    ESP_LOGI("Attribute", "SetHandle: %d to %p", handle, this);
+    handle_ = handle;
+    return *this;
+  }
+
+  uint16_t GetHandle() { return handle_; }
+
+  Attribute &SetOnWriteCallback(OnWriteCallback callback) {
+    on_write_ = callback;
+    return *this;
+  }
+
+  bool Write(uint16_t dest_handle, std::vector<uint8_t> &value,
+             uint16_t offset = 0) {
+    if (dest_handle != handle_) {
+      return false;
+    }
+
+    if (on_write_) {
+      on_write_(value, offset);
+    }
+
+    if (att_desc.value) {
+      delete att_desc.value;
+      att_desc.value = nullptr;
+    }
+
+    att_desc.length = value.size();
+    att_desc.value = new uint8_t[value.size()];
+    memcpy(att_desc.value, value.data(), value.size());
+
+    return true;
+  }
+
+  void CollectAttributes(std::vector<Attribute *> &db) { db.push_back(this); }
 };
 }  // namespace ble::gatt

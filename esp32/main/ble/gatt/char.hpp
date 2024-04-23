@@ -3,6 +3,7 @@
 #include "attr.hpp"
 
 #include <cstdint>
+#include <algorithm>
 
 #include <vector>
 
@@ -60,11 +61,14 @@ std::uint8_t& PropToRef(Prop prop) {
 }
 
 class Characteristic {
- public:
   Attribute declare;
   Attribute value;
 
-  std::vector<Attribute> descriptors;
+  std::vector<std::unique_ptr<Attribute>> descriptors;
+  std::vector<esp_gatt_if_t> interfaces;
+
+ public:
+  void IndicateValue() {}
 
  public:
   Characteristic() : declare(), value(), descriptors() {
@@ -72,6 +76,9 @@ class Characteristic {
         .SetPermissions(Attribute::Perm::kRead)
         .SetMaxValueLength(2);
   }
+
+  Characteristic(const Characteristic&) = delete;
+  Characteristic& operator=(const Characteristic&) = delete;
 
   Characteristic& SetProperties(Prop properties) {
     declare.SetValue(PropToRef(properties)).SetMaxValueLength(2);
@@ -111,18 +118,31 @@ class Characteristic {
   }
 
   Characteristic& AddDescriptor(Attribute* desc) {
-    descriptors.push_back(*desc);
+    descriptors.push_back(std::unique_ptr<Attribute>(desc));
 
     return *this;
   }
 
-  void CollectAttributes(std::vector<Attribute>& db) {
+  bool Write(uint16_t dest_handle, std::vector<uint8_t>& value,
+             uint16_t offset = 0) {
+    return this->value.Write(dest_handle, value, offset);
+  }
+
+  Attribute& GetValueAttr() { return value; }
+
+  Characteristic& SetOnWriteCallback(Attribute::OnWriteCallback callback) {
+    value.SetOnWriteCallback(callback);
+
+    return *this;
+  }
+
+  void CollectAttributes(std::vector<Attribute*>& db) {
     declare.CollectAttributes(db);
 
     value.CollectAttributes(db);
 
     for (auto& desc : descriptors) {
-      desc.CollectAttributes(db);
+      desc->CollectAttributes(db);
     }
   }
 };

@@ -1,0 +1,97 @@
+#pragma once
+
+#include <string>
+#include <cstring>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+#include <robotics/network/dcan.hpp>
+#include <idf-robotics/can_driver.hpp>
+
+class App {
+  static constexpr const char* TAG = "App";
+  static constexpr int kAppId = 0;
+
+  robotics::network::DistributedCAN can_;
+
+ public:
+  App()
+      : can_(5, std::make_shared<robotics::network::CANDriver>(GPIO_NUM_15,
+                                                               GPIO_NUM_4)) {}
+
+  void Init() {
+    ESP_LOGI(TAG, "Initializing app");
+    ESP_LOGI(TAG, "- CAN");
+    can_.Init();
+
+    can_.OnRx([](uint32_t id, std::vector<uint8_t> const& data) {
+      ESP_LOGI(TAG, "Received message with ID %lx", id);
+    });
+
+    ESP_LOGI(TAG, "- NVS");
+    nvs_flash_erase();
+    if (nvs_flash_init() != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to initialize NVS");
+    }
+
+    ESP_LOGI(TAG, "- BLE");
+    esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
+
+    ESP_LOGI(TAG, "  - Init");
+    esp_bt_controller_config_t bt_ctrl_config =
+        BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    if (esp_bt_controller_init(&bt_ctrl_config) != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to initialize BT controller");
+    }
+
+    ESP_LOGI(TAG, "  - Enable");
+    if (esp_bt_controller_enable(ESP_BT_MODE_BLE) != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to enable BT controller");
+    }
+
+    ESP_LOGI(TAG, "- Bluedroid");
+
+    ESP_LOGI(TAG, "  - Init");
+    esp_bluedroid_config_t bd_config = BT_BLUEDROID_INIT_CONFIG_DEFAULT();
+    if (esp_bluedroid_init_with_cfg(&bd_config) != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to initialize Bluedroid");
+    }
+
+    ESP_LOGI(TAG, "  - Enable");
+    if (esp_bluedroid_enable() != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to enable Bluedroid");
+    }
+
+    ESP_LOGI(TAG, "- BLE GATT");
+    if (esp_ble_gatts_register_callback(gatt::EventHandler) != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to register GATT callback");
+    }
+
+    ESP_LOGI(TAG, "- BLE GAP");
+    if (esp_ble_gap_register_callback(App::GAP_callback) != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to register GAP callback");
+    }
+
+    ESP_LOGI(TAG, "- BLE GATT App register");
+    if (esp_ble_gatts_app_register(kAppId) != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to register GATT app");
+    }
+
+    ESP_LOGI(TAG, "- BLE GATT MTU");
+    if (esp_ble_gatt_set_local_mtu(500) != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to set local MTU");
+    }
+
+    // esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, ESP_PWR_LVL_P9);
+
+    ESP_LOGI(TAG, "App initialized");
+  }
+
+  void Main() {
+    ESP_LOGI(TAG, "Entering main loop");
+    while (1) {
+      vTaskDelay(pdMS_TO_TICKS(100));
+    }
+  }
+};
