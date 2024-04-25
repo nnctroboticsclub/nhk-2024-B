@@ -1,5 +1,7 @@
 #include "app.hpp"
 
+#include <robotics/node/node_inspector.hpp>
+
 class App::Impl {
   Config config_;
 
@@ -34,8 +36,14 @@ class App::Impl {
   }
 
   void MainThread() {
+    robotics::Node<int> count;
     int i = 0;
     while (1) {
+      if (i % 1000 == 0) {
+        printf("Count: %d\n", i);
+        count.SetValue(i);
+      }
+
       if (i % 10) {
         /* com->can_.SendKeepAlive(); */
       }
@@ -68,6 +76,10 @@ class App::Impl {
     printf("\e[1;32m|\e[m \e[32m-\e[m COM\n");
     com->Init();
     if (config_.can1_debug) com->AddCAN1Debug();
+
+    printf("\e[1;32m|\e[m \e[32m-\e[m Node Inspector\n");
+    robotics::node::NodeInspector::can =
+        std::shared_ptr<robotics::network::DistributedCAN>(&com->can_);
 
     printf("\e[1;32m+\e[m   \e[33m+\e[m\n");
 
