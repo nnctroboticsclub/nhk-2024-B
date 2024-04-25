@@ -9,17 +9,37 @@
 #include "service.hpp"
 #include "server.hpp"
 
+#include "connection.hpp"
+
 namespace ble::gatt {
-class GATT {
+class GATT : public Connections {
   static constexpr const char *TAG = "GATT!";
   std::shared_ptr<std::vector<std::unique_ptr<Service>>> services_;
-  std::unordered_map<uint16_t, std::unique_ptr<Server>> servers_;
+  std::unordered_map<uint16_t, std::shared_ptr<Server>> servers_;
   const char *device_name = "ESP32";
 
  public:
   GATT()
       : services_(std::make_shared<std::vector<std::unique_ptr<Service>>>()),
         servers_() {}
+
+  void Each(
+      std::function<void(std::shared_ptr<Connection>)> callback) override {
+    std::vector<uint16_t> conn_ids{};
+    for (auto &&[conn_id, server] : servers_) {
+      conn_ids.push_back(conn_id);
+    }
+
+    for (auto conn_id : conn_ids) {
+      if (servers_.find(conn_id) == servers_.end()) {
+        ESP_LOGE(TAG, "Server not found for conn_id %d", conn_id);
+        continue;
+      }
+
+      callback(servers_[conn_id]);
+    }
+  }
+
   void AddService(std::unique_ptr<Service> profile) {
     if (!profile->initialized) {
       ESP_LOGW(TAG, "Service not initialized, initializing");
@@ -80,7 +100,7 @@ class GATT {
         ESP_LOGI(TAG, "ESP_GATTS_CONNECT_EVT");
 
         auto server = std::make_unique<Server>(services_);
-        server->OnConnect(param);
+        server->OnConnect(gatts_if, param);
 
         servers_[param->connect.conn_id] = std::move(server);
 
@@ -110,6 +130,9 @@ class GATT {
                                               param->write.offset);
         break;
       }
+
+      case ESP_GATTS_CONF_EVT:
+        break;
 
       default:
         ESP_LOGE(TAG, "Unhandled GATT event %d", event);

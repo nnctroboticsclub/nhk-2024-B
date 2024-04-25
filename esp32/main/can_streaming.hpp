@@ -5,6 +5,7 @@
 #include <idf-robotics/can_driver.hpp>
 
 #include "ble/gatt/service.hpp"
+#include "ble/ble.hpp"
 
 namespace ble::services {
 
@@ -41,6 +42,8 @@ class CANStreamingService : public ble::gatt::Service {
     kIdxSvc,
   };
 
+  ble::gatt::Characteristic *rx_char = nullptr;
+
  public:
   void Init() override {
     this->SetServiceUUID(service_uuid);
@@ -61,13 +64,38 @@ class CANStreamingService : public ble::gatt::Service {
                        )                                                 // */
     );
 
-    this->AddCharacteristic(
+    rx_char =
         &(new ble::gatt::Characteristic())
              ->SetUUID(bus_rx_uuid)
              .SetPermissions(ble::gatt::Attribute::Perm::kERead)         //
              .SetProperties(ble::gatt::chararacteristic::Prop::kNotify)  //
-             .SetValue(bus_rx_val)                                       //
-    );
+             .SetValue(bus_rx_val);
+
+    can_driver->OnRx([this](std::uint16_t op, std::vector<std::uint8_t> data) {
+      bus_rx_val.op = op;
+      bus_rx_val.len = data.size();
+      std::copy(data.begin(), data.end(), bus_rx_val.data);
+
+      std::stringstream ss;
+      ss << "Received CAN packet: op=" << op << ", len=" << data.size()
+         << ", data=";
+      for (auto &byte : data) {
+        ss << " " << std::hex << std::setw(2) << std::setfill('0') << (int)byte;
+      }
+      ESP_LOGI(TAG, "%s", ss.str().c_str());
+
+      ble::BLE::GetInstance()->gatt.Each(
+          [this](std::shared_ptr<ble::gatt::Connection> conn) {
+            if (!conn) {
+              ESP_LOGW(TAG, "Connection is null");
+              return;
+            }
+            conn->Notify(rx_char->GetValueAttr().GetHandle(),
+                         (uint8_t *)&bus_rx_val, sizeof(BusPacket));
+          });
+    });
+
+    this->AddCharacteristic(rx_char);
 
     this->AddCharacteristic(
         &(new ble::gatt::Characteristic())
