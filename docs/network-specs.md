@@ -42,7 +42,8 @@ graph LR
 | 1 | 0 | 1 | 0 | 0 | 1 | 1 |Dev|   |   |   |Ping                |
 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |Keep Alive (IC)     |
 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 1 |Keep Alive (CTRL)   |
-| 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | x |N/A                 |
+| 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 0 |Keep Alive (Debug)  |
+| 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 1 |N/A                 |
 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 1 | x | x |N/A                 |
 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 1 | x | x | x |N/A                 |
 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | x | x | x | x |N/A                 |
@@ -81,3 +82,44 @@ graph LR
 |  1  |  0  |  x  |     |     |     |     |     | N/A                   | ^ |>  |>  |>  |>  |>  |>  | - |
 |  1  |  1  |  x  |     |     |     |     |     | N/A                   | ^ |>  |>  |>  |>  |>  |>  | - |
 
+
+## Bluetooth sequence
+
+```mermaid
+sequenceDiagram
+  participant BLE as BT Stack
+  participant GAT as GATT
+  participant SRV as Server
+  participant SVC as Service
+  participant Chr as Characteristic
+  participant Att as Attribute
+
+  note over GAT: Initialization
+  GAT->>SVC: Add Service
+  SVC->>Chr: Add Characteristic
+  Chr->>Att: Add Attribute
+
+  note over BLE: Register
+  BLE->>GAT: Register
+  GAT->>SVC: Register Service with GATTs IF
+  SVC->>BLE: Register Attribute table
+  BLE->>GAT: Notify Handle IDs
+  GAT->>SVC: ;
+  SVC->>Att: ;
+
+  note over BLE, Att: Connection
+  BLE->> GAT: Connect
+  GAT->>+SRV: ;
+  SRV->>-GAT: Collect
+
+  note over BLE, Att: Write
+  BLE->>GAT: Write
+  GAT->>SRV: Write
+  SRV->>SVC: Write with switching
+
+  note over BLE, Att: Notify
+  SVC->>GAT: Changed
+  GAT->>SRV: ;
+  SRV->>BLE: Notify
+
+```
