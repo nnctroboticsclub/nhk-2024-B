@@ -11,19 +11,19 @@ class App::Impl {
   std::unique_ptr<Communication> com;
 
   //* EMC
-  std::shared_ptr<robotics::utils::EMC> emc;
-  robotics::node::DigitalOut emc_out;
+  std::shared_ptr<robotics::utils::EMC> emc =
+      std::make_shared<robotics::utils::EMC>();
+  robotics::node::DigitalOut emc_out{
+      std::make_shared<robotics::driver::Dout>(PC_1)};
 
   //* Components
   //! some
 
-  Thread *main_thread;
+  //* Threads
+  std::shared_ptr<Thread> main_thread;
 
  public:
-  Impl(App::Config &config)
-      : com(std::make_unique<Communication>(config.com)),
-        emc(std::make_shared<robotics::utils::EMC>()),
-        emc_out(std::make_shared<robotics::driver::Dout>(PC_1)) {
+  Impl(App::Config &config) : com(std::make_unique<Communication>(config.com)) {
     auto keep_alive = emc->AddNode();
     this->com->can_.OnKeepAliveLost([keep_alive]() {
       printf("EMC(CAN) setted to %d\n", false);
@@ -35,26 +35,21 @@ class App::Impl {
     });
   }
 
-  void MainThread() {
+  [[noreturn]] void MainThread() {
     robotics::Node<int> count;
     int i = 0;
-    while (1) {
-      if (i % 1000 == 0) {
-        printf("Count: %d\n", i);
-        count.SetValue(i);
-      }
-
-      if (i % 10) {
-        /* com->can_.SendKeepAlive(); */
-      }
+    while (true) {
+      printf("Count: %d\n", i);
+      count.SetValue(i);
 
       i++;
 
-      ThisThread::sleep_for(1ms);
+      ThisThread::sleep_for(1s);
     }
   }
-  void ReportThread() {
-    while (1) {
+
+  [[noreturn]] void ReportThread() {
+    while (true) {
       com->SendNonReactiveValues();
       com->Report();
 
@@ -63,25 +58,25 @@ class App::Impl {
   }
 
   void Init() {
-    printf("\e[1;32m-\e[m Init\n");
+    printf("\x1b[1;32m-\x1b[m Init\n");
 
-    printf("\e[1;32m|\e[m \e[32m-\e[m Main Thread\n");
-    main_thread = new Thread(osPriorityNormal, 1024 * 4);
+    printf("\x1b[1;32m|\x1b[m \x1b[32m-\x1b[m Main Thread\n");
+    main_thread = std::make_shared<Thread>(osPriorityNormal, 1024 * 4);
     main_thread->start(callback(this, &App::Impl::MainThread));
 
-    printf("\e[1;32m|\e[m \e[32m-\e[m EMC\n");
+    printf("\x1b[1;32m|\x1b[m \x1b[32m-\x1b[m EMC\n");
     emc->output.Link(emc_out);
     emc->Init();
 
-    printf("\e[1;32m|\e[m \e[32m-\e[m COM\n");
+    printf("\x1b[1;32m|\x1b[m \x1b[32m-\x1b[m COM\n");
     com->Init();
     if (config_.can1_debug) com->AddCAN1Debug();
 
-    printf("\e[1;32m|\e[m \e[32m-\e[m Node Inspector\n");
-    robotics::node::NodeInspector::can =
-        std::shared_ptr<robotics::network::DistributedCAN>(&com->can_);
+    printf("\x1b[1;32m|\x1b[m \x1b[32m-\x1b[m Node Inspector\n");
+    robotics::node::NodeInspector::RegisterCAN(
+        std::shared_ptr<robotics::network::DistributedCAN>(&com->can_));
 
-    printf("\e[1;32m+\e[m   \e[33m+\e[m\n");
+    printf("\x1b[1;32m+\x1b[m   \x1b[33m+\x1b[m\n");
 
     com->SetStatus(robotics::network::DistributedCAN::Statuses::kReady);
   }
