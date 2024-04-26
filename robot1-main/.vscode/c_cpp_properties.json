@@ -1,6 +1,10 @@
 {
     "configurations": [
         {
+            "name": "Compile DB",
+            "compileCommands": "${workspaceFolder}/compile_commands.json",
+        }
+        {
             "name": "Nucleo F446RE",
             "includePath": [
                 "${workspaceFolder}/**",
