@@ -7,5 +7,6 @@
     "tsconfig.json": "tsconfig.*.json",
     "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb",
     ".mbed": "*.lib, mbed_app.json, mbed_settings.py"
-  }
+  },
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json"
 }
