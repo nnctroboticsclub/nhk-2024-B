@@ -2,13 +2,13 @@
     "configurations": [
         {
             "name": "Compile DB",
-            "compileCommands": "${workspaceFolder}/BUILD/compile_commands.json",
+            "compileCommands": "${workspaceFolder}/compile_commands.json"
         },
         {
             "name": "Nucleo F446RE",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/mbed-os/rtos/include",
+                "${workspaceFolder}/mbed-os/rtos/include"
             ],
             "defines": [
                 "DEVICE_CAN",

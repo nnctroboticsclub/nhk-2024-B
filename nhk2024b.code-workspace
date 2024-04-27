@@ -1,18 +1,23 @@
 {
 	"folders": [
 		{
+			"name": "nhk-2024-b",
 			"path": "."
 		},
 		{
+			"name": "robot1-main",
 			"path": "robot1-main"
 		},
 		{
+			"name": "robot-bridge",
 			"path": "robot-bridge"
 		},
 		{
+			"name": "robot-collect",
 			"path": "robot-collect"
 		},
 		{
+			"name": "esp32",
 			"path": "esp32"
 		}
 	],
