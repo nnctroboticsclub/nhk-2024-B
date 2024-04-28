@@ -34,7 +34,7 @@ void Communication::SendNonReactiveValues() {
 void Communication::Init() { InitCAN(); }
 
 void Communication::SetStatus(
-    robotics::network::DistributedCAN::Statuses status) {
+    robotics::network::can_module::Status::Statuses status) {
   can_.SetStatus(status);
 }
 
