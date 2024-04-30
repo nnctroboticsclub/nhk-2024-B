@@ -42,7 +42,7 @@ class Communication {
 
   void SendNonReactiveValues();
   void Init();
-  void SetStatus(robotics::network::DistributedCAN::Statuses status);
+  void SetStatus(robotics::network::can_module::Status::Statuses status);
   void AddCAN1Debug();
   void Report();
 };

@@ -71,7 +71,7 @@ class App::Impl {
 
     printf("\e[1;32m+\e[m   \e[33m+\e[m\n");
 
-    com->SetStatus(robotics::network::DistributedCAN::Statuses::kReady);
+    com->SetStatus(robotics::network::can_module::Status::Statuses::kReady);
   }
 };
 
