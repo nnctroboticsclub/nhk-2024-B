@@ -22,7 +22,6 @@ class App {
 
   Impl* impl;
 
- public:
   App(Config& config);
 
   void Init();
