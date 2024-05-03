@@ -10,8 +10,8 @@ import bleak.backends.descriptor
 
 from textual.events import Callback
 from textual.widget import Widget
-from textual.containers import Container, Horizontal, VerticalScroll
-from textual.widgets import Tree, Input, RichLog
+from textual.containers import Container, Horizontal, VerticalScroll, Vertical
+from textual.widgets import Tree, Input, RichLog, TabbedContent, TabPane, Markdown
 from textual.reactive import reactive
 from textual.app import App, ComposeResult
 
@@ -37,22 +37,6 @@ def get_options():
     return {
         "mac": mac,
     }
-
-
-class CharacteristicsWidget(Widget):
-    def __init__(self, client: bleak.BleakClient):
-        super().__init__()
-
-        self.client = client
-
-    def compose(self) -> ComposeResult:
-        tree = Tree("Characteristics")
-        for s in self.client.services:
-            service = tree.root.add(f"{s.uuid} ({s.description})", expand=True)
-            for c in s.characteristics:
-                service.add_leaf(f"{c.uuid} ({c.properties})")
-
-        yield tree
 
 
 class BusLoadWidget(Widget):
@@ -186,18 +170,22 @@ class DebuggerApp(App):
         self.client = client
 
     def compose(self) -> ComposeResult:
-        with Horizontal():
-            yield CharacteristicsWidget(self.client)
-            with VerticalScroll():
-                with Horizontal(id="can-topbar"):
-                    yield DebuggerKeepAliveWidget(self.client)
-                    yield BusLoadWidget(self.client)
-                yield CANTxWidget(self.client)
-                yield CANRxWidget(self.client)
+        with TabbedContent():
+            with TabPane("BLE"):
+                tree = Tree("Characteristics")
+                for s in self.client.services:
+                    service = tree.root.add(f"{s.uuid} ({s.description})", expand=True)
+                    for c in s.characteristics:
+                        service.add_leaf(f"{c.uuid} ({c.properties})")
 
-    def on_input_changed(self, event: Input.Changed) -> None:
-        pass
-        # self.query_one(Name).who = event.value
+                yield tree
+            with TabPane("Debugger"):
+                with Vertical():
+                    with Horizontal(id="can-topbar"):
+                        yield DebuggerKeepAliveWidget(self.client)
+                        yield BusLoadWidget(self.client)
+                    yield CANTxWidget(self.client)
+                    yield CANRxWidget(self.client)
 
 
 class CANDebugger:
