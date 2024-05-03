@@ -34,6 +34,11 @@ const std::uint8_t bus_tx_uuid[16] = {0x4e, 0x9d, 0x73, 0xd5, 0x17, 0x62,
                                       0xf8, 0x7f, 0x07, 0x18};
 BusPacket bus_tx_val;
 
+const std::uint8_t keep_alive_uuid[16] = {0x39, 0x77, 0xce, 0x67, 0x5d, 0x56,
+                                          0x7e, 0x82, 0x0b, 0x43, 0x67, 0x5f,
+                                          0x82, 0x2e, 0xbb, 0x39};
+int keep_alive;
+
 std::shared_ptr<robotics::network::CANDriver> can_driver = nullptr;
 
 class CANStreamingService : public ble::gatt::Service {
@@ -119,6 +124,14 @@ class CANStreamingService : public ble::gatt::Service {
                      can_driver->Send(bus_tx_val.op, data);
                    }
                  })  //
+    );
+
+    this->AddCharacteristic(
+        &(new ble::gatt::Characteristic())
+             ->SetUUID(keep_alive_uuid)
+             .SetPermissions(ble::gatt::Attribute::Perm::kWrite)
+             .SetProperties(ble::gatt::chararacteristic::Prop::kWrite)  //
+             .SetValue(keep_alive)                                      //
     );
   }
 };

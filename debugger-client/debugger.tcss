@@ -1,0 +1,58 @@
+Screen {
+    align: center middle;
+}
+
+CharacteristicsWidget {
+    width: 80;
+
+    background: $panel;
+    color: $text;
+
+    content-align: center middle;
+    dock: left;
+
+    margin: 0 2 0 0;
+}
+
+#can-topbar {
+    width: 100%;
+    height: 5;
+    opacity: 0.5;
+    background: $panel;
+    color: $text;
+    border: $secondary tall;
+    content-align: center middle;
+    margin: 0 0 1 0;
+}
+
+DebuggerKeepAliveWidget {
+    width: 50%;
+    height: 3;
+    background: $panel;
+    color: $text;
+    border: $secondary tall;
+    content-align: center middle;
+}
+
+BusLoadWidget {
+    width: 50%;
+    height: 3;
+    background: $panel;
+    color: $text;
+    border: $secondary tall;
+    content-align: center middle;
+}
+
+CANTxWidget {
+    height: 3;
+    background: $boost;
+    content-align: center middle;
+    margin: 1 2 0 1;
+}
+
+CANRxWidget {
+    height: 15;
+    background: $boost;
+    content-align: center middle;
+    margin: 0 0 0 2;
+}

@@ -38,7 +38,7 @@ int main_pro() {
 
                          .value_store_config = {},
                      },
-                     .can1_debug = false};
+                     .can1_debug = true};
 
   App app(config);
   app.Init();
