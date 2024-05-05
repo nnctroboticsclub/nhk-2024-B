@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
-import threading
+import logging
+from typing import Callable
 import bleak
 import asyncio
 import struct
@@ -8,10 +9,9 @@ import bleak.backends
 import bleak.backends.characteristic
 import bleak.backends.descriptor
 
-from textual.events import Callback
 from textual.widget import Widget
-from textual.containers import Container, Horizontal, VerticalScroll, Vertical
-from textual.widgets import Tree, Input, RichLog, TabbedContent, TabPane, Markdown
+from textual.containers import Horizontal, Vertical
+from textual.widgets import Tree, Input, RichLog, TabbedContent, TabPane, Label
 from textual.reactive import reactive
 from textual.app import App, ComposeResult
 
@@ -39,35 +39,106 @@ def get_options():
     }
 
 
-class BusLoadWidget(Widget):
-    def __init__(self, client: bleak.BleakClient):
-        super().__init__()
+class Client:
+    logger = logging.getLogger("CAN Debugger")
 
-        self.text = reactive("XXX")
-        self.client = client
+    def __init__(self):
+        self.ble: bleak.BleakClient | None = None
+        self.bus_load = reactive("XXX")
+        self.connected = reactive(False)
 
-    async def on_mount(self):
-        await self.client.start_notify(
-            "59ef1d41-cb7e-467b-bc7e-5bb7795e1f4c", self.bus_load
+        self.can_rx_cb: list[Callable[[str, bytearray], None]] = []
+
+        self.keep_alive_task = asyncio.create_task(self.debugger_keep_alive_task())
+
+    async def connect(self, mac):
+        if self.ble is not None:
+            raise RuntimeError("Already connected")
+
+        self.ble = bleak.BleakClient(mac)
+
+        self.logger.info("Connecting...")
+        if self.ble.is_connected:
+            self.logger.info("Already connected!")
+        else:
+            self.logger.info("Not connected, attempting to connect...")
+            await self.ble.connect()
+        self.logger.info("Connected")
+        self.connected = True
+
+        self.logger.debug("Adding notify handlers")
+        await self.ble.start_notify(
+            "59ef1d41-cb7e-467b-bc7e-5bb7795e1f4c", self.on_bus_load
+        )
+        await self.ble.start_notify(
+            "3eff87b2-613a-4efb-a204-745389e129e8", self.on_can_rx_received
+        )
+        self.logger.debug("Initializing done")
+
+    def on_bus_load(self, sensor, value: bytearray):
+        self.bus_load = f"{value}"
+
+    def on_can_rx_received(self, sensor, value: bytearray):
+        msg_id, msg_len, msg_data = CAN_BUS_DATA_FORMAT.unpack(value)
+        msg_data = msg_data[:msg_len]
+        for cb in self.can_rx_cb:
+            cb(msg_id, msg_data)
+
+    def on_can_rx(self, cb: Callable[[str, bytearray], None]):
+        self.can_rx_cb.append(cb)
+
+    async def debugger_keep_alive_task(self):
+        while True:
+            await asyncio.sleep(1)
+
+            if not self.connected:
+                continue
+
+            try:
+                await self.send_can_packet(0x0542, b"\x55")
+            except Exception as e:
+                continue
+
+    async def send_can_packet(self, id: int, data: bytes):
+        if len(data) > 8:
+            raise ValueError("Data length must be <= 8")
+
+        if id > 0x7FF:
+            raise ValueError("ID must be <= 0x7FF")
+
+        if self.ble is None:
+            raise RuntimeError("Not connected")
+
+        logging.debug(f"Sending CAN packet: {id:03x} ({len(data)}): {data.hex()}")
+
+        packet = CAN_BUS_DATA_FORMAT.pack(id, len(data), data)
+        await self.ble.write_gatt_char(
+            "18077ff8-d61a-4c04-81da-6217d5739d4e",
+            packet,
         )
 
-    def bus_load(self, sensor, value: bytearray):
-        self.text = f"{value}"
+
+class BusLoadWidget(Widget):
+    def __init__(self, client: Client):
+        super().__init__()
+
+        self.client = client
 
     def render(self) -> str:
-        return f"BUs Load: {self.text}"
+        return f"Load: {self.client.bus_load}"
 
 
 class CANTxWidget(Widget):
     error = reactive("")
 
-    def __init__(self, client: bleak.BleakClient):
+    def __init__(self, client: Client):
         super().__init__()
 
         self.client = client
 
     def compose(self) -> ComposeResult:
         yield Input(placeholder="CAN message (ID: Data)")
+        yield Label(self.error)
 
     async def send(self, text: str):
         # Parse input
@@ -92,15 +163,12 @@ class CANTxWidget(Widget):
         # Construct packet
         msg_id_int = int(msg_id, 16)
         msg_bytes = bytearray.fromhex(msg_data)
-        packet = bytearray(
-            CAN_BUS_DATA_FORMAT.pack(msg_id_int, len(msg_bytes), msg_bytes)
-        )
 
-        # Send packet
-        await self.client.write_gatt_char(
-            "18077ff8-d61a-4c04-81da-6217d5739d4e",
-            packet,
-        )
+        try:
+            await self.client.send_can_packet(msg_id_int, msg_bytes)
+        except Exception as e:
+            self.error = f"Failed to send CAN message: {e}"
+            return
 
         self.query_one(Input).value = ""
 
@@ -112,59 +180,25 @@ class CANTxWidget(Widget):
 
 
 class CANRxWidget(Widget):
-    def __init__(self, client: bleak.BleakClient):
+    def __init__(self, client: Client):
         super().__init__()
 
         self.can_rx_log = RichLog()
         self.client = client
 
-    async def on_mount(self):
-        await self.client.start_notify(
-            "3eff87b2-613a-4efb-a204-745389e129e8", self.can_rx
-        )
+        self.client.on_can_rx(self.on_can_rx)
 
-    def can_rx(self, sensor, value: bytearray):
-        msg_id, msg_len, msg_data = CAN_BUS_DATA_FORMAT.unpack(value)
-        msg_data = msg_data[:msg_len]
-        self.can_rx_log.write(f"{msg_id:03x}: {msg_data.hex()} ({msg_len})")
+    def on_can_rx(self, msg_id, msg_data):
+        self.can_rx_log.write(f"{msg_id:03x}: {msg_data.hex()} ({len(msg_data)})")
 
     def compose(self) -> ComposeResult:
         yield self.can_rx_log
 
 
-class DebuggerKeepAliveWidget(Widget):
-    counter = reactive(0)
-
-    def __init__(self, client: bleak.BleakClient):
-        super().__init__()
-
-        self.client = client
-
-    async def task(self):
-        while True:
-            try:
-                await self.client.write_gatt_char(
-                    "18077ff8-d61a-4c04-81da-6217d5739d4e",
-                    bytearray(struct.pack("<hb8s", 0x0542, 0x01, b"\x55")),
-                )
-            except Exception as e:
-                print(f"Failed to send keep-alive: {e}")
-                self.counter = -1
-                return
-            self.counter += 1
-            await asyncio.sleep(1)
-
-    async def on_mount(self):
-        asyncio.create_task(self.task())
-
-    def render(self) -> str:
-        return f"Sent {self.counter} keep-alive messages"
-
-
 class DebuggerApp(App):
     CSS_PATH = "debugger.tcss"
 
-    def __init__(self, client: bleak.BleakClient):
+    def __init__(self, client: Client):
         super().__init__()
 
         self.client = client
@@ -172,17 +206,21 @@ class DebuggerApp(App):
     def compose(self) -> ComposeResult:
         with TabbedContent():
             with TabPane("BLE"):
-                tree = Tree("Characteristics")
-                for s in self.client.services:
-                    service = tree.root.add(f"{s.uuid} ({s.description})", expand=True)
-                    for c in s.characteristics:
-                        service.add_leaf(f"{c.uuid} ({c.properties})")
+                if self.client.ble is None:
+                    yield Label("Not connected")
+                else:
+                    tree = Tree("Characteristics")
+                    for s in self.client.ble.services:
+                        service = tree.root.add(
+                            f"{s.uuid} ({s.description})", expand=True
+                        )
+                        for c in s.characteristics:
+                            service.add_leaf(f"{c.uuid} ({c.properties})")
 
-                yield tree
+                    yield tree
             with TabPane("Debugger"):
                 with Vertical():
                     with Horizontal(id="can-topbar"):
-                        yield DebuggerKeepAliveWidget(self.client)
                         yield BusLoadWidget(self.client)
                     yield CANTxWidget(self.client)
                     yield CANRxWidget(self.client)
@@ -256,13 +294,26 @@ class CANDebugger:
             )
 
 
+async def client_test():
+    options = get_options()
+
+    client = Client()
+    await client.connect(options["mac"])
+
+    await client.send_can_packet(0x0542, b"\x55")
+
+    await asyncio.sleep(1)
+
+
 async def run_gui():
     options = get_options()
 
-    device = bleak.BleakClient(options["mac"])
+    client = Client()
     try:
-        await device.connect()
-        app = DebuggerApp(device)
+        print("Connecting...")
+        await client.connect(options["mac"])
+        print("Connecting... [ done ]")
+        app = DebuggerApp(client)
         await app.run_async()
     except Exception as e:
         print(f"Failed to connect to {options['mac']}: {e}")
@@ -270,4 +321,9 @@ async def run_gui():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)7s] %(name)-35s: %(message)s",
+    )
     asyncio.run(run_gui())
+    # asyncio.run(client_test())
