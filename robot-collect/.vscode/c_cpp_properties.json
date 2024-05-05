@@ -3,12 +3,16 @@
         {
             "name": "Compile DB",
             "compileCommands": "${workspaceFolder}/compile_commands.json",
+            "includePath": [
+                "${default}",
+                "/workspaces/nhk-2024-B/syoch-robotics/libs/common"
+            ]
         },
         {
             "name": "Nucleo F446RE",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/mbed-os/rtos/include",
+                "${workspaceFolder}/mbed-os/rtos/include"
             ],
             "defines": [
                 "DEVICE_CAN",

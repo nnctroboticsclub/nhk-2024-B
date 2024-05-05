@@ -8,5 +8,6 @@
     "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb",
     ".mbed": "*.lib, mbed_app.json, mbed_settings.py",
     "Makefile": "compile_commands.json, mbed_config.h"
-  }
+  },
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/robot-collect/compile_commands.json"
 }
