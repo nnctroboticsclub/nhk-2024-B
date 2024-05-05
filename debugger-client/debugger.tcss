@@ -1,0 +1,33 @@
+Screen {
+    align: center middle;
+}
+
+#can-topbar {
+    width: 100%;
+    background: $panel;
+    content-align: center middle;
+}
+
+DebuggerKeepAliveWidget {
+    width: 33%;
+    background: $panel;
+}
+
+BusLoadWidget {
+    width: 66%;
+    background: $panel;
+}
+
+CANTxWidget {
+    height: 3;
+    background: $boost;
+    content-align: center middle;
+    margin: 1 2 0 1;
+}
+
+CANRxWidget {
+    height: 15;
+    background: $boost;
+    content-align: center middle;
+    margin: 0 0 0 2;
+}
