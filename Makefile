@@ -23,3 +23,14 @@ $(eval $(call STM32_DefineRules,s2,$(ESP32_IP),$(S2_LOG_TAG),$(PWD)/robot-bridge
 E_SKIP_COMPILE ?= 0
 $(eval $(call ESP32_DefineRules,e,$(PWD)/esp32,$(E_SKIP_COMPILE)))
 
+ds1:
+	git switch robot-main
+	PATH=$(PATH):/opt/gcc-arm-none-eabi-10.3-2021.10/bin $(MAKE) -C robot1-main -j 12
+
+ds2:
+	git switch robot-bridge
+	PATH=$(PATH):/opt/gcc-arm-none-eabi-10.3-2021.10/bin $(MAKE) -C robot-bridge -j 12
+
+ds3:
+	git switch robot-collect
+	PATH=$(PATH):/opt/gcc-arm-none-eabi-10.3-2021.10/bin $(MAKE) -C robot-collect -j 12
