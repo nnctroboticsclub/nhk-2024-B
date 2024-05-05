@@ -96,6 +96,8 @@ class BLE {
       return;
     }
 
+    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, ESP_PWR_LVL_P9);
+
     /* set the security iocap & auth_req & key size & init key response key
      * parameters to the stack*/
     gap.InitSecurity();

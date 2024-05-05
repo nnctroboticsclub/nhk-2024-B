@@ -21,8 +21,8 @@ class GAP {
       0x51, 0x41, 0x7e, 0x40, 0xc5, 0x52, 0xf6, 0x92};
 
   esp_ble_adv_params_t heart_rate_adv_params = {
-      .adv_int_min = 0x100,
-      .adv_int_max = 0x100,
+      .adv_int_min = 0x140,  // 200ms
+      .adv_int_max = 0x1e0,  // 300ms
       .adv_type = ADV_TYPE_IND,
       .own_addr_type = BLE_ADDR_TYPE_RPA_PUBLIC,
       .channel_map = ADV_CHNL_ALL,

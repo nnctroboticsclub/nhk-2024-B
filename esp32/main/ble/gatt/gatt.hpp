@@ -71,6 +71,9 @@ class GATT : public Connections {
         }
         break;
       }
+      case ESP_GATTS_MTU_EVT:
+        printf("ESP_GATTS_MTU_EVT: %d\n", param->mtu.mtu);
+        break;
 
       case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
         ESP_LOGI(TAG, "The number handle = %x", param->add_attr_tab.num_handle);
@@ -98,6 +101,15 @@ class GATT : public Connections {
 
       case ESP_GATTS_CONNECT_EVT: {
         ESP_LOGI(TAG, "ESP_GATTS_CONNECT_EVT");
+
+        esp_ble_conn_update_params_t conn_params = {};
+        memcpy(conn_params.bda, param->connect.remote_bda,
+               sizeof(esp_bd_addr_t));
+        conn_params.latency = 0;
+        conn_params.max_int = 0x20;  // max_int = 0x20*1.25ms = 40ms
+        conn_params.min_int = 0x10;  // min_int = 0x10*1.25ms = 20ms
+        conn_params.timeout = 1000;  // timeout = 1000*10ms = 10s
+        esp_ble_gap_update_conn_params(&conn_params);
 
         auto server = std::make_unique<Server>(services_);
         server->OnConnect(gatts_if, param);

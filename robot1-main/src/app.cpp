@@ -23,7 +23,8 @@ class App::Impl {
   std::shared_ptr<Thread> main_thread;
 
  public:
-  Impl(App::Config &config) : com(std::make_unique<Communication>(config.com)) {
+  Impl(App::Config &config)
+      : config_(config), com(std::make_unique<Communication>(config.com)) {
     auto keep_alive = emc->AddNode();
     this->com->can_.OnKeepAliveLost([keep_alive]() {
       printf("EMC(CAN) setted to %d\n", false);
@@ -70,7 +71,10 @@ class App::Impl {
 
     printf("\x1b[1;32m|\x1b[m \x1b[32m-\x1b[m COM\n");
     com->Init();
-    if (config_.can1_debug) com->AddCAN1Debug();
+    if (config_.can1_debug) {
+      printf("\x1b[1;32m|\x1b[m \x1b[32m-\x1b[m ^ CAN1 Debug\n");
+      com->AddCAN1Debug();
+    }
 
     printf("\x1b[1;32m|\x1b[m \x1b[32m-\x1b[m Node Inspector\n");
     robotics::node::NodeInspector::RegisterCAN(
@@ -78,7 +82,7 @@ class App::Impl {
 
     printf("\x1b[1;32m+\x1b[m   \x1b[33m+\x1b[m\n");
 
-    com->SetStatus(robotics::network::DistributedCAN::Statuses::kReady);
+    com->SetStatus(robotics::network::can_module::Status::Statuses::kCANReady);
   }
 };
 
