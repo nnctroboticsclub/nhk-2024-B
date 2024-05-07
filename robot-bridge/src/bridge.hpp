@@ -1,9 +1,11 @@
 #pragma once
 
 #include <robotics/controller/float.hpp>
+#include <robotics/controller/action.hpp>
+#include <robotics/filter/inc_angled_motor.hpp>
 
 namespace nhk2024b {
-class ExampleController {
+class BridgeController {
  public:
   struct Config {
     // コントローラーの ID リスト
@@ -13,32 +15,42 @@ class ExampleController {
 
   // どういうノードをコントローラーから生やすか
   controller::Float rotate;
-  controller::Float button;
+  controller::Action button;
   
   // const はコンストラクタないで変更がないことを明記/強制
-  ExampleController(const Config& config):
+  BridgeController(const Config& config):
     rotate(config.rotate_id),
     button(config.button_id)
   {
   }
 };
 
-class Example {
+class Bridge {
   template<typename T>
   using Node = robotics::Node<T>;
 
   // コントローラー Node をまとめて持つ
-  ExampleController ctrl;
+  BridgeController ctrl;
 
  public:
   // 出力 Node (モーターなど)
   Node<float> out_a;
+  using IncAngledMotor = robotics::filter::IncAngledMotor<float>;
+  IncAngledMotor lock;
 
-  Example(ExampleController::Config &ctrl_config): ctrl(ctrl_config) {
+  Bridge(BridgeController::Config &ctrl_config): ctrl(ctrl_config) {
   }
 
   void LinkController() {
     ctrl.rotate.Link(out_a);
+
+    ctrl.button.OnFire([this](){//押された時の処理
+      lock.AddAngle(180);
+    });
+  }
+
+  void Update(float dt){
+    lock.Update(dt);
   }
 };
 } // namespace nhk2024b
