@@ -13,7 +13,7 @@
 			"path": "robot-collect"
 		},
 		{
-			"path": "connection-test"
+			"path": "controller"
 		},
 		{
 			"path": "esp32"
