@@ -13,6 +13,9 @@
 			"path": "robot-collect"
 		},
 		{
+			"path": "connection-test"
+		},
+		{
 			"path": "esp32"
 		},
 		{
