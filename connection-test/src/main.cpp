@@ -172,7 +172,8 @@ class FEP_RawDriver {
   Timer timer_;
 
   // Must can be called from ISR context
-  using OnBinaryDataCB = std::function<void(char*, size_t len)>;
+  using OnBinaryDataCB =
+      std::function<void(uint8_t data_from, char* data, size_t len)>;
   std::vector<OnBinaryDataCB> on_binary_data_callbacks_;
 
   char on_binary_data_buffer[128];
@@ -228,7 +229,7 @@ class FEP_RawDriver {
     }
 
     for (auto& callback : on_binary_data_callbacks_) {
-      callback(on_binary_data_buffer, length);
+      callback(address, on_binary_data_buffer, length);
     }
 
     trans_log_queue.Push((0x40 << 8) | address);
@@ -523,12 +524,31 @@ int main() {
     size_t len;
   } buf = {0};
 
-  auto result = fep.Reset();
-  if (!result.IsOk()) {
-    panic(result.UnwrapError().c_str());
+  {
+    auto ressr = fep.SetRegister(0, 1);
+    if (!ressr.IsOk()) {
+      panic(ressr.UnwrapError().c_str());
+    }
   }
 
-  fep.OnBinaryData([&buf](char* data, size_t len) {
+  {
+    auto ressr = fep.SetRegister(18, 0x8D);
+    if (!ressr.IsOk()) {
+      panic(ressr.UnwrapError().c_str());
+    }
+  }
+
+  {
+    auto result = fep.Reset();
+    if (!result.IsOk()) {
+      panic(result.UnwrapError().c_str());
+    }
+  }
+
+  fep.OnBinaryData([&buf](uint8_t addr, char* data, size_t len) {
+    if (addr != 0) {
+      return;
+    }
     for (size_t i = 0; i < len; i++) {
       buf.buf[i] = data[i];
     }
@@ -544,7 +564,7 @@ int main() {
       printf("%c", buf.buf[i]);
     }
     printf("\n");
-    auto result = fep.SendBinary(1, data);
+    auto result = fep.SendBinary(0xF0, data);
     if (!result.IsOk()) {
       panic(result.UnwrapError().c_str());
     }
