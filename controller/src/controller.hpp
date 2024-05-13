@@ -1,5 +1,3 @@
-#pragma once
-
 #include <mbed.h>
 
 #include <robotics/node/node.hpp>
@@ -10,12 +8,11 @@ class ControllerReader {
   using Node = robotics::Node<T>;
 
   Thread *thread;
-
-  // ここをいじる
+  // ↓ここもいじる
   mbed::AnalogIn value_1_in;
 
  public:
-  // ここをいじる
+  // ここ以下をいじる
   Node<float> value_1;
 
   ControllerReader() : value_1_in(PA_3) {
@@ -27,8 +24,6 @@ class ControllerReader {
     while (1) {
       // ここをいじる
       value_1.SetValue(value_1_in.read());
-
-      thread_sleep_until(5);  // 5ms
     }
   }
 };
