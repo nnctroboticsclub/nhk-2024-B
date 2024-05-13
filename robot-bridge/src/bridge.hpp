@@ -1,9 +1,11 @@
 #pragma once
 
+#include <robotics/controller/action.hpp>
 #include <robotics/controller/float.hpp>
+#include <robotics/filter/inc_angled_motor.hpp>
 
 namespace nhk2024b {
-class ExampleController {
+class BridgeController {
  public:
   struct Config {
     // コントローラーの ID リスト
@@ -12,33 +14,55 @@ class ExampleController {
   };
 
   // どういうノードをコントローラーから生やすか
-  controller::Float rotate;
-  controller::Float button;
-  
+  controller::Action rotate;
+  controller::Action button;
+
   // const はコンストラクタないで変更がないことを明記/強制
-  ExampleController(const Config& config):
-    rotate(config.rotate_id),
-    button(config.button_id)
-  {
-  }
+  BridgeController(const Config &config)
+      : rotate(config.rotate_id), button(config.button_id) {}
 };
 
-class Example {
-  template<typename T>
+class Bridge {
+  template <typename T>
   using Node = robotics::Node<T>;
 
+  const std::chrono::duration<float> working_time = 30ms;
+
+  enum class LoadState { In_rotate, In_stopped };
+  LoadState state;
+
+  Timer timer;
+
   // コントローラー Node をまとめて持つ
-  ExampleController ctrl;
+  BridgeController ctrl;
 
  public:
   // 出力 Node (モーターなど)
   Node<float> out_a;
+  using IncAngledMotor = robotics::filter::IncAngledMotor<float>;
+  Node<float> lock;
 
-  Example(ExampleController::Config &ctrl_config): ctrl(ctrl_config) {
-  }
+  Bridge(BridgeController::Config &ctrl_config) : ctrl(ctrl_config) {}
 
   void LinkController() {
     ctrl.rotate.Link(out_a);
+    ctrl.button.OnFire([this]() {  // 押された時の処理
+      state = LoadState::In_rotate;
+      lock.SetValue(0.5);//[m/s]推されたらこの速度で回して
+    });
+  }
+
+  void Update(float dt) {
+    switch (state) {
+      case LoadState::In_rotate:
+
+        if (timer.elapsed_time() > working_time) {
+          state = LoadState::In_stopped;
+          lock.SetValue(0);//[m/s]working_time秒経過したら0m/sつまり停止する
+        }
+      case LoadState::In_stopped:
+        break;
+    }
   }
 };
-} // namespace nhk2024b
+}  // namespace nhk2024b
