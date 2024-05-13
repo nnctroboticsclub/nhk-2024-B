@@ -26,10 +26,12 @@ class Bridge {
   template <typename T>
   using Node = robotics::Node<T>;
 
-  const std::chrono::duration<float> revolver_reversing_time = 30ms;
+  const std::chrono::duration<float> working_time = 30ms;
 
   enum class LoadState { In_rotate, In_stopped };
   LoadState state;
+
+  Timer timer;
 
   // コントローラー Node をまとめて持つ
   BridgeController ctrl;
@@ -46,7 +48,7 @@ class Bridge {
     ctrl.rotate.Link(out_a);
     ctrl.button.OnFire([this]() {  // 押された時の処理
       state = LoadState::In_rotate;
-      lock.SetValue(0.5);
+      lock.SetValue(0.5);//[m/s]推されたらこの速度で回して
     });
   }
 
@@ -54,9 +56,9 @@ class Bridge {
     switch (state) {
       case LoadState::In_rotate:
 
-        if (timer.elapsed_time() > revolver_reversing_time) {
+        if (timer.elapsed_time() > working_time) {
           state = LoadState::In_stopped;
-          lock.SetValue(0);
+          lock.SetValue(0);//[m/s]working_time秒経過したら0m/sつまり停止する
         }
       case LoadState::In_stopped:
         break;
