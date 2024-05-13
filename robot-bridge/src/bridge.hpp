@@ -28,7 +28,7 @@ class Bridge {
 
   const std::chrono::duration<float> revolver_reversing_time = 30ms;
 
-  enum class LoadState { Start_rote };
+  enum class LoadState { In_rotate, In_stopped };
   LoadState state;
 
   // コントローラー Node をまとめて持つ
@@ -38,28 +38,29 @@ class Bridge {
   // 出力 Node (モーターなど)
   Node<float> out_a;
   using IncAngledMotor = robotics::filter::IncAngledMotor<float>;
-  IncAngledMotor lock;
+  Node<float> lock;
 
   Bridge(BridgeController::Config &ctrl_config) : ctrl(ctrl_config) {}
 
   void LinkController() {
     ctrl.rotate.Link(out_a);
     ctrl.button.OnFire([this]() {  // 押された時の処理
-      lock.AddAngle(180);
-    });
-
-    ctrl.rotate.OnFire([this]() {  // 押された時の処理
-      switch (state) {
-        case LoadState::kInReversing:
-          if (timer.elapsed_time() > revolver_reversing_time) {
-            // revolver_reversing_timeは定数
-            // timer.elapsed()は関数
-            SetLoadState(LoadAction::kStopCounterRotation);
-          }
-      }
+      state = LoadState::In_rotate;
+      lock.SetValue(0.5);
     });
   }
 
-  void Update(float dt) { lock.Update(dt); }
+  void Update(float dt) {
+    switch (state) {
+      case LoadState::In_rotate:
+
+        if (timer.elapsed_time() > revolver_reversing_time) {
+          state = LoadState::In_stopped;
+          lock.SetValue(0);
+        }
+      case LoadState::In_stopped:
+        break;
+    }
+  }
 };
 }  // namespace nhk2024b
