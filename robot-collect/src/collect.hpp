@@ -19,13 +19,13 @@ class RobotController {
   // コントローラーから生えてるコントローラー Node リスト
 
   controller::JoyStick stick;
-  controller::Boolean buttonpositive;
-  controller::Boolean buttonnegative;
+  controller::Boolean button_positive;
+  controller::Boolean button_negative;
 
   RobotController(const Config &config)
       : stick(config.stick_id),
-        buttonpositive(config.buttonPositive_id),
-        buttonnegative(config.buttonnegative_id)
+        button_positive(config.buttonPositive_id),
+        button_negative(config.buttonnegative_id)
 
   {}
 };
@@ -43,13 +43,9 @@ class Robot  // ノードにデータを送るよ
 
  public:
   // 出力のやつ (モーターなど)
-  Node<float> out_right;
-  Node<float> out_left;
-
   //  out_xxx の名前で定義してください
   Node<float> out_motor_left;
   Node<float> out_moter_right;
-  Node<joystick> out_stick;
   Node<float> out_armangle;  // 出力Nodeの定義だよー
 
   // がんばって？？？
@@ -71,15 +67,15 @@ class Robot  // ノードにデータを送るよ
       out_motor_left.SetValue(stick[1] + stick[0]);
     });
     // ボタンの設定
-    ctrl.buttonpositive.SetChangeCallback([this](bool btn) {
+    ctrl.button_positive.SetChangeCallback([this](bool btn) {
       if (btn == true) {
-        delta_angle == 1;
+        delta_angle = 1;
       }
       if (btn == false) {
         delta_angle = 0;
       }
     });
-    ctrl.buttonnegative.SetChangeCallback([this](bool btn) {
+    ctrl.button_negative.SetChangeCallback([this](bool btn) {
       if (btn == true) {
         delta_angle = -1;
       }
