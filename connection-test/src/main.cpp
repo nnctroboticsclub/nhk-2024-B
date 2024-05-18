@@ -251,23 +251,18 @@ void Init() {
 
   logger_thread.start([]() {
     while (1) {
-      if (!log_queue) continue;
+      if (!log_queue) {
+        ThisThread::sleep_for(1ms);
+        continue;
+      }
 
-      if (log_queue->Empty()) continue;
+      if (log_queue->Empty()) {
+        ThisThread::sleep_for(1ms);
+        continue;
+      }
       auto line = log_queue->Pop();
 
       printf("[\x1b[33mLOG]\x1b[m %s\n", line.data);
-      ThisThread::sleep_for(1ms);
-      /*
-        std::stringstream ss;
-        ss << "[LOG] ";
-        for (size_t i = 0; i < line.length; i++) {
-          ss << std::hex << std::setw(2) << std::setfill('0') <<
-        (int)line.data[i];
-        }
-
-        printf("%s\n", ss.str().c_str());
-      */
     }
   });
   printf("- Logger Thread: %p\n", &logger_thread);
@@ -392,9 +387,7 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
   void Send(std::string const& data) {
     serial_.write(data.data(), data.size());
 
-    for (size_t i = 0; i < data.size(); i++) {
-      trans_log_queue.Push((0x80 << 8) | data[i]);
-    }
+    robotics::logger::Log("[FEP] D: TX: %s", data.c_str());
   }
 
   void ISR_ParseBinary() {
@@ -429,6 +422,8 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
     for (size_t i = 0; i < 2; i++) {
       rx_queue_.Pop();
     }
+
+    robotics::logger::Log("[FEP] D: RX: %d, %d", address, length);
 
     DispatchOnReceive(address, on_binary_data_buffer, length);
 
@@ -814,7 +809,7 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
         return;  // invalid key
       }
 
-      DispatchOnReceive(addr, data, len);
+      DispatchOnReceive(addr, payload, payload_len);
     });
 
     (new Thread(osPriorityNormal, 2048, nullptr, "REP"))->start([this]() {
@@ -891,11 +886,103 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
     driver_.Send(address, tx_buffer_, ptr - tx_buffer_);
   }
 };
+
+class SSP_Service : public Stream<uint8_t, uint8_t> {
+  Stream<uint8_t, uint8_t>& stream_;
+
+  uint16_t service_id_;
+
+ private:
+  friend class SerialServiceProtocol;
+
+ public:
+  SSP_Service(Stream<uint8_t, uint8_t>& stream, uint16_t service_id)
+      : stream_(stream), service_id_(service_id) {}
+
+  void Send(uint8_t address, uint8_t* data, uint32_t length) override {
+    static uint8_t buffer[128] = {};
+
+    buffer[0] = (service_id_ >> 8) & 0xFF;
+    buffer[1] = service_id_ & 0xFF;
+    buffer[2] = 0;
+    buffer[3] = 0;
+
+    for (size_t i = 0; i < length; i++) {
+      buffer[4 + i] = data[i];
+    }
+
+    stream_.Send(address, buffer, length + 4);
+  }
+
+  uint16_t GetServiceId() const { return service_id_; }
+};
+
+class SerialServiceProtocol {
+  Stream<uint8_t, uint8_t>& stream_;
+  std::unordered_map<uint16_t, SSP_Service*> services_;
+
+ public:
+  SerialServiceProtocol(Stream<uint8_t, uint8_t>& stream) : stream_(stream) {
+    stream_.OnReceive(
+        [this](uint8_t from_addr, uint8_t* data, uint32_t length) {
+          if (length < 4) {
+            robotics::logger::Log("[SSP] E: Invalid Length: %d", length);
+            return;
+          }
+
+          uint16_t service_id = (data[0] << 8) | data[1];
+
+          if (services_.find(service_id) == services_.end()) {
+            robotics::logger::Log("[SSP] E: Invalid Service: %d", service_id);
+            return;
+          }
+          auto service = services_[service_id];
+
+          service->DispatchOnReceive(from_addr, data + 4, length - 4);
+        });
+  }
+
+  template <typename T>
+  void RegisterService() {
+    auto service = new T(stream_);
+    services_[service->GetServiceId()] = service;
+  }
+};
 }  // namespace robotics::network
+
+class EchoService : public robotics::network::SSP_Service {
+ public:
+  EchoService(robotics::network::Stream<uint8_t, uint8_t>& stream)
+      : SSP_Service(stream, 0x0001) {
+    OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
+      robotics::logger::Log("[Echo] I: RX: %d", addr);
+      robotics::logger::LogHex(data, len);
+      robotics::logger::Log("[Echo] I: TX: %d", addr);
+      robotics::logger::LogHex(data, len);
+      Send(addr, data, len);
+    });
+  }
+};
+class Echo2Service : public robotics::network::SSP_Service {
+ public:
+  Echo2Service(robotics::network::Stream<uint8_t, uint8_t>& stream)
+      : SSP_Service(stream, 0x0002) {
+    OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
+      robotics::logger::Log("[Echo2] I: RX: %d", addr);
+      robotics::logger::LogHex(data, len);
+      robotics::logger::Log("[Echo2] I: TX: %d", addr);
+      robotics::logger::LogHex(data, len);
+
+      if (len > 0) addr = data[0];
+      Send(addr, data + 1, len - 1);
+    });
+  }
+};
 
 class App {
   robotics::network::FEP_RawDriver fep_;
-  robotics::network::ReliableFEPProtocol rep;
+  robotics::network::ReliableFEPProtocol rep_;
+  robotics::network::SerialServiceProtocol ssp_;
 
   void SetupFEP(int mode) {
     auto fep_address = mode == 1 ? 2 : 1;
@@ -955,13 +1042,7 @@ class App {
   }
 
   void Init() {
-    fep_.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
-      /* robotics::logger::Log("[App] I: FEP-RX: %d", addr);
-      robotics::logger::LogHex(data, len);
-      robotics::logger::Log("[App] I:"); */
-    });
-
-    rep.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
+    rep_.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
       robotics::logger::Log("[App] I: REP-RX: %d", addr);
       robotics::logger::LogHex(data, len);
       robotics::logger::Log("[App] I:");
@@ -983,7 +1064,7 @@ class App {
   }
 
  public:
-  App() : fep_{PB_6, PA_10, 9600}, rep{fep_} {}
+  App() : fep_{PB_6, PA_10, 9600}, rep_{fep_}, ssp_(rep_) {}
 
   void Main() {
     auto mode = GetMode();
@@ -993,17 +1074,19 @@ class App {
     SetupFEP(mode);
     Init();
 
+    ssp_.RegisterService<EchoService>();
+    ssp_.RegisterService<Echo2Service>();
+
     auto dest_address = mode == 1 ? 1 : 2;
     robotics::logger::Log("[App] I: Dest Address: %d\n", dest_address);
 
     (new Thread(osPriorityNormal, 1024, nullptr, "Watcher"))
         ->start(callback(this, &App::Watcher));
 
-    ThisThread::sleep_for(1s);
     std::vector<uint8_t> data = {'A', 'B', 'C'};
 
     while (1) {
-      rep.Send(dest_address, data.data(), data.size());
+      // rep.Send(dest_address, data.data(), data.size());
 
       ThisThread::sleep_for(2s);
     }
