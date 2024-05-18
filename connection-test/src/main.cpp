@@ -148,6 +148,26 @@ class Result {
   bool IsOk() const { return tag_ == Tag::kOk; }
 };
 
+class Random {
+  AnalogIn source_{PC_0};
+
+  Random() = default;
+
+  static inline Random* instance;
+
+ public:
+  static Random* GetInstance() {
+    if (!instance) {
+      instance = new Random();
+    }
+    return instance;
+  }
+
+  static uint8_t GetByte() {
+    return Random::GetInstance()->source_.read() * 255;
+  }
+};
+
 namespace robotics::logger {
 struct LogLine {
   size_t length;
@@ -700,6 +720,10 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
 
  public:
   ReliableFEPProtocol(FEP_RawDriver& driver) : driver_(driver) {
+    this->random_key_ = Random::GetByte();
+
+    logger::Log("[REP] D: Random Key: %d", random_key_);
+
     driver_.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
       //* Validate magic
       if (data[0] != 0x55 || data[1] != 0xAA || data[2] != 0xCC) {
@@ -807,8 +831,6 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
         }
       }
     });
-
-    random_key_ = 0;
   }
 
   void Send(uint8_t address, uint8_t* data, uint32_t length) override {
@@ -846,8 +868,6 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
     *(ptr++) = (uint8_t)(tx_cs_calculator.Get() & 0xFF);
 
     driver_.Send(address, tx_buffer_, ptr - tx_buffer_);
-
-    logger::Log("[REP] Send: to %d", address);
   }
 };
 }  // namespace robotics::network
@@ -915,16 +935,12 @@ class App {
 
   void Init() {
     fep_.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
-      robotics::logger::Log("[App] I: FEP-RX: %d", addr);
+      /* robotics::logger::Log("[App] I: FEP-RX: %d", addr);
       robotics::logger::LogHex(data, len);
-      robotics::logger::Log("[App] I:");
+      robotics::logger::Log("[App] I:"); */
     });
 
     rep.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
-      if (addr != 0) {
-        return;
-      }
-
       robotics::logger::Log("[App] I: REP-RX: %d", addr);
       robotics::logger::LogHex(data, len);
       robotics::logger::Log("[App] I:");
