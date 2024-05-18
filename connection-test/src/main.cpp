@@ -8,6 +8,7 @@
 #include <queue>
 #include <variant>
 #include <functional>
+#include <unordered_map>
 
 template <typename T, size_t N>
 class NoMutexLIFO {
@@ -102,8 +103,7 @@ class NoMutexLIFO {
 
 [[noreturn]] void panic(const char* message) {
   printf("Panic: %s\n", message);
-  while (1) {
-  }
+  *(volatile int*)0 = 0;
 }
 
 template <typename T, typename E>
@@ -148,12 +148,192 @@ class Result {
   bool IsOk() const { return tag_ == Tag::kOk; }
 };
 
-class FEP_RawDriver {
+namespace robotics::logger {
+struct LogLine {
+  size_t length;
+  char data[512];
+
+  LogLine() : length(0), data{} {}
+
+  LogLine(const char* data) {
+    memset(this->data, 0, sizeof(this->data));
+    memcpy(this->data, data, strlen(data));
+    length = strlen(this->data);
+  }
+
+  char* operator=(const char* str) {
+    memset(data, 0, sizeof(data));
+    memcpy(data, str, strlen(str));
+    length = strlen(data);
+    return data;
+  }
+};
+
+using LogQueue = NoMutexLIFO<LogLine, 8>;
+
+LogQueue* log_queue = nullptr;
+
+Thread logger_thread;
+
+void Log(const char* fmt, ...) {
+  if (!log_queue) return;
+
+  va_list args;
+  va_start(args, fmt);
+
+  LogLine line;
+  line.length = vsnprintf(line.data, sizeof(line.data), fmt, args);
+
+  log_queue->Push(line);
+
+  va_end(args);
+}
+
+void LogHex(const uint8_t* data, size_t length) {
+  if (!log_queue) return;
+
+  LogLine line;
+  line.length = 0;
+
+  for (size_t i = 0; i < length; i++) {
+    line.length += snprintf(line.data + line.length,
+                            sizeof(line.data) - line.length, "%02X", data[i]);
+  }
+
+  log_queue->Push(line);
+}
+
+void Init() {
+  printf("# Init Logger\n");
+  if (log_queue) {
+    printf("- Logger already initialized\n");
+    return;
+  }
+  printf("- sizeof(LogQueue): %#08x\n", sizeof(LogQueue));
+  log_queue = new LogQueue();
+  while (!log_queue->Full()) {
+    log_queue->Push({});
+  }
+
+  while (!log_queue->Empty()) {
+    log_queue->Pop();
+  }
+  printf("- Log Queue: %p\n", log_queue);
+
+  logger_thread.start([]() {
+    while (1) {
+      if (!log_queue) continue;
+
+      if (log_queue->Empty()) continue;
+      auto line = log_queue->Pop();
+
+      printf("[\x1b[33mLOG]\x1b[m %s\n", line.data);
+      ThisThread::sleep_for(1ms);
+      /*
+        std::stringstream ss;
+        ss << "[LOG] ";
+        for (size_t i = 0; i < line.length; i++) {
+          ss << std::hex << std::setw(2) << std::setfill('0') <<
+        (int)line.data[i];
+        }
+
+        printf("%s\n", ss.str().c_str());
+      */
+    }
+  });
+  printf("- Logger Thread: %p\n", &logger_thread);
+
+  printf("  - free cells: %d\n", log_queue->Size());
+
+  log_queue->Push(LogLine("Logger Initialized"));
+  Log("Logger Initialized (from Log)");
+}
+}  // namespace robotics::logger
+
+namespace robotics::network {
+template <typename T, typename D = void, typename L = uint32_t>
+class Stream {
+  using OnReceiveCallback = std::function<void(D, T*, L)>;
+
+ protected:
+  std::vector<OnReceiveCallback> on_receive_callbacks_;
+
+  void DispatchOnReceive(D ctx, std::vector<T> const& data) {
+    for (auto&& cb : on_receive_callbacks_) {
+      if (!cb) {
+        continue;
+      }
+      cb(ctx, data);
+    }
+  }
+  void DispatchOnReceive(D ctx, T* data, L length) {
+    for (auto&& cb : on_receive_callbacks_) {
+      if (!cb) {
+        continue;
+      }
+      cb(ctx, data, length);
+    }
+  }
+
+ public:
+  virtual void Send(D ctx, T* data, L length) = 0;
+  void Send(D ctx, std::vector<T> const& data) {
+    Send(ctx, data.data(), data.size());
+  }
+  void OnReceive(OnReceiveCallback cb) {
+    this->on_receive_callbacks_.emplace_back(cb);
+  }
+};
+
+template <typename T>
+class Stream<T, void> {
+  using OnReceiveCallback = std::function<void(char* data, uint32_t length)>;
+
+ protected:
+  std::vector<OnReceiveCallback> on_receive_callbacks_;
+
+  void DispatchOnReceive(std::vector<T> const& data) {
+    for (auto&& cb : on_receive_callbacks_) {
+      cb(data);
+    }
+  }
+  void DispatchOnReceive(T* data, uint32_t length) {
+    for (auto&& cb : on_receive_callbacks_) {
+      cb(data);
+    }
+  }
+
+ public:
+  virtual void Send(T* data, uint32_t length) = 0;
+  virtual void Send(std::vector<T> const& data) = 0;
+  void OnReceive(OnReceiveCallback cb) {
+    this->on_receive_callbacks_.emplace_back(cb);
+  }
+};
+
+class Checksum {
+  uint16_t current = 0;
+
+ public:
+  void Reset() { current = 0; }
+
+  void operator<<(uint16_t x) {
+    current = ((current & 0x007F) << 9) | ((current & 0xff80) >> 7);
+    current ^= 0x35ca;
+    current ^= x;
+  }
+
+  void operator<<(uint8_t x) { *this << ((uint16_t)((x << 8) | x)); }
+
+  uint16_t Get() const { return current; }
+};
+
+class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
   mbed::UnbufferedSerial serial_;
 
-  NoMutexLIFO<char, 128> rx_queue_;
+  NoMutexLIFO<char, 64> rx_queue_;
 
-  NoMutexLIFO<uint16_t, 64> trans_log_queue;
+  NoMutexLIFO<uint16_t, 32> trans_log_queue;
 
   enum class Flags {
     kRxOverflow = 1 << 0,
@@ -171,12 +351,7 @@ class FEP_RawDriver {
 
   Timer timer_;
 
-  // Must can be called from ISR context
-  using OnBinaryDataCB =
-      std::function<void(uint8_t data_from, char* data, size_t len)>;
-  std::vector<OnBinaryDataCB> on_binary_data_callbacks_;
-
-  char on_binary_data_buffer[128];
+  uint8_t on_binary_data_buffer[128];
 
   class DriverError : public std::string {
    public:
@@ -195,12 +370,11 @@ class FEP_RawDriver {
 
   void ISR_ParseBinary() {
     if (rx_queue_.Size() < 9) {
-      trans_log_queue.Push((0x40 << 8) | 0xFE);
       return;
     }
 
-    int address;
-    int length;
+    uint8_t address;
+    uint32_t length;
 
     address = (rx_queue_[3] - '0') * 100 + (rx_queue_[4] - '0') * 10 +
               (rx_queue_[5] - '0');
@@ -210,7 +384,6 @@ class FEP_RawDriver {
 
     // Checks if there is enough data in the queue
     if (rx_queue_.Size() < 9 + length + 2) {
-      trans_log_queue.Push((0x40 << 8) | 0xFF);
       return;
     }
 
@@ -228,14 +401,7 @@ class FEP_RawDriver {
       rx_queue_.Pop();
     }
 
-    for (auto& callback : on_binary_data_callbacks_) {
-      callback(address, on_binary_data_buffer, length);
-    }
-
-    trans_log_queue.Push((0x40 << 8) | address);
-    trans_log_queue.Push((0x41 << 8) | length);
-    trans_log_queue.Push((0x42 << 8) | on_binary_data_buffer[0]);
-    trans_log_queue.Push((0x43 << 8) | on_binary_data_buffer[1]);
+    DispatchOnReceive(address, on_binary_data_buffer, length);
 
     state_ = State::kIdle;
   }
@@ -253,19 +419,10 @@ class FEP_RawDriver {
         flags_ |= (uint32_t)Flags::kRxOverflow;
       }
     }
-    trans_log_queue.Push((0x01 << 8) | buffer[0]);
 
     if (rx_queue_[0] == 'R' && rx_queue_[1] == 'B' && rx_queue_[2] == 'N') {
       state_ = State::kRxData;
       ISR_ParseBinary();
-    }
-  }
-
-  bool ISR_HasCompleteLine() {
-    for (size_t i = 0; i < rx_queue_.Size(); i++) {
-      if (rx_queue_[i] == '\n') {
-        return true;
-      }
     }
   }
 
@@ -345,37 +502,31 @@ class FEP_RawDriver {
     timer_.reset();
     timer_.start();
     serial_.attach([this]() { ISR_OnUARTData(); }, mbed::SerialBase::RxIrq);
-
-    if (0)
-      (new Thread())->start([this]() {
-        while (1) {
-          if (trans_log_queue.Empty()) {
-            ThisThread::sleep_for(1ms);
-            continue;
-          }
-
-          auto e = trans_log_queue.Pop();
-          if ((e >> 8) == 0x80) {
-            printf("TX: %c\n", e & 0xFF);
-          } else if ((e >> 8) == 0x00) {
-            printf("RX: %02x\n", e & 0xFF);
-          } else if ((e >> 8) == 0x40) {
-            printf("D1: %02X\n", e & 0xFF);
-          } else if ((e >> 8) == 0x41) {
-            printf("D2: %03X\n", e & 0xFF);
-          } else if ((e >> 8) == 0x42) {
-            printf("D3: %02X\n", e & 0xFF);
-          } else if ((e >> 8) == 0x43) {
-            printf("D4: %02X\n", e & 0xFF);
-          } else {
-            printf("???: %02X\n", e & 0xFF);
-          }
-        }
-      });
   }
 
-  void OnBinaryData(OnBinaryDataCB callback) {
-    on_binary_data_callbacks_.push_back(callback);
+  void WatchDebugQueue() {
+    if (trans_log_queue.Empty()) {
+      ThisThread::sleep_for(1ms);
+      return;
+    }
+
+    auto e = trans_log_queue.Pop();
+
+    if ((e >> 8) == 0x80) {
+      // printf("TX: %02x\n", e & 0xFF);
+    } else if ((e >> 8) == 0x00) {
+      // printf("RX: %02x\n", e & 0xFF);
+    } else if ((e >> 8) == 0x40) {
+      // printf("D1: %02X\n", e & 0xFF);
+    } else if ((e >> 8) == 0x41) {
+      // printf("D2: %03X\n", e & 0xFF);
+    } else if ((e >> 8) == 0x42) {
+      // printf("D3: %02X\n", e & 0xFF);
+    } else if ((e >> 8) == 0x43) {
+      // printf("D4: %02X\n", e & 0xFF);
+    } else {
+      // printf("???: %02X\n", e & 0xFF);
+    }
   }
 
   [[nodiscard]]
@@ -438,6 +589,20 @@ class FEP_RawDriver {
     return ReadResult(1000ms);
   }
 
+  [[nodiscard]]
+  Result<int, DriverError> InitAllRegister() {
+    auto wait_for_state = WaitForState(State::kIdle);
+    if (!wait_for_state.IsOk()) {
+      return wait_for_state.UnwrapError();
+    }
+    state_ = State::kProcessing;
+
+    Send("@INI\r\n");
+
+    state_ = State::kIdle;
+    return ReadResult(1000ms);
+  }
+
   enum class TxState_ { kNoError, kTimeout, kInvalidResponse, kRxOverflow };
 
   class TxState {
@@ -457,21 +622,20 @@ class FEP_RawDriver {
   };
 
   [[nodiscard]]
-  Result<TxState, DriverError> SendBinary(uint8_t address,
-                                          std::vector<uint8_t> const& data) {
+  void Send(uint8_t address, uint8_t* data, uint32_t length) override {
     auto wait_for_state = WaitForState(State::kIdle);
     if (!wait_for_state.IsOk()) {
       state_ = State::kIdle;
-      return wait_for_state.UnwrapError();
+      return;
     }
     state_ = State::kProcessing;
 
     std::stringstream ss;
     ss << "@TBN";
     ss << std::setw(3) << std::setfill('0') << (int)address;
-    ss << std::setw(3) << std::setfill('0') << data.size();
-    for (auto d : data) {
-      ss << (char)d;
+    ss << std::setw(3) << std::setfill('0') << (int)length;
+    for (size_t i = 0; i < length; i++) {
+      ss << (char)data[i];
     }
     ss << "\r\n";
 
@@ -480,97 +644,344 @@ class FEP_RawDriver {
     auto result1 = ReadResult();
     if (!result1.IsOk()) {
       state_ = State::kIdle;
-      return result1.UnwrapError();
     }
 
     if (result1.Unwrap() != +1) {
       ss.str();
       ss << "Invalid response: " << result1.Unwrap();
       state_ = State::kIdle;
-      return DriverError(ss.str());
     }
 
     auto result2 = ReadResult();
     if (!result2.IsOk()) {
       state_ = State::kIdle;
-      return result2.UnwrapError();
     }
 
     if (result2.Unwrap() == 0) {
       state_ = State::kIdle;
-      return TxState(TxState_::kNoError);
     }
     if (result2.Unwrap() == -1) {
       state_ = State::kIdle;
-      return TxState(TxState_::kTimeout);
     }
     if (result2.Unwrap() == -2) {
       state_ = State::kIdle;
-      return TxState(TxState_::kRxOverflow);
     }
 
     state_ = State::kIdle;
-    return TxState(TxState_::kInvalidResponse);
+  }
+};
+
+class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
+  FEP_RawDriver& driver_;
+
+  uint8_t random_key_;
+
+  Checksum rx_cs_calculator;
+  Checksum tx_cs_calculator;
+
+  uint8_t tx_buffer_[32] = {};
+  struct {
+    uint8_t initialized = 0;
+    uint8_t key = 0;
+  } cached_keys[256] = {};  // Using array for ISR context
+
+  struct Packet {
+    uint8_t addr;
+    uint8_t buffer[32];
+    uint32_t length;
+  };
+  NoMutexLIFO<Packet, 4> tx_queue;
+
+  void ExchangeKey(uint8_t remote) {
+    cached_keys[remote] = {1, random_key_};
+
+    Send(remote, &random_key_, 1);
+  }
+
+ public:
+  ReliableFEPProtocol(FEP_RawDriver& driver) : driver_(driver) {
+    driver_.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
+      //* Validate magic
+      if (data[0] != 0x55 || data[1] != 0xAA || data[2] != 0xCC) {
+        logger::Log("[REP] E: Invalid Magic: %d", addr);
+        return;  // invalid magic
+      }
+
+      data += 3;
+
+      //* Load key/length
+      if (len <= 5) {
+        logger::Log("[REP] E: Invalid Length (1): %d", addr);
+        return;  // malformed packet
+      }
+
+      auto key = *(data++);
+      auto length = *(data++);
+      if (len != 7 + length) {
+        logger::Log("[REP] E: Invalid Length (2): %d", addr);
+        return;  // malformed packet
+      }
+
+      //* Load payload/len
+      uint8_t* payload = data;
+      uint32_t payload_len = length;
+      data += payload_len;
+
+      //* Validate Checksum
+      rx_cs_calculator.Reset();
+      rx_cs_calculator << (uint8_t)key;
+      rx_cs_calculator << (uint8_t)length;
+      for (size_t i = 0; i < payload_len; i++) {
+        rx_cs_calculator << (uint8_t)payload[i];
+      }
+
+      uint16_t checksum = (*(data++) << 8) | *(data++);
+      if (checksum != (uint16_t)rx_cs_calculator.Get()) {
+        logger::Log("[REP] E: Invalid Checksum: %d", addr);
+        return;  // invalid checksum
+      }
+
+      logger::Log("[REP] D: RX: %d, key = %d, length = %d", addr, key, length);
+
+      if (key == 0) {
+        if (payload_len == 1)  // key request
+        {
+          this->tx_queue.Push(
+              {addr, {payload[0], (uint8_t)(payload[0] ^ random_key_)}, 2});
+
+          logger::Log("[REP] V: Key Request: %d", addr);
+
+          return;
+        } else if (payload_len == 2)  // key responce
+        {
+          cached_keys[addr].initialized = true;
+          cached_keys[addr].key = uint8_t(payload[0] ^ payload[1]);
+
+          logger::Log("[REP] V: Key Response: %d -> %d", addr,
+                      cached_keys[addr].key);
+
+          return;
+        }
+      }
+
+      if (key != random_key_) {
+        logger::Log("[REP] E: Invalid Key: %d", addr);
+        return;  // invalid key
+      }
+
+      DispatchOnReceive(addr, data, len);
+    });
+
+    (new Thread(osPriorityNormal, 2048, nullptr, "REP"))->start([this]() {
+      static uint8_t buffer[128] = {};
+
+      while (1) {
+        if (tx_queue.Empty()) {
+          ThisThread::sleep_for(1ms);
+          continue;
+        }
+
+        auto packet = tx_queue.Pop();
+
+        for (size_t i = 0; i < packet.length; i++) {
+          buffer[i] = packet.buffer[i];
+        }
+
+        if (0)
+          robotics::logger::Log(
+              "[REP] D: qSend addr = %d, key = %d(%d), data = %p, length = %d",
+              packet.addr, cached_keys[packet.addr].key,
+              cached_keys[packet.addr].initialized, buffer, packet.length);
+
+        if (!cached_keys[packet.addr].initialized) {
+          cached_keys[packet.addr].initialized = true;
+          cached_keys[packet.addr].key = 0;
+          Send(packet.addr, buffer, packet.length);
+          cached_keys[packet.addr].initialized = false;
+        } else {
+          auto key = cached_keys[packet.addr].key;
+          cached_keys[packet.addr].key = 0;
+          Send(packet.addr, buffer, packet.length);
+
+          cached_keys[packet.addr].key = key;
+        }
+      }
+    });
+
+    random_key_ = 0;
+  }
+
+  void Send(uint8_t address, uint8_t* data, uint32_t length) override {
+    if (!cached_keys[address].initialized) {
+      logger::Log("[REP] D: Key not initialized: %d, exchanging...", address);
+      ThisThread::sleep_for(100ms);
+      ExchangeKey(address);
+    }
+    if (0)
+      logger::Log(
+          "[REP] D: Send address = %d, key = %d, data = %p, length = %d",
+          address, cached_keys[address].key, data, length);
+    ThisThread::sleep_for(100ms);
+
+    auto key = cached_keys[address].key;
+
+    tx_cs_calculator.Reset();
+    tx_cs_calculator << (uint8_t)key;
+    tx_cs_calculator << (uint8_t)length;
+    for (size_t i = 0; i < length; i++) {
+      tx_cs_calculator << (uint8_t)data[i];
+    }
+
+    auto ptr = tx_buffer_;
+    *(ptr++) = 0x55;
+    *(ptr++) = 0xAA;
+    *(ptr++) = 0xCC;
+    *(ptr++) = key;
+    *(ptr++) = length;
+    for (size_t i = 0; i < length; i++) {
+      *(ptr++) = data[i];
+    }
+
+    *(ptr++) = (uint8_t)(tx_cs_calculator.Get() >> 8);
+    *(ptr++) = (uint8_t)(tx_cs_calculator.Get() & 0xFF);
+
+    driver_.Send(address, tx_buffer_, ptr - tx_buffer_);
+
+    logger::Log("[REP] Send: to %d", address);
+  }
+};
+}  // namespace robotics::network
+
+class App {
+  robotics::network::FEP_RawDriver fep_;
+  robotics::network::ReliableFEPProtocol rep;
+
+  void SetupFEP(int mode) {
+    auto fep_address = mode == 1 ? 2 : 1;
+    auto group_address = 0xF0;
+    robotics::logger::Log("# Setup FEP");
+    robotics::logger::Log("- Mode         : %d", mode);
+    robotics::logger::Log("- Addr         : %d", fep_address);
+    robotics::logger::Log("- Group Address: %d", group_address);
+
+    {
+      auto res = fep_.InitAllRegister();
+      if (!res.IsOk()) {
+        robotics::logger::Log("FAILED!!!: %s", res.UnwrapError().c_str());
+        while (1);
+      }
+    }
+
+    {
+      auto result = fep_.Reset();
+      if (!result.IsOk()) {
+        robotics::logger::Log("FAILED!!!: %s", result.UnwrapError().c_str());
+        while (1);
+      }
+    }
+
+    {
+      auto res = fep_.SetRegister(0, fep_address);
+      if (!res.IsOk()) {
+        robotics::logger::Log("FAILED!!!: %s", res.UnwrapError().c_str());
+        while (1);
+      }
+    }
+
+    {
+      auto res = fep_.SetRegister(1, group_address);
+      if (!res.IsOk()) {
+        robotics::logger::Log("FAILED!!!: %s", res.UnwrapError().c_str());
+        while (1);
+      }
+    }
+
+    {
+      auto res = fep_.SetRegister(18, 0x8D);
+      if (!res.IsOk()) {
+        robotics::logger::Log("FAILED!!!: %s", res.UnwrapError().c_str());
+        while (1);
+      }
+    }
+
+    {
+      auto res = fep_.Reset();
+      if (!res.IsOk()) {
+        robotics::logger::Log("FAILED!!!: %s", res.UnwrapError().c_str());
+        while (1);
+      }
+    }
+  }
+
+  void Init() {
+    fep_.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
+      robotics::logger::Log("[App] I: FEP-RX: %d", addr);
+      robotics::logger::LogHex(data, len);
+      robotics::logger::Log("[App] I:");
+    });
+
+    rep.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
+      if (addr != 0) {
+        return;
+      }
+
+      robotics::logger::Log("[App] I: REP-RX: %d", addr);
+      robotics::logger::LogHex(data, len);
+      robotics::logger::Log("[App] I:");
+    });
+  }
+
+  void Watcher() {
+    while (1) {
+      fep_.WatchDebugQueue();
+
+      ThisThread::sleep_for(10ms);
+    }
+  }
+
+  int GetMode() {
+    mbed::DigitalIn mode(PA_9);
+
+    return mode.read() ? 1 : 0;
+  }
+
+ public:
+  App() : fep_{PB_6, PA_10, 9600}, rep{fep_} {}
+
+  void Main() {
+    auto mode = GetMode();
+
+    robotics::logger::Init();
+
+    SetupFEP(mode);
+    Init();
+
+    auto dest_address = mode == 1 ? 1 : 2;
+    robotics::logger::Log("[App] I: Dest Address: %d\n", dest_address);
+
+    (new Thread(osPriorityNormal, 1024, nullptr, "Watcher"))
+        ->start(callback(this, &App::Watcher));
+
+    ThisThread::sleep_for(1s);
+    std::vector<uint8_t> data = {'A', 'B', 'C'};
+
+    while (1) {
+      rep.Send(dest_address, data.data(), data.size());
+
+      ThisThread::sleep_for(2s);
+    }
   }
 };
 
 int main() {
-  printf("main() started\n");
-  printf("- Date: %s\n", __DATE__);
-  printf("- Time: %s\n", __TIME__);
-  FEP_RawDriver fep{PB_6, PA_10, 9600};
-  struct {
-    char buf[128];
-    size_t len;
-  } buf = {0};
+  printf("# main()\n");
+  printf("- Build info\n");
+  printf("  - Date: %s\n", __DATE__);
+  printf("  - Time: %s\n", __TIME__);
 
-  {
-    auto ressr = fep.SetRegister(0, 1);
-    if (!ressr.IsOk()) {
-      panic(ressr.UnwrapError().c_str());
-    }
-  }
+  App* app = new App();
 
-  {
-    auto ressr = fep.SetRegister(18, 0x8D);
-    if (!ressr.IsOk()) {
-      panic(ressr.UnwrapError().c_str());
-    }
-  }
-
-  {
-    auto result = fep.Reset();
-    if (!result.IsOk()) {
-      panic(result.UnwrapError().c_str());
-    }
-  }
-
-  fep.OnBinaryData([&buf](uint8_t addr, char* data, size_t len) {
-    if (addr != 0) {
-      return;
-    }
-    for (size_t i = 0; i < len; i++) {
-      buf.buf[i] = data[i];
-    }
-    buf.len = len;
-  });
-
-  ThisThread::sleep_for(1s);
-  std::vector<uint8_t> data = {'A', 'B'};
-
-  while (1) {
-    printf("RX Data: ");
-    for (size_t i = 0; i < buf.len; i++) {
-      printf("%c", buf.buf[i]);
-    }
-    printf("\n");
-    auto result = fep.SendBinary(0xF0, data);
-    if (!result.IsOk()) {
-      panic(result.UnwrapError().c_str());
-    }
-
-    ThisThread::sleep_for(1s);
-  }
+  app->Main();
 
   return 0;
 }

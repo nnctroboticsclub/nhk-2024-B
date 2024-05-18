@@ -28,7 +28,8 @@ $(eval $(call STM32_DefineRules,s3,$(ESP32_IP),$(S3_LOG_TAG),$(PWD)/robot-collec
 S4_LOG_TAG      := SerialProxy (UART: 1)
 S4_SKIP_COMPILE ?= 0
 S4_SERIAL       ?= 066EFF303435554157113125
-$(eval $(call STM32_DefineRules,s4,$(ESP32_IP),$(S4_LOG_TAG),$(PWD)/connection-test,$(S4_SKIP_COMPILE),NUCLEO_F446RE,/mnt/st4,$(S4_SERIAL)))
+S4_MOUNTPOINT   ?= /mnt/st4
+$(eval $(call STM32_DefineRules,s4,$(ESP32_IP),$(S4_LOG_TAG),$(PWD)/connection-test,$(S4_SKIP_COMPILE),NUCLEO_F446RE,$(S4_MOUNTPOINT),$(S4_SERIAL)))
 
 
 
@@ -46,3 +47,19 @@ ds2:
 ds3:
 	git switch robot-collect
 	PATH=$(PATH):/opt/gcc-arm-none-eabi-10.3-2021.10/bin $(MAKE) -C robot-collect -j 12
+
+ds4:
+	sudo umount /mnt/st4 || :
+	ninja -C connection-test/build
+	$(MAKE) /mnt/st4/MBED.HTM
+	arm-none-eabi-objcopy connection-test/build/connection-test -O binary connection-test/build/connection-test.bin
+	cp connection-test/build/connection-test.bin /mnt/st4/a.bin
+	sync /mnt/st4/a.bin
+
+ds5:
+	sudo umount /mnt/st5 || :
+	ninja -C connection-test/build
+	S4_SERIAL=066BFF333535554157134434 S4_MOUNTPOINT=/mnt/st5 $(MAKE) /mnt/st5/MBED.HTM
+	arm-none-eabi-objcopy connection-test/build/connection-test -O binary connection-test/build/connection-test.bin
+	cp connection-test/build/connection-test.bin /mnt/st5/a.bin
+	sync /mnt/st5/a.bin
