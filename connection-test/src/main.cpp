@@ -151,8 +151,19 @@ class Result {
 class Random {
   AnalogIn source_{PC_0};
 
-  Random() = default;
+  float value_;
 
+  void RandomThread() {
+    while (1) {
+      value_ = source_.read();
+      ThisThread::sleep_for(1ms);
+    }
+  }
+
+  Random() {
+    Thread* thread = new Thread(osPriorityNormal, 1024, nullptr, "Random");
+    thread->start(callback(this, &Random::RandomThread));
+  }
   static inline Random* instance;
 
  public:
@@ -163,9 +174,7 @@ class Random {
     return instance;
   }
 
-  static uint8_t GetByte() {
-    return Random::GetInstance()->source_.read() * 255;
-  }
+  static uint8_t GetByte() { return Random::GetInstance()->value_ * 255; }
 };
 
 namespace robotics::logger {
@@ -712,17 +721,35 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
   };
   NoMutexLIFO<Packet, 4> tx_queue;
 
-  void ExchangeKey(uint8_t remote) {
-    cached_keys[remote] = {1, random_key_};
+  void ExchangeKey_Request(uint8_t remote) {
+    cached_keys[remote] = {true, 0};  // force key to be initialized and 0
 
-    Send(remote, &random_key_, 1);
+    logger::Log("[REP] V: Key Request: to %#02x", remote);
+
+    uint8_t random[1] = {Random::GetByte()};
+    Send(remote, random, 1);
+
+    cached_keys[remote].initialized = false;  // forget key
+  }
+
+  void ExchangeKey_Responce(uint8_t remote, uint8_t random) {
+    this->tx_queue.Push({remote, {random, (uint8_t)(random ^ random_key_)}, 2});
+
+    logger::Log("[REP] V: Key Responce: for %#02x, random=%#02x", remote,
+                random);
+  }
+
+  void ExchangeKey_Update(uint8_t remote, uint8_t key) {
+    cached_keys[remote] = {true, key};
+
+    logger::Log("[REP] V: Key Updated: for %#02x, key=%#02x", remote, key);
   }
 
  public:
   ReliableFEPProtocol(FEP_RawDriver& driver) : driver_(driver) {
     this->random_key_ = Random::GetByte();
 
-    logger::Log("[REP] D: Random Key: %d", random_key_);
+    logger::Log("[REP] I: Using Random Key: \e[1;32m%d\e[m", random_key_);
 
     driver_.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
       //* Validate magic
@@ -765,31 +792,25 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
         return;  // invalid checksum
       }
 
-      logger::Log("[REP] D: RX: %d, key = %d, length = %d", addr, key, length);
+      if (0)
+        logger::Log("[REP] D: RX: %d, key = %d, length = %d", addr, key,
+                    length);
 
       if (key == 0) {
         if (payload_len == 1)  // key request
         {
-          this->tx_queue.Push(
-              {addr, {payload[0], (uint8_t)(payload[0] ^ random_key_)}, 2});
-
-          logger::Log("[REP] V: Key Request: %d", addr);
-
+          ExchangeKey_Responce(addr, payload[0]);
           return;
         } else if (payload_len == 2)  // key responce
         {
-          cached_keys[addr].initialized = true;
-          cached_keys[addr].key = uint8_t(payload[0] ^ payload[1]);
-
-          logger::Log("[REP] V: Key Response: %d -> %d", addr,
-                      cached_keys[addr].key);
-
+          ExchangeKey_Update(addr, payload[0] ^ payload[1]);
           return;
         }
       }
 
       if (key != random_key_) {
         logger::Log("[REP] E: Invalid Key: %d", addr);
+        ExchangeKey_Responce(addr, Random::GetByte());
         return;  // invalid key
       }
 
@@ -836,14 +857,14 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
   void Send(uint8_t address, uint8_t* data, uint32_t length) override {
     if (!cached_keys[address].initialized) {
       logger::Log("[REP] D: Key not initialized: %d, exchanging...", address);
-      ThisThread::sleep_for(100ms);
-      ExchangeKey(address);
+      ExchangeKey_Request(address);
+
+      return;
     }
     if (0)
       logger::Log(
           "[REP] D: Send address = %d, key = %d, data = %p, length = %d",
           address, cached_keys[address].key, data, length);
-    ThisThread::sleep_for(100ms);
 
     auto key = cached_keys[address].key;
 
