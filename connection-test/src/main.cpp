@@ -10,6 +10,8 @@
 #include <functional>
 #include <unordered_map>
 
+#include <ctype.h>
+
 template <typename T, size_t N>
 class NoMutexLIFO {
   /**
@@ -149,7 +151,9 @@ class Random {
 
   void RandomThread() {
     while (1) {
-      value_ = source_.read();
+      value_ *= 2;
+      value_ += source_.read();
+      value_ = fmod(value_, 1.0f);
       ThisThread::sleep_for(1ms);
     }
   }
@@ -168,20 +172,32 @@ class Random {
     return instance;
   }
 
-  static uint8_t GetByte() { return Random::GetInstance()->value_ * 255; }
+  static uint8_t GetByte() {
+    return 0;
+    return Random::GetInstance()->value_ * 255;
+  }
 };
 
 namespace robotics::logger {
 struct LogLine {
-  size_t length;
-  char data[512];
+  size_t length = 0;
+  char data[512] = {};
 
-  LogLine() : length(0), data{} {}
+  enum class Level {
+    kError,
+    kInfo,
+    kVerbose,
+    kDebug,
+    kTrace
+  } level = Level::kInfo;
 
-  LogLine(const char* data) {
-    memset(this->data, 0, sizeof(this->data));
-    memcpy(this->data, data, strlen(data));
-    length = strlen(this->data);
+  LogLine(const char* data = nullptr, Level level = Level::kInfo)
+      : level(level) {
+    if (data) {
+      memset(this->data, 0, sizeof(this->data));
+      memcpy(this->data, data, strlen(data));
+      length = strlen(this->data);
+    }
   }
 
   char* operator=(const char* str) {
@@ -192,19 +208,21 @@ struct LogLine {
   }
 };
 
-using LogQueue = NoMutexLIFO<LogLine, 8>;
+using Level = LogLine::Level;
+
+using LogQueue = NoMutexLIFO<LogLine, 64>;
 
 LogQueue* log_queue = nullptr;
 
 Thread logger_thread;
 
-void Log(const char* fmt, ...) {
+void Log(Level level, const char* fmt, ...) {
   if (!log_queue) return;
 
   va_list args;
   va_start(args, fmt);
 
-  LogLine line;
+  LogLine line{"", level};
   line.length = vsnprintf(line.data, sizeof(line.data), fmt, args);
 
   log_queue->Push(line);
@@ -212,10 +230,10 @@ void Log(const char* fmt, ...) {
   va_end(args);
 }
 
-void LogHex(const uint8_t* data, size_t length) {
+void LogHex(Level level, const uint8_t* data, size_t length) {
   if (!log_queue) return;
 
-  LogLine line;
+  LogLine line{"", level};
   line.length = 0;
 
   for (size_t i = 0; i < length; i++) {
@@ -224,6 +242,73 @@ void LogHex(const uint8_t* data, size_t length) {
   }
 
   log_queue->Push(line);
+}
+
+struct CharLogGroup {
+  char group_tag[16] = {};
+  char data[512] = {};
+
+  Level level = Level::kInfo;
+
+  enum class CachingMode {
+    kNone,
+    kNewLine,
+  } caching_mode = CachingMode::kNewLine;
+
+  void SetLevel(Level level) { this->level = level; }
+
+  void SetCachingMode(CachingMode mode) { caching_mode = mode; }
+
+  void AppendChar(char c) {
+    if (caching_mode == CachingMode::kNone) {
+      Log(level, "[Char#%s] %s", group_tag, data);
+    }
+
+    if (caching_mode == CachingMode::kNewLine) {
+      if (c == '\n' || strlen(data) >= sizeof(data) - 1) {
+        Log(level, "[Char#%s] %s", group_tag, data);
+        memset(data, 0, sizeof(data));
+        return;
+      } else if (c == '\r') {
+        return;
+      } else if (isprint(c)) {
+        data[strlen(data)] = c;
+      } else {
+        data[strlen(data)] = '\\';
+        data[strlen(data)] = 'x';
+        data[strlen(data)] = "0123456789ABCDEF"[c >> 4];
+        data[strlen(data)] = "0123456789ABCDEF"[c & 0xF];
+      }
+    }
+  }
+};
+
+CharLogGroup groups[16] = {};
+
+static CharLogGroup* GetCharLogGroup(const char* group_tag) {
+  for (auto&& group : groups) {
+    if (strcmp(group.group_tag, group_tag) == 0) {
+      return &group;
+    }
+  }
+
+  for (auto&& group : groups) {
+    if (strlen(group.group_tag) == 0) {
+      strcpy(group.group_tag, group_tag);
+      return &group;
+    }
+  }
+
+  return nullptr;
+}
+
+void LogCh(const char* group_tag, char c) {
+  auto group = GetCharLogGroup(group_tag);
+  if (!group) {
+    return;
+  }
+
+  group->AppendChar(c);
 }
 
 void Init() {
@@ -235,7 +320,7 @@ void Init() {
   printf("- sizeof(LogQueue): %#08x\n", sizeof(LogQueue));
   log_queue = new LogQueue();
   while (!log_queue->Full()) {
-    log_queue->Push({});
+    log_queue->Push({""});
   }
 
   while (!log_queue->Empty()) {
@@ -244,19 +329,48 @@ void Init() {
   printf("- Log Queue: %p\n", log_queue);
 
   logger_thread.start([]() {
+    char level_header[12];
+    // '\x1b', '[', '1', ';',
+    // '3', x, 'm', ch
+    // '\x1b', '[', 'm', '\0'
+
     while (1) {
       if (!log_queue) {
         ThisThread::sleep_for(1ms);
         continue;
       }
 
-      if (log_queue->Empty()) {
-        ThisThread::sleep_for(1ms);
-        continue;
-      }
-      auto line = log_queue->Pop();
+      auto queue_length = log_queue->Size();
 
-      printf("[\x1b[33mLOG]\x1b[m %s\n", line.data);
+      for (int i = 0; !log_queue->Empty(); i++) {
+        auto line = log_queue->Pop();
+
+        switch (line.level) {
+          case Level::kError:
+            snprintf(level_header, sizeof(level_header), "\x1b[1;31mE\x1b[m");
+            break;
+          case Level::kInfo:
+            snprintf(level_header, sizeof(level_header), "\x1b[1;32mI\x1b[m");
+            break;
+          case Level::kVerbose:
+            snprintf(level_header, sizeof(level_header), "\x1b[1;34mV\x1b[m");
+            break;
+          case Level::kDebug:
+            snprintf(level_header, sizeof(level_header), "\x1b[1;36mD\x1b[m");
+            break;
+          case Level::kTrace:
+            snprintf(level_header, sizeof(level_header), "\x1b[1;35mT\x1b[m");
+            break;
+
+          default:
+            snprintf(level_header, sizeof(level_header), "\x1b[1;37m?\x1b[m");
+            break;
+        }
+
+        printf("[\x1b[33mLOG %2d -%2d]\x1b[m %s %s\n", i, log_queue->Size(),
+               level_header, line.data);
+      }
+      ThisThread::sleep_for(1ms);
     }
   });
   printf("- Logger Thread: %p\n", &logger_thread);
@@ -264,7 +378,7 @@ void Init() {
   printf("  - free cells: %d\n", log_queue->Size());
 
   log_queue->Push(LogLine("Logger Initialized"));
-  Log("Logger Initialized (from Log)");
+  Log(Level::kInfo, "Logger Initialized (from Log)");
 }
 }  // namespace robotics::logger
 
@@ -381,7 +495,9 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
   void Send(std::string const& data) {
     serial_.write(data.data(), data.size());
 
-    robotics::logger::Log("[FEP] D: TX: %s", data.c_str());
+    for (size_t i = 0; i < data.size(); i++) {
+      logger::LogCh("FEP-TX", data[i]);
+    }
   }
 
   void ISR_ParseBinary() {
@@ -417,18 +533,17 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
       rx_queue_.Pop();
     }
 
-    robotics::logger::Log("[FEP] D: RX: %d, %d", address, length);
-
     DispatchOnReceive(address, on_binary_data_buffer, length);
 
     state_ = State::kIdle;
   }
 
   void ISR_OnUARTData() {
-    auto length = serial_.readable();
-    char buffer[length];
+    static char buffer[1024];
 
-    serial_.read(buffer, length);
+    auto length = serial_.read(buffer, 1024);
+
+    logger::LogCh("FEP-RX", buffer[0]);
 
     for (int i = 0; i < length; i++) {
       trans_log_queue.Push((0x00 << 8) | buffer[i]);
@@ -505,6 +620,7 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
     ss >> c >> value;
 
     if (c == 'N') {
+      if (value == 0) return -10;
       return -value;
     } else if (c == 'P') {
       return value;
@@ -662,31 +778,64 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
     auto result1 = ReadResult();
     if (!result1.IsOk()) {
       state_ = State::kIdle;
+      return;
     }
 
     if (result1.Unwrap() != +1) {
-      ss.str();
-      ss << "Invalid response: " << result1.Unwrap();
+      logger::Log(logger::Level::kError,
+                  "[FEP] \x1b[31mSend\x1b[m Invalid Response: %d",
+                  result1.Unwrap());
       state_ = State::kIdle;
+      return;
     }
 
     auto result2 = ReadResult();
     if (!result2.IsOk()) {
+      logger::Log(logger::Level::kError,
+                  "[FEP] \x1b[31mSend\x1b[m Failed to read result: %s",
+                  result2.UnwrapError().c_str());
       state_ = State::kIdle;
+      return;
     }
 
-    if (result2.Unwrap() == 0) {
+    if (result2.Unwrap() == -10) {
+      logger::Log(logger::Level::kError,
+                  "[FEP] \x1b[31mSend\x1b[m Invalid Command");
       state_ = State::kIdle;
+      auto result = this->Reset();
+      if (!result.IsOk()) {
+        logger::Log(logger::Level::kError,
+                    "[FEP] \x1b[31mSend\x1b[m Failed to reset: %s",
+                    result.UnwrapError().c_str());
+        return;
+      } else {
+        logger::Log(logger::Level::kInfo,
+                    "[FEP] \x1b[31mSend\x1b[m Resetted FEP");
+      }
+      return;
     }
     if (result2.Unwrap() == -1) {
+      logger::Log(logger::Level::kError,
+                  "[FEP] \x1b[31mSend\x1b[m Failed due to no responce or CS");
       state_ = State::kIdle;
+      return;
     }
     if (result2.Unwrap() == -2) {
+      logger::Log(logger::Level::kError,
+                  "[FEP] \x1b[31mSend\x1b[m Remote RX Overflow");
       state_ = State::kIdle;
+      return;
     }
 
     state_ = State::kIdle;
   }
+};
+
+struct REPTxPacket {
+  uint8_t no_key_check;
+  uint8_t addr;
+  uint8_t buffer[32];
+  uint32_t length;
 };
 
 class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
@@ -703,47 +852,89 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
     uint8_t key = 0;
   } cached_keys[256] = {};  // Using array for ISR context
 
-  struct Packet {
-    uint8_t addr;
-    uint8_t buffer[32];
-    uint32_t length;
-  };
-  NoMutexLIFO<Packet, 4> tx_queue;
+  NoMutexLIFO<REPTxPacket, 4> tx_queue;
 
+  void ExchangeKey_RequestImmediately(uint8_t remote) {
+    logger::Log(logger::Level::kVerbose, "[REP] Key Request: to %d (Imm)",
+                remote);
+
+    REPTxPacket* packet = new REPTxPacket{true, remote, {Random::GetByte()}, 1};
+    _Send(*packet);
+  }
   void ExchangeKey_Request(uint8_t remote) {
-    cached_keys[remote] = {true, 0};  // force key to be initialized and 0
+    logger::Log(logger::Level::kVerbose, "[REP] Key Request: to %d", remote);
 
-    logger::Log("[REP] V: Key Request: to %#02x", remote);
-
-    uint8_t random[1] = {Random::GetByte()};
-    Send(remote, random, 1);
-
-    cached_keys[remote].initialized = false;  // forget key
+    this->tx_queue.Push({true, remote, {Random::GetByte()}, 1});
   }
 
   void ExchangeKey_Responce(uint8_t remote, uint8_t random) {
-    this->tx_queue.Push({remote, {random, (uint8_t)(random ^ random_key_)}, 2});
+    this->tx_queue.Push(
+        {true, remote, {random, (uint8_t)(random ^ random_key_)}, 2});
 
-    logger::Log("[REP] V: Key Responce: for %#02x, random=%#02x", remote,
-                random);
+    logger::Log(logger::Level::kVerbose,
+                "[REP] Key Responce: for %d, random=%#02x", remote, random);
   }
 
   void ExchangeKey_Update(uint8_t remote, uint8_t key) {
     cached_keys[remote] = {true, key};
 
-    logger::Log("[REP] V: Key Updated: for %#02x, key=%#02x", remote, key);
+    logger::Log(logger::Level::kVerbose, "[REP] Key Updated: for %d, key=%#02x",
+                remote, key);
+  }
+
+  void _Send(REPTxPacket& packet) {
+    if (!packet.no_key_check && !cached_keys[packet.addr].initialized) {
+      logger::Log(logger::Level::kDebug,
+                  "[REP] Packet marked as key_check, but the cached key is not "
+                  "initialized for %d, Queueing exchanging...",
+                  packet.addr);
+      ExchangeKey_Request(packet.addr);
+
+      return;
+    }
+
+    logger::Log(logger::Level::kDebug,
+                "[REP] \x1b[31mSend\x1b[m key = %d(%d), data = %p (%d B) -> %d",
+                cached_keys[packet.addr].key,
+                cached_keys[packet.addr].initialized, packet.buffer,
+                packet.length, packet.addr);
+
+    auto key = cached_keys[packet.addr].key;
+
+    tx_cs_calculator.Reset();
+    tx_cs_calculator << (uint8_t)key;
+    tx_cs_calculator << (uint8_t)packet.length;
+    for (size_t i = 0; i < packet.length; i++) {
+      tx_cs_calculator << (uint8_t)packet.buffer[i];
+    }
+
+    auto ptr = tx_buffer_;
+    *(ptr++) = 0x55;
+    *(ptr++) = 0xAA;
+    *(ptr++) = 0xCC;
+    *(ptr++) = key;
+    *(ptr++) = packet.length;
+    for (size_t i = 0; i < packet.length; i++) {
+      *(ptr++) = packet.buffer[i];
+    }
+
+    *(ptr++) = (uint8_t)(tx_cs_calculator.Get() >> 8);
+    *(ptr++) = (uint8_t)(tx_cs_calculator.Get() & 0xFF);
+
+    driver_.Send(packet.addr, tx_buffer_, ptr - tx_buffer_);
   }
 
  public:
   ReliableFEPProtocol(FEP_RawDriver& driver) : driver_(driver) {
     this->random_key_ = Random::GetByte();
 
-    logger::Log("[REP] I: Using Random Key: \e[1;32m%d\e[m", random_key_);
+    logger::Log(logger::Level::kInfo, "[REP] Using Random Key: \e[1;32m%d\e[m",
+                random_key_);
 
     driver_.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
       //* Validate magic
       if (data[0] != 0x55 || data[1] != 0xAA || data[2] != 0xCC) {
-        logger::Log("[REP] E: Invalid Magic: %d", addr);
+        logger::Log(logger::Level::kError, "[REP] Invalid Magic: %d", addr);
         return;  // invalid magic
       }
 
@@ -751,14 +942,16 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
 
       //* Load key/length
       if (len <= 5) {
-        logger::Log("[REP] E: Invalid Length (1): %d", addr);
+        logger::Log(logger::Level::kError, "[REP] Invalid Length (1): %d",
+                    addr);
         return;  // malformed packet
       }
 
       auto key = *(data++);
       auto length = *(data++);
       if (len != 7 + length) {
-        logger::Log("[REP] E: Invalid Length (2): %d", addr);
+        logger::Log(logger::Level::kError, "[REP] Invalid Length (2): %d",
+                    addr);
         return;  // malformed packet
       }
 
@@ -777,13 +970,13 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
 
       uint16_t checksum = (*(data++) << 8) | *(data++);
       if (checksum != (uint16_t)rx_cs_calculator.Get()) {
-        logger::Log("[REP] E: Invalid Checksum: %d", addr);
+        logger::Log(logger::Level::kError, "[REP] Invalid Checksum: %d", addr);
         return;  // invalid checksum
       }
 
       if (0)
-        logger::Log("[REP] D: RX: %d, key = %d, length = %d", addr, key,
-                    length);
+        logger::Log(logger::Level::kDebug,
+                    "[REP] RX: %d, key = %d, length = %d", addr, key, length);
 
       if (key == 0) {
         if (payload_len == 1)  // key request
@@ -798,7 +991,7 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
       }
 
       if (key != random_key_) {
-        logger::Log("[REP] E: Invalid Key: %d", addr);
+        logger::Log(logger::Level::kError, "[REP] Invalid Key: %d", addr);
         ExchangeKey_Responce(addr, Random::GetByte());
         return;  // invalid key
       }
@@ -806,78 +999,47 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
       DispatchOnReceive(addr, payload, payload_len);
     });
 
-    (new Thread(osPriorityNormal, 2048, nullptr, "REP"))->start([this]() {
-      static uint8_t buffer[128] = {};
-
+    (new Thread(osPriorityNormal, 8192, nullptr, "REP"))->start([this]() {
       while (1) {
         if (tx_queue.Empty()) {
-          ThisThread::sleep_for(1ms);
+          ThisThread::sleep_for(100ms);
           continue;
         }
 
         auto packet = tx_queue.Pop();
+        logger::Log(logger::Level::kDebug,
+                    "[REP] Consuming packet %d/%d (%d, byte[%d] to %d)", 1,
+                    tx_queue.Size(), packet.no_key_check, packet.length,
+                    packet.addr);
 
-        for (size_t i = 0; i < packet.length; i++) {
-          buffer[i] = packet.buffer[i];
+        if (!packet.no_key_check && !cached_keys[packet.addr].initialized) {
+          logger::Log(
+              logger::Level::kDebug,
+              "[REP] Key not initialized: %d, skipping consume the queue...",
+              packet.addr);
+          ExchangeKey_Request(packet.addr);
+          tx_queue.Push(packet);
+
+          continue;
         }
 
-        if (0)
-          robotics::logger::Log(
-              "[REP] D: qSend addr = %d, key = %d(%d), data = %p, length = %d",
-              packet.addr, cached_keys[packet.addr].key,
-              cached_keys[packet.addr].initialized, buffer, packet.length);
-
-        if (!cached_keys[packet.addr].initialized) {
-          cached_keys[packet.addr].initialized = true;
-          cached_keys[packet.addr].key = 0;
-          Send(packet.addr, buffer, packet.length);
-          cached_keys[packet.addr].initialized = false;
-        } else {
-          auto key = cached_keys[packet.addr].key;
-          cached_keys[packet.addr].key = 0;
-          Send(packet.addr, buffer, packet.length);
-
-          cached_keys[packet.addr].key = key;
-        }
+        logger::Log(
+            logger::Level::kDebug,
+            "[REP] \x1b[33mSend\x1b[m key = %d(%d), data = %p (%d B) -> %d",
+            cached_keys[packet.addr].key, cached_keys[packet.addr].initialized,
+            packet.buffer, packet.length, packet.addr);
+        _Send(packet);
       }
     });
   }
 
   void Send(uint8_t address, uint8_t* data, uint32_t length) override {
-    if (!cached_keys[address].initialized) {
-      logger::Log("[REP] D: Key not initialized: %d, exchanging...", address);
-      ExchangeKey_Request(address);
-
-      return;
-    }
-    if (0)
-      logger::Log(
-          "[REP] D: Send address = %d, key = %d, data = %p, length = %d",
-          address, cached_keys[address].key, data, length);
-
-    auto key = cached_keys[address].key;
-
-    tx_cs_calculator.Reset();
-    tx_cs_calculator << (uint8_t)key;
-    tx_cs_calculator << (uint8_t)length;
+    static REPTxPacket packet;
+    packet = REPTxPacket{false, address, {}, length};
     for (size_t i = 0; i < length; i++) {
-      tx_cs_calculator << (uint8_t)data[i];
+      packet.buffer[i] = data[i];
     }
-
-    auto ptr = tx_buffer_;
-    *(ptr++) = 0x55;
-    *(ptr++) = 0xAA;
-    *(ptr++) = 0xCC;
-    *(ptr++) = key;
-    *(ptr++) = length;
-    for (size_t i = 0; i < length; i++) {
-      *(ptr++) = data[i];
-    }
-
-    *(ptr++) = (uint8_t)(tx_cs_calculator.Get() >> 8);
-    *(ptr++) = (uint8_t)(tx_cs_calculator.Get() & 0xFF);
-
-    driver_.Send(address, tx_buffer_, ptr - tx_buffer_);
+    tx_queue.Push(packet);
   }
 };
 
@@ -920,14 +1082,16 @@ class SerialServiceProtocol {
     stream_.OnReceive(
         [this](uint8_t from_addr, uint8_t* data, uint32_t length) {
           if (length < 4) {
-            robotics::logger::Log("[SSP] E: Invalid Length: %d", length);
+            robotics::logger::Log(logger::Level::kError,
+                                  "[SSP] E: Invalid Length: %d", length);
             return;
           }
 
           uint16_t service_id = (data[0] << 8) | data[1];
 
           if (services_.find(service_id) == services_.end()) {
-            robotics::logger::Log("[SSP] E: Invalid Service: %d", service_id);
+            robotics::logger::Log(logger::Level::kError,
+                                  "[SSP] E: Invalid Service: %d", service_id);
             return;
           }
           auto service = services_[service_id];
@@ -949,10 +1113,12 @@ class EchoService : public robotics::network::SSP_Service {
   EchoService(robotics::network::Stream<uint8_t, uint8_t>& stream)
       : SSP_Service(stream, 0x0001) {
     OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
-      robotics::logger::Log("[Echo] I: RX: %d", addr);
-      robotics::logger::LogHex(data, len);
-      robotics::logger::Log("[Echo] I: TX: %d", addr);
-      robotics::logger::LogHex(data, len);
+      robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo] RX: %d",
+                            addr);
+      robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
+      robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo] TX: %d",
+                            addr);
+      robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
       Send(addr, data, len);
     });
   }
@@ -962,10 +1128,12 @@ class Echo2Service : public robotics::network::SSP_Service {
   Echo2Service(robotics::network::Stream<uint8_t, uint8_t>& stream)
       : SSP_Service(stream, 0x0002) {
     OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
-      robotics::logger::Log("[Echo2] I: RX: %d", addr);
-      robotics::logger::LogHex(data, len);
-      robotics::logger::Log("[Echo2] I: TX: %d", addr);
-      robotics::logger::LogHex(data, len);
+      robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo2] RX: %d",
+                            addr);
+      robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
+      robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo2] TX: %d",
+                            addr);
+      robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
 
       if (len > 0) addr = data[0];
       Send(addr, data + 1, len - 1);
@@ -973,6 +1141,7 @@ class Echo2Service : public robotics::network::SSP_Service {
   }
 };
 
+using robotics::logger::Level;
 class App {
   robotics::network::FEP_RawDriver fep_;
   robotics::network::ReliableFEPProtocol rep_;
@@ -981,15 +1150,16 @@ class App {
   void SetupFEP(int mode) {
     auto fep_address = mode == 1 ? 2 : 1;
     auto group_address = 0xF0;
-    robotics::logger::Log("# Setup FEP");
-    robotics::logger::Log("- Mode         : %d", mode);
-    robotics::logger::Log("- Addr         : %d", fep_address);
-    robotics::logger::Log("- Group Address: %d", group_address);
+    robotics::logger::Log(Level::kInfo, "# Setup FEP");
+    robotics::logger::Log(Level::kInfo, "- Mode         : %d", mode);
+    robotics::logger::Log(Level::kInfo, "- Addr         : %d", fep_address);
+    robotics::logger::Log(Level::kInfo, "- Group Address: %d", group_address);
 
     {
       auto res = fep_.InitAllRegister();
       if (!res.IsOk()) {
-        robotics::logger::Log("FAILED!!!: %s", res.UnwrapError().c_str());
+        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
+                              res.UnwrapError().c_str());
         while (1);
       }
     }
@@ -997,7 +1167,8 @@ class App {
     {
       auto result = fep_.Reset();
       if (!result.IsOk()) {
-        robotics::logger::Log("FAILED!!!: %s", result.UnwrapError().c_str());
+        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
+                              result.UnwrapError().c_str());
         while (1);
       }
     }
@@ -1005,7 +1176,8 @@ class App {
     {
       auto res = fep_.SetRegister(0, fep_address);
       if (!res.IsOk()) {
-        robotics::logger::Log("FAILED!!!: %s", res.UnwrapError().c_str());
+        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
+                              res.UnwrapError().c_str());
         while (1);
       }
     }
@@ -1013,7 +1185,8 @@ class App {
     {
       auto res = fep_.SetRegister(1, group_address);
       if (!res.IsOk()) {
-        robotics::logger::Log("FAILED!!!: %s", res.UnwrapError().c_str());
+        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
+                              res.UnwrapError().c_str());
         while (1);
       }
     }
@@ -1021,7 +1194,8 @@ class App {
     {
       auto res = fep_.SetRegister(18, 0x8D);
       if (!res.IsOk()) {
-        robotics::logger::Log("FAILED!!!: %s", res.UnwrapError().c_str());
+        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
+                              res.UnwrapError().c_str());
         while (1);
       }
     }
@@ -1029,7 +1203,8 @@ class App {
     {
       auto res = fep_.Reset();
       if (!res.IsOk()) {
-        robotics::logger::Log("FAILED!!!: %s", res.UnwrapError().c_str());
+        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
+                              res.UnwrapError().c_str());
         while (1);
       }
     }
@@ -1037,9 +1212,9 @@ class App {
 
   void Init() {
     rep_.OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
-      robotics::logger::Log("[App] I: REP-RX: %d", addr);
-      robotics::logger::LogHex(data, len);
-      robotics::logger::Log("[App] I:");
+      robotics::logger::Log(Level::kInfo, "[App] I: REP-RX: %d", addr);
+      robotics::logger::LogHex(Level::kInfo, data, len);
+      robotics::logger::Log(Level::kInfo, "[App]");
     });
   }
 
@@ -1072,7 +1247,8 @@ class App {
     ssp_.RegisterService<Echo2Service>();
 
     auto dest_address = mode == 1 ? 1 : 2;
-    robotics::logger::Log("[App] I: Dest Address: %d\n", dest_address);
+    robotics::logger::Log(Level::kInfo, "[App] Dest Address: %d\n",
+                          dest_address);
 
     (new Thread(osPriorityNormal, 1024, nullptr, "Watcher"))
         ->start(callback(this, &App::Watcher));
