@@ -370,7 +370,6 @@ void Init() {
         printf("[\x1b[33mLOG %2d -%2d]\x1b[m %s %s\n", i, log_queue->Size(),
                level_header, line.data);
       }
-      ThisThread::sleep_for(1ms);
     }
   });
   printf("- Logger Thread: %p\n", &logger_thread);
@@ -737,23 +736,15 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
     return ReadResult(1000ms);
   }
 
-  enum class TxState_ { kNoError, kTimeout, kInvalidResponse, kRxOverflow };
-
-  class TxState {
-    TxState_ value_;
-
-   public:
-    TxState(TxState_ value) : value_(value) {}
-    TxState() : value_(TxState_::kNoError) {}
-
-    bool operator==(TxState const& other) const {
-      return value_ == other.value_;
-    }
-
-    bool operator!=(TxState const& other) const {
-      return value_ != other.value_;
-    }
+  enum class TxState {
+    kNoError,
+    kTimeout,
+    kInvalidResponse,
+    kRxOverflow,
+    kInvalidCommand
   };
+
+  TxState tx_state;
 
   [[nodiscard]]
   void Send(uint8_t address, uint8_t* data, uint32_t length) override {
@@ -785,6 +776,7 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
       logger::Log(logger::Level::kError,
                   "[FEP] \x1b[31mSend\x1b[m Invalid Response: %d",
                   result1.Unwrap());
+      tx_state = TxState(TxState::kInvalidResponse);
       state_ = State::kIdle;
       return;
     }
@@ -794,6 +786,7 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
       logger::Log(logger::Level::kError,
                   "[FEP] \x1b[31mSend\x1b[m Failed to read result: %s",
                   result2.UnwrapError().c_str());
+      tx_state = TxState(TxState::kInvalidResponse);
       state_ = State::kIdle;
       return;
     }
@@ -801,12 +794,14 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
     if (result2.Unwrap() == -10) {
       logger::Log(logger::Level::kError,
                   "[FEP] \x1b[31mSend\x1b[m Invalid Command");
+      tx_state = TxState(TxState::kInvalidCommand);
       state_ = State::kIdle;
       auto result = this->Reset();
       if (!result.IsOk()) {
         logger::Log(logger::Level::kError,
                     "[FEP] \x1b[31mSend\x1b[m Failed to reset: %s",
                     result.UnwrapError().c_str());
+        tx_state = TxState(TxState::kInvalidResponse);
         return;
       } else {
         logger::Log(logger::Level::kInfo,
@@ -817,16 +812,19 @@ class FEP_RawDriver : public Stream<uint8_t, uint8_t> {
     if (result2.Unwrap() == -1) {
       logger::Log(logger::Level::kError,
                   "[FEP] \x1b[31mSend\x1b[m Failed due to no responce or CS");
+      tx_state = TxState(TxState::kTimeout);
       state_ = State::kIdle;
       return;
     }
     if (result2.Unwrap() == -2) {
       logger::Log(logger::Level::kError,
                   "[FEP] \x1b[31mSend\x1b[m Remote RX Overflow");
+      tx_state = TxState(TxState::kRxOverflow);
       state_ = State::kIdle;
       return;
     }
 
+    tx_state = TxState(TxState::kNoError);
     state_ = State::kIdle;
   }
 };
@@ -847,8 +845,12 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
   Checksum tx_cs_calculator;
 
   uint8_t tx_buffer_[32] = {};
-  struct {
-    uint8_t initialized = 0;
+  struct CachedKey {
+    enum class State : uint8_t {
+      kUnknown,
+      kInitialized,
+      kWaiting
+    } state = State::kUnknown;
     uint8_t key = 0;
   } cached_keys[256] = {};  // Using array for ISR context
 
@@ -860,11 +862,17 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
 
     REPTxPacket* packet = new REPTxPacket{true, remote, {Random::GetByte()}, 1};
     _Send(*packet);
+
+    delete packet;
+
+    cached_keys[remote].state = CachedKey::State::kWaiting;
   }
   void ExchangeKey_Request(uint8_t remote) {
     logger::Log(logger::Level::kVerbose, "[REP] Key Request: to %d", remote);
 
     this->tx_queue.Push({true, remote, {Random::GetByte()}, 1});
+
+    cached_keys[remote].state = CachedKey::State::kWaiting;
   }
 
   void ExchangeKey_Responce(uint8_t remote, uint8_t random) {
@@ -876,14 +884,15 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
   }
 
   void ExchangeKey_Update(uint8_t remote, uint8_t key) {
-    cached_keys[remote] = {true, key};
+    cached_keys[remote] = {CachedKey::State::kInitialized, key};
 
     logger::Log(logger::Level::kVerbose, "[REP] Key Updated: for %d, key=%#02x",
                 remote, key);
   }
 
   void _Send(REPTxPacket& packet) {
-    if (!packet.no_key_check && !cached_keys[packet.addr].initialized) {
+    if (!packet.no_key_check &&
+        cached_keys[packet.addr].state == CachedKey::State::kUnknown) {
       logger::Log(logger::Level::kDebug,
                   "[REP] Packet marked as key_check, but the cached key is not "
                   "initialized for %d, Queueing exchanging...",
@@ -896,8 +905,9 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
     logger::Log(logger::Level::kDebug,
                 "[REP] \x1b[31mSend\x1b[m key = %d(%d), data = %p (%d B) -> %d",
                 cached_keys[packet.addr].key,
-                cached_keys[packet.addr].initialized, packet.buffer,
+                (uint8_t)cached_keys[packet.addr].state, packet.buffer,
                 packet.length, packet.addr);
+    logger::LogHex(logger::Level::kDebug, packet.buffer, packet.length);
 
     auto key = cached_keys[packet.addr].key;
 
@@ -922,6 +932,13 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
     *(ptr++) = (uint8_t)(tx_cs_calculator.Get() & 0xFF);
 
     driver_.Send(packet.addr, tx_buffer_, ptr - tx_buffer_);
+
+    if (driver_.tx_state != FEP_RawDriver::TxState::kNoError) {
+      logger::Log(logger::Level::kError,
+                  "[REP] Failed to send packet to %d: %d, Pushing queue",
+                  packet.addr, (int)driver_.tx_state);
+      tx_queue.Push(packet);
+    }
   }
 
  public:
@@ -974,9 +991,10 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
         return;  // invalid checksum
       }
 
-      if (0)
-        logger::Log(logger::Level::kDebug,
-                    "[REP] RX: %d, key = %d, length = %d", addr, key, length);
+      logger::Log(logger::Level::kDebug,
+                  "[REP] \x1b[32mRecv\x1b[m key = %d, data = %p (%d B) -> %d",
+                  key, payload, payload_len, addr);
+      logger::LogHex(logger::Level::kDebug, payload, payload_len);
 
       if (key == 0) {
         if (payload_len == 1)  // key request
@@ -1007,17 +1025,12 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
         }
 
         auto packet = tx_queue.Pop();
-        logger::Log(logger::Level::kDebug,
-                    "[REP] Consuming packet %d/%d (%d, byte[%d] to %d)", 1,
-                    tx_queue.Size(), packet.no_key_check, packet.length,
-                    packet.addr);
 
-        if (!packet.no_key_check && !cached_keys[packet.addr].initialized) {
-          logger::Log(
-              logger::Level::kDebug,
-              "[REP] Key not initialized: %d, skipping consume the queue...",
-              packet.addr);
-          ExchangeKey_Request(packet.addr);
+        if (!packet.no_key_check &&
+            cached_keys[packet.addr].state != CachedKey::State::kInitialized) {
+          if (cached_keys[packet.addr].state == CachedKey::State::kUnknown) {
+            ExchangeKey_Request(packet.addr);
+          }
           tx_queue.Push(packet);
 
           continue;
@@ -1026,8 +1039,9 @@ class ReliableFEPProtocol : public Stream<uint8_t, uint8_t> {
         logger::Log(
             logger::Level::kDebug,
             "[REP] \x1b[33mSend\x1b[m key = %d(%d), data = %p (%d B) -> %d",
-            cached_keys[packet.addr].key, cached_keys[packet.addr].initialized,
-            packet.buffer, packet.length, packet.addr);
+            cached_keys[packet.addr].key,
+            (uint8_t)cached_keys[packet.addr].state, packet.buffer,
+            packet.length, packet.addr);
         _Send(packet);
       }
     });
@@ -1127,16 +1141,20 @@ class Echo2Service : public robotics::network::SSP_Service {
  public:
   Echo2Service(robotics::network::Stream<uint8_t, uint8_t>& stream)
       : SSP_Service(stream, 0x0002) {
-    OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
+    OnReceive([this, &stream](uint8_t addr, uint8_t* data, size_t len) {
       robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo2] RX: %d",
                             addr);
       robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
-      robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo2] TX: %d",
-                            addr);
-      robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
 
-      if (len > 0) addr = data[0];
-      Send(addr, data + 1, len - 1);
+      if (len > 0) {
+        addr = data[0];
+        data += 1;
+        len -= 1;
+        robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo2] TX: %d",
+                              addr);
+        robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
+        stream.Send(addr, data, len);
+      }
     });
   }
 };
