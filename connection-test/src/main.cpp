@@ -123,13 +123,7 @@ class Result {
 
   Result(E error) : tag_(Tag::kError), error_(error) {}
 
-  ~Result() {
-    if (tag_ == Tag::kOk) {
-      value_.~T();
-    } else {
-      error_.~E();
-    }
-  }
+  ~Result() {}
 
   T Unwrap() const {
     if (tag_ == Tag::kError) {
