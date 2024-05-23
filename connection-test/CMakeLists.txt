@@ -68,7 +68,7 @@ ADD_DEFINITIONS(
   -DDEVICE_STDIO_MESSAGES=1
   -DDEVICE_USTICKER=1
   -DDEVICE_WATCHDOG=1
-  -DMBED_BUILD_TIMESTAMP=1715609406.9630995
+  -DMBED_BUILD_TIMESTAMP=1716212909.8115098
   -DSTM32F446xx
   -DTARGET_CORTEX
   -DTARGET_CORTEX_M
@@ -105,6 +105,7 @@ INCLUDE_DIRECTORIES(
   syoch-robotics/robotics/platform
   syoch-robotics/robotics/node
   syoch-robotics/robotics/network
+  syoch-robotics/robotics/logger
   syoch-robotics/robotics/filter
   syoch-robotics/robotics/controller
   syoch-robotics/robotics/component/swerve
@@ -2734,6 +2735,7 @@ ADD_EXECUTABLE(connection-test
   syoch-robotics/mbed-robotics/pseudo_abs_encoder.hpp
   syoch-robotics/mbed-robotics/simple_can.cpp
   syoch-robotics/mbed-robotics/simple_can.hpp
+  syoch-robotics/mbed-robotics/uart_stream.hpp
   syoch-robotics/robotics/assembly/dummy_motor_pair.hpp
   syoch-robotics/robotics/assembly/motor_pair.hpp
   syoch-robotics/robotics/component/swerve/motor.hpp
@@ -2755,11 +2757,18 @@ ADD_EXECUTABLE(connection-test
   syoch-robotics/robotics/filter/joystick2angle.hpp
   syoch-robotics/robotics/filter/muxer.hpp
   syoch-robotics/robotics/filter/pid.hpp
+  syoch-robotics/robotics/logger/logger.hpp
   syoch-robotics/robotics/network/can_base.hpp
   syoch-robotics/robotics/network/can_module.cpp
   syoch-robotics/robotics/network/can_module.hpp
+  syoch-robotics/robotics/network/checksum.hpp
   syoch-robotics/robotics/network/dcan.cpp
   syoch-robotics/robotics/network/dcan.hpp
+  syoch-robotics/robotics/network/fep_raw_driver.hpp
+  syoch-robotics/robotics/network/fep_tx_state.hpp
+  syoch-robotics/robotics/network/rep.hpp
+  syoch-robotics/robotics/network/ssp.hpp
+  syoch-robotics/robotics/network/stream.hpp
   syoch-robotics/robotics/node/BLDC.cpp
   syoch-robotics/robotics/node/BLDC.hpp
   syoch-robotics/robotics/node/digital_out.hpp
@@ -2771,12 +2780,18 @@ ADD_EXECUTABLE(connection-test
   syoch-robotics/robotics/platform/dout.hpp
   syoch-robotics/robotics/platform/dout.idf.hpp
   syoch-robotics/robotics/platform/dout.mbed.hpp
+  syoch-robotics/robotics/platform/panic.hpp
   syoch-robotics/robotics/platform/pwm.hpp
   syoch-robotics/robotics/platform/pwm.idf.hpp
   syoch-robotics/robotics/platform/pwm.mbed.hpp
+  syoch-robotics/robotics/platform/random.hpp
+  syoch-robotics/robotics/platform/random.mbed.hpp
   syoch-robotics/robotics/platform/spi.hpp
   syoch-robotics/robotics/platform/spi.idf.hpp
   syoch-robotics/robotics/platform/spi.mbed.hpp
+  syoch-robotics/robotics/platform/thread.hpp
+  syoch-robotics/robotics/platform/thread.mbed.hpp
+  syoch-robotics/robotics/platform/thread.mock.hpp
   syoch-robotics/robotics/platform/timer.hpp
   syoch-robotics/robotics/platform/timer.idf.hpp
   syoch-robotics/robotics/platform/timer.mbed.hpp
@@ -2787,12 +2802,14 @@ ADD_EXECUTABLE(connection-test
   syoch-robotics/robotics/types/angle_joystick_2d.hpp
   syoch-robotics/robotics/types/joystick_2d.hpp
   syoch-robotics/robotics/types/pid_gains.hpp
+  syoch-robotics/robotics/types/result.hpp
   syoch-robotics/robotics/types/vector.hpp
   syoch-robotics/robotics/utils/emc.hpp
   syoch-robotics/robotics/utils/neopixel.cpp
   syoch-robotics/robotics/utils/neopixel.hpp
   syoch-robotics/robotics/utils/neopixel_driver.cpp
   syoch-robotics/robotics/utils/neopixel_driver.hpp
+  syoch-robotics/robotics/utils/no_mutex_lifo.hpp
   syoch-robotics/robotics/utils/watcher.hpp
   )
 SET_TARGET_PROPERTIES(connection-test PROPERTIES ENABLE_EXPORTS 1)

@@ -65,7 +65,7 @@ class App {
   robotics::network::FEP_RawDriver fep_;
   robotics::network::ReliableFEPProtocol rep_;
   robotics::network::SerialServiceProtocol ssp_;
-
+  //
   void SetupFEP(int mode) {
     auto fep_address = mode == 1 ? 2 : 1;
     auto group_address = 0xF0;
@@ -103,6 +103,15 @@ class App {
 
     {
       auto res = fep_.SetRegister(1, group_address);
+      if (!res.IsOk()) {
+        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
+                              res.UnwrapError().c_str());
+        while (1);
+      }
+    }
+
+    {
+      auto res = fep_.SetRegister(11, 0x80);
       if (!res.IsOk()) {
         robotics::logger::Log(Level::kError, "FAILED!!!: %s",
                               res.UnwrapError().c_str());
@@ -167,6 +176,7 @@ int main() {
   printf("- Build info\n");
   printf("  - Date: %s\n", __DATE__);
   printf("  - Time: %s\n", __TIME__);
+  printf("  - sizeof(App) = %d\n", sizeof(App));
 
   robotics::system::Random::GetByte();
   ThisThread::sleep_for(20ms);
