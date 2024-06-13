@@ -48,18 +48,26 @@ ds3:
 	git switch robot-collect
 	PATH=$(PATH):/opt/gcc-arm-none-eabi-10.3-2021.10/bin $(MAKE) -C robot-collect -j 12
 
-ds4:
-	sudo umount /mnt/st4 || :
+_c_ct:
+	# cd connection-test; mbed export -i cmake_gcc_arm
+	# cmake -B connection-test/build -S connection-test -G "Ninja"
 	ninja -C connection-test/build
+
+ds4: _c_ct
+	sudo umount /mnt/st4 || :
 	$(MAKE) /mnt/st4/MBED.HTM
+
 	arm-none-eabi-objcopy connection-test/build/connection-test -O binary connection-test/build/connection-test.bin
 	cp connection-test/build/connection-test.bin /mnt/st4/a.bin
 	sync /mnt/st4/a.bin
 
-ds5:
+ds5: _c_ct
 	sudo umount /mnt/st5 || :
-	ninja -C connection-test/build
 	S4_SERIAL=066BFF333535554157134434 S4_MOUNTPOINT=/mnt/st5 $(MAKE) /mnt/st5/MBED.HTM
+
 	arm-none-eabi-objcopy connection-test/build/connection-test -O binary connection-test/build/connection-test.bin
 	cp connection-test/build/connection-test.bin /mnt/st5/a.bin
 	sync /mnt/st5/a.bin
+
+f_s:
+	bash scripts/fep.sh
