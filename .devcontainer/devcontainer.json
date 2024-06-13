@@ -9,7 +9,7 @@
 			"target": "release/v5.2"
 		}
 	},
-	"postCreateCommand": "sudo ln -s /opt/gcc-arm-none-eabi-10.3-2021.10/bin/* /usr/bin/ && sudo groupadd -g 932 uucp-2 && sudo usermod -a -G uucp-2 vscode",
+	"postCreateCommand": "./.devcontainer/post_create.sh",
 	"mounts": [],
 	"customizations": {
 		"vscode": {
