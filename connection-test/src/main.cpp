@@ -1,84 +1,77 @@
 
-#include <mbed.h>
-
-#include <sstream>
 #include <vector>
 #include <iomanip>
 #include <string>
-#include <queue>
-#include <variant>
-#include <functional>
-#include <unordered_map>
 
-#include <ctype.h>
-
-#include <robotics/network/stream.hpp>
 #include <robotics/logger/logger.hpp>
 #include <robotics/platform/random.hpp>
-#include <robotics/types/result.hpp>
+#include <robotics/platform/thread.hpp>
 
 #include <robotics/network/fep_raw_driver.hpp>
 #include <robotics/network/rep.hpp>
-#include <robotics/network/ssp.hpp>
-#include <mbed-robotics/uart_stream.hpp>
+#include <robotics/network/ssp/ssp.hpp>
+#include <robotics/network/ssp/relay.hpp>
+#include <robotics/network/ssp/kv.hpp>
 
-class EchoService : public robotics::network::SSP_Service {
+#include "platform.hpp"
+
+//* ####################
+//* Services
+//* ####################
+
+class IdentitiyService : public robotics::network::ssp::KVService {
  public:
-  EchoService(robotics::network::Stream<uint8_t, uint8_t>& stream)
-      : SSP_Service(stream, 0x0001) {
+  IdentitiyService(robotics::network::Stream<uint8_t, uint8_t>& stream)
+      : KVService(stream, 0x0000, "id.svc.nw",
+                  "\x1b[32mIdentitiyService\x1b[m") {
+    using robotics::network::ssp::KVPacket;
+    this->OnKVRequested(0x0000,
+                        []() { return (KVPacket){(uint8_t*)"test", 4}; });
+  }
+};
+
+class TestService : public robotics::network::ssp::SSP_Service {
+ public:
+  TestService(robotics::network::Stream<uint8_t, uint8_t>& stream)
+      : SSP_Service(stream, 0xffff, "test.svc.nw",
+                    "\x1b[32mTestService\x1b[m") {
     OnReceive([this](uint8_t addr, uint8_t* data, size_t len) {
-      robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo] RX: %d",
-                            addr);
-      robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
-      robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo] TX: %d",
-                            addr);
-      robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
-      Send(addr, data, len);
-    });
-  }
-};
-class Echo2Service : public robotics::network::SSP_Service {
- public:
-  Echo2Service(robotics::network::Stream<uint8_t, uint8_t>& stream)
-      : SSP_Service(stream, 0x0002) {
-    OnReceive([this, &stream](uint8_t addr, uint8_t* data, size_t len) {
-      robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo2] RX: %d",
-                            addr);
-      robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
-
-      if (len > 0) {
-        addr = data[0];
-        data += 1;
-        len -= 1;
-        robotics::logger::Log(robotics::logger::Level::kInfo, "[Echo2] TX: %d",
-                              addr);
-        robotics::logger::LogHex(robotics::logger::Level::kInfo, data, len);
-        stream.Send(addr, data, len);
-      }
+      logger.Info("RX: %d", addr);
+      logger.Hex(robotics::logger::core::Level::kInfo, data, len);
     });
   }
 };
 
-using robotics::logger::Level;
-class App {
+//* ####################
+//* App
+//* ####################
+
+using robotics::logger::core::Level;
+using namespace robotics::network::ssp;
+class Network {
+  robotics::logger::Logger logger{"nw.app", "\x1b[1;32mNetwork\x1b[m"};
+#if defined(__TEST_ON_HOST__)
   robotics::network::UARTStream uart_stream_;
+#else
+  robotics::network::UARTStream uart_stream_{PB_6, PA_10, 9600};
+#endif
+
   robotics::network::FEP_RawDriver fep_;
   robotics::network::ReliableFEPProtocol rep_;
   robotics::network::SerialServiceProtocol ssp_;
-  //
-  void SetupFEP(int mode) {
-    auto fep_address = mode == 1 ? 2 : 1;
+
+  void SetupFEP(platform::Mode mode) {
+    auto fep_address = mode == platform::Mode::kDevice1 ? 2 : 1;
     auto group_address = 0xF0;
-    robotics::logger::Log(Level::kInfo, "# Setup FEP");
-    robotics::logger::Log(Level::kInfo, "- Mode         : %d", mode);
-    robotics::logger::Log(Level::kInfo, "- Addr         : %d", fep_address);
-    robotics::logger::Log(Level::kInfo, "- Group Address: %d", group_address);
+    logger.Info("# Setup FEP");
+    logger.Info("- Mode         : %d", mode);
+    logger.Info("- Addr         : %d", fep_address);
+    logger.Info("- Group Address: %d", group_address);
 
     {
       auto res = fep_.InitAllRegister();
       if (!res.IsOk()) {
-        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
-                              res.UnwrapError().c_str());
+        logger.Error("FAILED!!!: %s", res.UnwrapError().c_str());
         while (1);
       }
     }
@@ -86,8 +79,7 @@ class App {
     {
       auto result = fep_.Reset();
       if (!result.IsOk()) {
-        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
-                              result.UnwrapError().c_str());
+        logger.Error("FAILED!!!: %s", result.UnwrapError().c_str());
         while (1);
       }
     }
@@ -95,8 +87,7 @@ class App {
     {
       auto res = fep_.SetRegister(0, fep_address);
       if (!res.IsOk()) {
-        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
-                              res.UnwrapError().c_str());
+        logger.Error("FAILED!!!: %s", res.UnwrapError().c_str());
         while (1);
       }
     }
@@ -104,26 +95,23 @@ class App {
     {
       auto res = fep_.SetRegister(1, group_address);
       if (!res.IsOk()) {
-        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
-                              res.UnwrapError().c_str());
+        logger.Error("FAILED!!!: %s", res.UnwrapError().c_str());
         while (1);
       }
     }
 
-    {
+    /* {
       auto res = fep_.SetRegister(11, 0x80);
       if (!res.IsOk()) {
-        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
-                              res.UnwrapError().c_str());
+        logger.Error("FAILED!!!: %s", res.UnwrapError().c_str());
         while (1);
       }
-    }
+    } */
 
     {
       auto res = fep_.SetRegister(18, 0x8D);
       if (!res.IsOk()) {
-        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
-                              res.UnwrapError().c_str());
+        logger.Error("FAILED!!!: %s", res.UnwrapError().c_str());
         while (1);
       }
     }
@@ -131,47 +119,65 @@ class App {
     {
       auto res = fep_.Reset();
       if (!res.IsOk()) {
-        robotics::logger::Log(Level::kError, "FAILED!!!: %s",
-                              res.UnwrapError().c_str());
+        logger.Error("FAILED!!!: %s", res.UnwrapError().c_str());
         while (1);
       }
     }
   }
 
-  int GetMode() {
-    mbed::DigitalIn mode(PA_9);
-
-    return mode.read() ? 1 : 0;
-  }
+ public:
+  struct {
+    robotics::network::ssp::RelayService* relay;
+    IdentitiyService* ident;
+    TestService* test;
+  } svc;
 
  public:
-  App()
-      : uart_stream_{PB_6, PA_10, 9600},
-        fep_(uart_stream_),
-        rep_{fep_},
-        ssp_(rep_) {}
+  Network() : fep_(uart_stream_), rep_{fep_}, ssp_(rep_) {}
 
   void Main() {
-    auto mode = GetMode();
+    using namespace std::chrono_literals;
 
-    SetupFEP(mode);
+    SetupFEP(platform::GetMode());
 
-    ssp_.RegisterService<EchoService>();
-    ssp_.RegisterService<Echo2Service>();
+    this->svc = {
+        .relay = ssp_.RegisterService<robotics::network::ssp::RelayService>(),
+        .ident = ssp_.RegisterService<IdentitiyService>(),
+        .test = ssp_.RegisterService<TestService>()};
 
-    auto dest_address = mode == 1 ? 1 : 2;
-    robotics::logger::Log(Level::kInfo, "[App] Dest Address: %d\n",
-                          dest_address);
+    auto dest_address = platform::GetRemoteTestAddress(platform::GetMode());
+    logger.Info("Dest Address: %d\n", dest_address);
+  }
+};
 
-    std::vector<uint8_t> data = {'A', 'B', 'C'};
+class App {
+  robotics::logger::Logger logger{"app", "\x1b[1;32mApp\x1b[m"};
+  Network network;
+
+ public:
+  void Main() {
+    robotics::logger::SuppressLogger("sr.fep.nw");
+    robotics::logger::SuppressLogger("st.fep.nw");
+
+    network.Main();
+
+    auto dest_address = platform::GetRemoteTestAddress(platform::GetMode());
+
+    mbed::InterruptIn watch_to(PC_7);
+    watch_to.rise([this, dest_address]() {
+      logger.Info("WatchPin Rised!");
+      this->network.svc.test->Send(0x80, (uint8_t*)"\x80hello", 5);
+    });
 
     while (1) {
-      ThisThread::sleep_for(3600s);
+      robotics::system::SleepFor(3600s);
     }
   }
 };
 
 int main() {
+  using namespace std::chrono_literals;
+
   printf("# main()\n");
   printf("- Build info\n");
   printf("  - Date: %s\n", __DATE__);
@@ -179,7 +185,7 @@ int main() {
   printf("  - sizeof(App) = %d\n", sizeof(App));
 
   robotics::system::Random::GetByte();
-  ThisThread::sleep_for(20ms);
+  robotics::system::SleepFor(20ms);
 
   robotics::logger::Init();
 
