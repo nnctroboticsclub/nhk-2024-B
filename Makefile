@@ -71,3 +71,6 @@ ds5: _c_ct
 
 f_s:
 	bash scripts/fep.sh
+
+f_w:
+	cd syoch-robotics; wireshark -X lua_script:wireshark/robo.lua -k -i <(cat output.pcap)
