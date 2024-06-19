@@ -12,18 +12,34 @@ enum class Mode {
   kDevice2,
 };
 
-Mode GetMode();
+struct {
+  Mode mode;
+  bool initialized = false;
+} _mode;
+
+Mode _GetMode();
+
+Mode GetMode() {
+  if (!_mode.initialized) {
+    _mode.mode = _GetMode();
+    _mode.initialized = true;
+  }
+  return _mode.mode;
+}
 
 struct FEPConfig {
   uint8_t address;
   uint8_t group_address;
 };
-FEPConfig GetFEPConfiguration(Mode mode) {
-  return mode == Mode::kDevice1 ? FEPConfig{1, 0xF0} : FEPConfig{2, 0xF0};
+FEPConfig GetFEPConfiguration() {
+  return GetMode() == Mode::kDevice1 ? FEPConfig{1, 0xF0} : FEPConfig{2, 0xF0};
 }
 
-uint8_t GetRemoteTestAddress(Mode mode) {
-  return mode == Mode::kDevice1 ? 2 : 1;
+uint8_t GetRemoteTestAddress() { return GetMode() == Mode::kDevice1 ? 2 : 1; }
+
+uint8_t GetSelfAddress() { return GetMode() == Mode::kDevice1 ? 1 : 2; }
+const char* GetDeviceName() {
+  return GetMode() == platform::Mode::kDevice1 ? "Device1" : "Device2";
 }
 }  // namespace platform
 
@@ -40,13 +56,13 @@ class UARTStream : public Stream<uint8_t> {
 };
 }  // namespace robotics::network
 
-platform::Mode platform::GetMode() { return platform::Mode::kDevice1; }
+platform::Mode platform::_GetMode() { return platform::Mode::kDevice1; }
 
 #else
 
 #include <mbed-robotics/uart_stream.hpp>
 #include <mbed.h>
-platform::Mode platform::GetMode() {
+platform::Mode platform::_GetMode() {
   mbed::DigitalIn mode(PA_9);
 
   return mode.read() ? platform::Mode::kDevice1 : platform::Mode::kDevice2;
