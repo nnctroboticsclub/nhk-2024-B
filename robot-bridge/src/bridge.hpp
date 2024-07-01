@@ -20,6 +20,10 @@ class BridgeController {
   // const はコンストラクタないで変更がないことを明記/強制
   BridgeController(const Config &config)
       : rotate(config.rotate_id), button(config.button_id) {}
+
+  bool Pass(const controller::RawPacket &packet) {
+    return rotate.Pass(packet) || button.Pass(packet);
+  }
 };
 
 class Bridge {
@@ -48,7 +52,7 @@ class Bridge {
     ctrl.rotate.Link(out_a);
     ctrl.button.OnFire([this]() {  // 押された時の処理
       state = LoadState::In_rotate;
-      lock.SetValue(0.5);//[m/s]推されたらこの速度で回して
+      lock.SetValue(0.5);  //[m/s]推されたらこの速度で回して
     });
   }
 
@@ -58,7 +62,7 @@ class Bridge {
 
         if (timer.elapsed_time() > working_time) {
           state = LoadState::In_stopped;
-          lock.SetValue(0);//[m/s]working_time秒経過したら0m/sつまり停止する
+          lock.SetValue(0);  //[m/s]working_time秒経過したら0m/sつまり停止する
         }
       case LoadState::In_stopped:
         break;

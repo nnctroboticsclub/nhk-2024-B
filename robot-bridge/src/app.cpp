@@ -1,6 +1,16 @@
 #include "app.hpp"
 
+#include <mbed-robotics/ikakorobomas_node.hpp>
 #include <robotics/node/node_inspector.hpp>
+
+#include "bridge.hpp"
+
+using robotics::utils::EMC;
+
+template <typename T>
+using Node = robotics::Node<T>;
+
+Node<bool> dummy_emc;
 
 class App::Impl {
   Config config_;
@@ -9,14 +19,16 @@ class App::Impl {
 
   //* Network
   std::unique_ptr<Communication> com;
+  IkakoRobomasNode roll;
+  IkakoRobomasNode lock;
 
   //* EMC
-  std::shared_ptr<robotics::utils::EMC> emc =
-      std::make_shared<robotics::utils::EMC>();
+  std::shared_ptr<EMC> emc = std::make_shared<EMC>();
   robotics::node::DigitalOut emc_out{
       std::make_shared<robotics::driver::Dout>(PC_1)};
 
   //* Components
+  nhk2024b::Bridge bridge;
   //! some
 
   //* Threads
@@ -33,6 +45,13 @@ class App::Impl {
       printf("EMC(CAN) setted to %d\n", true);
       keep_alive->SetValue(true);
     });
+
+    auto controller_emc = emc->AddNode();
+    dummy_emc >> *controller_emc;
+
+    bridge.out_a >> roll.velocity;
+    bridge.lock >> lock.velocity;
+
   }
 
   [[noreturn]] void MainThread() {
