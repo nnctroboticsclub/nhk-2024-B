@@ -3,6 +3,7 @@
 #include <cmath>
 #include <mbed-robotics/simple_can.hpp>
 #include <ikarashiCAN_mk2.h>
+#include <robotics/controller/packet.hpp>
 
 #include "project/identify.h"
 
@@ -14,7 +15,8 @@ void Communication::InitCAN() {
   printf("\e[1;32m|\e[m \e[32m|\e[m \e[33m-\e[m Adding Handlers\n");
   can_.OnMessage(0x7ff, 0x500 + project::kCanId,
                  [this](std::uint32_t, std::vector<uint8_t> data) {  //
-                   value_store_.Pass(data);
+                 controller::RawPacket packet{data.data(), data.size()};
+                   value_store_.Pass(packet);
                  });
 }
 
