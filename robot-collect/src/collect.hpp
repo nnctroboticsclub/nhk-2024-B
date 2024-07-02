@@ -28,6 +28,9 @@ class RobotController {
         button_negative(config.buttonnegative_id)
 
   {}
+  bool Pass(const controller::RawPacket &packet) {
+    return stick.Pass(packet) || button_negative.Pass(packet)|| button_positive.Pass(packet);
+  }
 };
 
 class Robot  // ノードにデータを送るよ

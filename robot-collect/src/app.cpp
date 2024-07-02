@@ -1,6 +1,14 @@
 #include "app.hpp"
+#include "collect.hpp"
 
 #include <robotics/node/node_inspector.hpp>
+
+using robotics::utils::EMC;
+
+template <typename T>
+using Node = robotics::Node<T>;
+
+Node<bool> dummy_emc;
 
 class App::Impl {
   Config config_;
@@ -9,6 +17,9 @@ class App::Impl {
 
   //* Network
   std::unique_ptr<Communication> com;
+  Node<float> dummy_move_left;
+  Node<float> dummy_move_right;
+  Node<float> dummy_armangle;
 
   //* EMC
   std::shared_ptr<robotics::utils::EMC> emc =
@@ -17,6 +28,7 @@ class App::Impl {
       std::make_shared<robotics::driver::Dout>(PC_1)};
 
   //* Components
+  nhk2024b::Robot collecter;
   //! some
 
   //* Threads
@@ -33,6 +45,13 @@ class App::Impl {
       printf("EMC(CAN) setted to %d\n", true);
       keep_alive->SetValue(true);
     });
+
+    auto controller_emc = emc->AddNode();
+    dummy_emc >> *controller_emc;
+
+    collecter.out_motor_left >> dummy_move_left;
+    collecter.out_motor_right >> dummy_move_right;
+    collecter.out_armangle >> dummy_armangle;
   }
 
   [[noreturn]] void MainThread() {
