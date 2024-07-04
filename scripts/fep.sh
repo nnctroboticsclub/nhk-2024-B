@@ -1,26 +1,18 @@
 #!/bin/bash
 
-set -e
+. scripts/config.sh
 
 cd syoch-robotics
 
-[ -e output.pcap ] && rm output.pcap
-mkfifo output.pcap
+[ -e $FEP_PCAP ] && rm $FEP_PCAP
+mkfifo $FEP_PCAP
 
-function task1() {
-  python3 -m utils.fep.fep_server
-}
-
-function task2() {
-  python3 -m utils.fep.dump_pcap 0.0.0.0 output.pcap
-}
-
-task1 &
+python3 -m utils.fep.fep_server &
 PID_1=$!
 
-sleep 0.1
+sleep 0.5
 
-task2 &
+python3 -m utils.fep.dump_pcap &
 PID_2=$!
 
 function trap_sigint() {
@@ -30,6 +22,6 @@ function trap_sigint() {
   [ -e output.pcap ] && rm output.pcap
 }
 
-trap trap_sigint INT
+trap trap_sigint EXIT
 
 wait

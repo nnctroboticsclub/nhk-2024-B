@@ -53,24 +53,33 @@ _c_ct:
 	# cmake -B connection-test/build -S connection-test -G "Ninja"
 	ninja -C connection-test/build
 
-ds4: _c_ct
+connection-test/build/connection-test.bin: connection-test/build/connection-test
+	arm-none-eabi-objcopy connection-test/build/connection-test -O binary connection-test/build/connection-test.bin
+
+connection-test/build/connection-test.hex: connection-test/build/connection-test
+	arm-none-eabi-objcopy connection-test/build/connection-test -O ihex connection-test/build/connection-test.hex
+
+ds4: _c_ct connection-test/build/connection-test.hex
 	sudo umount /mnt/st4 || :
 	$(MAKE) /mnt/st4/MBED.HTM
 
-	arm-none-eabi-objcopy connection-test/build/connection-test -O binary connection-test/build/connection-test.bin
-	cp connection-test/build/connection-test.bin /mnt/st4/a.bin
-	sync /mnt/st4/a.bin
+	# cp connection-test/build/connection-test.hex /mnt/st4/a.bin
+	# sync /mnt/st4/a.bin
+	st-flash --connect-under-reset --serial=066EFF303435554157113125 --format ihex write connection-test/build/connection-test.hex
 
-ds5: _c_ct
+ds5: _c_ct connection-test/build/connection-test.hex
 	sudo umount /mnt/st5 || :
 	S4_SERIAL=066BFF333535554157134434 S4_MOUNTPOINT=/mnt/st5 $(MAKE) /mnt/st5/MBED.HTM
 
-	arm-none-eabi-objcopy connection-test/build/connection-test -O binary connection-test/build/connection-test.bin
-	cp connection-test/build/connection-test.bin /mnt/st5/a.bin
-	sync /mnt/st5/a.bin
+	# cp connection-test/build/connection-test.hex /mnt/st5/a.bin
+	# sync /mnt/st5/a.bin
+	st-flash --connect-under-reset --serial=066BFF333535554157134434 --format ihex write connection-test/build/connection-test.hex
 
 f_s:
 	bash scripts/fep.sh
+
+f_t:
+	bash scripts/fep-test.sh
 
 f_w:
 	cd syoch-robotics; wireshark -X lua_script:wireshark/robo.lua -k -i <(cat output.pcap)
