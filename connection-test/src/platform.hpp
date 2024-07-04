@@ -62,6 +62,8 @@ platform::Mode platform::_GetMode() { return platform::Mode::kDevice1; }
 
 #include <mbed-robotics/uart_stream.hpp>
 #include <mbed.h>
+BufferedSerial pc{USBTX, USBRX, 115200};
+
 platform::Mode platform::_GetMode() {
   mbed::DigitalIn mode(PA_9);
 

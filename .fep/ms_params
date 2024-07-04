@@ -1,0 +1,1 @@
+-brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke speed 115200
