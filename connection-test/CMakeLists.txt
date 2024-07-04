@@ -68,7 +68,7 @@ ADD_DEFINITIONS(
   -DDEVICE_STDIO_MESSAGES=1
   -DDEVICE_USTICKER=1
   -DDEVICE_WATCHDOG=1
-  -DMBED_BUILD_TIMESTAMP=1716212909.8115098
+  -DMBED_BUILD_TIMESTAMP=1719568985.4353151
   -DSTM32F446xx
   -DTARGET_CORTEX
   -DTARGET_CORTEX_M
@@ -104,6 +104,9 @@ INCLUDE_DIRECTORIES(
   syoch-robotics/robotics/sensor
   syoch-robotics/robotics/platform
   syoch-robotics/robotics/node
+  syoch-robotics/robotics/network/ssp
+  syoch-robotics/robotics/network/froute
+  syoch-robotics/robotics/network/fep
   syoch-robotics/robotics/network
   syoch-robotics/robotics/logger
   syoch-robotics/robotics/filter
@@ -114,6 +117,7 @@ INCLUDE_DIRECTORIES(
   syoch-robotics/robotics
   syoch-robotics/mbed-robotics
   syoch-robotics
+  src
   nhk2023-b/nhk2023-b
   nhk2023-b
   mbed-os/targets/TARGET_STM/TARGET_STM32F4/TARGET_STM32F446xE/TARGET_NUCLEO_F446RE
@@ -2724,6 +2728,7 @@ ADD_EXECUTABLE(connection-test
   mbed_config.h
   nhk2023-b/nhk2023-b/common.hpp
   src/main.cpp
+  src/platform.hpp
   syoch-robotics/mbed-robotics/bno055.hpp
   syoch-robotics/mbed-robotics/bno055_node.cpp
   syoch-robotics/mbed-robotics/distributed_pseudo_encoder.hpp
@@ -2757,17 +2762,40 @@ ADD_EXECUTABLE(connection-test
   syoch-robotics/robotics/filter/joystick2angle.hpp
   syoch-robotics/robotics/filter/muxer.hpp
   syoch-robotics/robotics/filter/pid.hpp
+  syoch-robotics/robotics/logger/char_logger.cpp
+  syoch-robotics/robotics/logger/char_logger.hpp
+  syoch-robotics/robotics/logger/generic_logger.cpp
+  syoch-robotics/robotics/logger/generic_logger.hpp
+  syoch-robotics/robotics/logger/logger-core.cpp
+  syoch-robotics/robotics/logger/logger-core.hpp
+  syoch-robotics/robotics/logger/logger.cpp
   syoch-robotics/robotics/logger/logger.hpp
+  syoch-robotics/robotics/network/block_stream.hpp
   syoch-robotics/robotics/network/can_base.hpp
   syoch-robotics/robotics/network/can_module.cpp
   syoch-robotics/robotics/network/can_module.hpp
   syoch-robotics/robotics/network/checksum.hpp
   syoch-robotics/robotics/network/dcan.cpp
   syoch-robotics/robotics/network/dcan.hpp
-  syoch-robotics/robotics/network/fep_raw_driver.hpp
-  syoch-robotics/robotics/network/fep_tx_state.hpp
+  syoch-robotics/robotics/network/fep/fep_packet.hpp
+  syoch-robotics/robotics/network/fep/fep_raw_driver.cpp
+  syoch-robotics/robotics/network/fep/fep_raw_driver.hpp
+  syoch-robotics/robotics/network/fep/fep_tx_state.hpp
+  syoch-robotics/robotics/network/fep/result.hpp
+  syoch-robotics/robotics/network/fep/rx_processor.hpp
+  syoch-robotics/robotics/network/fep/rx_processor_packet.hpp
+  syoch-robotics/robotics/network/froute/actions.hpp
+  syoch-robotics/robotics/network/froute/addr_records.hpp
+  syoch-robotics/robotics/network/froute/froute.hpp
+  syoch-robotics/robotics/network/froute/packet.hpp
+  syoch-robotics/robotics/network/rep.cpp
   syoch-robotics/robotics/network/rep.hpp
-  syoch-robotics/robotics/network/ssp.hpp
+  syoch-robotics/robotics/network/ssp/identity.hpp
+  syoch-robotics/robotics/network/ssp/kv.hpp
+  syoch-robotics/robotics/network/ssp/relay.hpp
+  syoch-robotics/robotics/network/ssp/ssp.cpp
+  syoch-robotics/robotics/network/ssp/ssp.hpp
+  syoch-robotics/robotics/network/ssp/value_store.hpp
   syoch-robotics/robotics/network/stream.hpp
   syoch-robotics/robotics/node/BLDC.cpp
   syoch-robotics/robotics/node/BLDC.hpp
@@ -2780,18 +2808,25 @@ ADD_EXECUTABLE(connection-test
   syoch-robotics/robotics/platform/dout.hpp
   syoch-robotics/robotics/platform/dout.idf.hpp
   syoch-robotics/robotics/platform/dout.mbed.hpp
+  syoch-robotics/robotics/platform/panic.cpp
   syoch-robotics/robotics/platform/panic.hpp
   syoch-robotics/robotics/platform/pwm.hpp
   syoch-robotics/robotics/platform/pwm.idf.hpp
   syoch-robotics/robotics/platform/pwm.mbed.hpp
+  syoch-robotics/robotics/platform/pwm.mock.hpp
+  syoch-robotics/robotics/platform/random.cpp
   syoch-robotics/robotics/platform/random.hpp
   syoch-robotics/robotics/platform/random.mbed.hpp
+  syoch-robotics/robotics/platform/random.mock.hpp
   syoch-robotics/robotics/platform/spi.hpp
   syoch-robotics/robotics/platform/spi.idf.hpp
   syoch-robotics/robotics/platform/spi.mbed.hpp
+  syoch-robotics/robotics/platform/spi.mock.hpp
+  syoch-robotics/robotics/platform/thread.cpp
   syoch-robotics/robotics/platform/thread.hpp
   syoch-robotics/robotics/platform/thread.mbed.hpp
   syoch-robotics/robotics/platform/thread.mock.hpp
+  syoch-robotics/robotics/platform/timer.cpp
   syoch-robotics/robotics/platform/timer.hpp
   syoch-robotics/robotics/platform/timer.idf.hpp
   syoch-robotics/robotics/platform/timer.mbed.hpp

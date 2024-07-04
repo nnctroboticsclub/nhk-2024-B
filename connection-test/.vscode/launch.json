@@ -25,6 +25,13 @@
           "ignoreFailures": true
         }
       ]
-    }
+    },
+    {
+      "name": "Python: Attach",
+      "type": "python",
+      "request": "attach",
+      "port": 5678,
+      "host": "localhost",
+    },
   ]
 }
