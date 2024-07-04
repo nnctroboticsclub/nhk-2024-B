@@ -20,7 +20,8 @@
 				"ms-vscode.cpptools-extension-pack",
 				"ms-python.python",
 				"ms-toolsai.jupyter",
-				"charliermarsh.ruff"
+				"charliermarsh.ruff",
+				"mhutchie.git-graph"
 			]
 		}
 	}
