@@ -16,3 +16,9 @@
 [submodule "common_libs/mbed-os"]
 	path = common_libs/mbed-os
 	url = git@github.com:ARMmbed/mbed-os
+[submodule "common_libs/ArduinoSTL"]
+	path = common_libs/ArduinoSTL
+	url = git@github.com:mike-matera/ArduinoSTL.git
+[submodule "common_libs/avr-libstdcpp"]
+	path = common_libs/avr-libstdcpp
+	url = git@github.com:modm-io/avr-libstdcpp.git
