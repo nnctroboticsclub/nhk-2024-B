@@ -1,9 +1,0 @@
-{
-    "configurations": [
-        {
-            "name": "Compile DB",
-            "compileCommands": "${workspaceFolder}/compile_commands.json"
-        }
-    ],
-    "version": 4
-}
