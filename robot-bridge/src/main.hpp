@@ -1,17 +1,17 @@
-#include <MotorController.h>
-#include <ikako_m3508.h>
+// #include <MotorController.h>
+// #include <ikako_m3508.h>
 #include <ikarashiCAN_mk2.h>
 #include <mbed.h>
 
 #include <cinttypes>
-#include <mbed-robotics/ikakorobomas_node.hpp>
+// #include <mbed-robotics/ikakorobomas_node.hpp>
 #include <mbed-robotics/simple_can.hpp>
 #include <vector>
 
 #include "app.hpp"
 #include "identify.h"
 
-class IkakoRobomasTest {
+/* class IkakoRobomasTest {
  public:
   DigitalIn button{PC_13};
   DigitalOut led{LED1};
@@ -65,9 +65,9 @@ class IkakoRobomasTest {
     cnt._1ms++;
     test_to.Update();
 
-    /* if (m3.get_read_flag())
-        controller->set_response(m3.get_vel());
-    controller->update(); */
+    // if (m3.get_read_flag())
+    //     controller->set_response(m3.get_vel());
+    // controller->update();
   }
 
   // 約1msごとに処理される関数。この関数の中では通信処理ができる
@@ -81,8 +81,8 @@ class IkakoRobomasTest {
 
     test_to.velocity.SetValue(mrp.speed);
 
-    /* controller->set_reference(mrp.speed);
-    m3.set_ref(controller->get_output()); */
+    // controller->set_reference(mrp.speed);
+    // m3.set_ref(controller->get_output());
   }
 
   // printデバッグ用関数
@@ -128,9 +128,42 @@ int main_0() {  // ここの下に書く
   test->main();
 
   return 0;
-}
+} */
 
-int main_1() { return 0; }
+int main_1() {
+  using namespace std::chrono_literals;
+
+  PwmOut fin{PC_8};
+  PwmOut rin{PC_9};
+
+  fin.pulsewidth_us(20);
+  rin.pulsewidth_us(20);
+  
+  fin.resume();
+  rin.resume();
+
+  int i = 0;
+
+  while (1) {
+    float velocity = sin(i++ / 100.0);
+
+    if (0.05 < velocity && velocity < 0.05) velocity = 0;
+
+    if (velocity == 0) {
+      fin.write(1);
+      rin.write(1);
+    } else if (velocity > 0) {
+      fin.write(velocity);
+      rin.write(0);
+    } else if (velocity < 0) {
+      fin.write(0);
+      rin.write(-velocity);
+    }
+
+    ThisThread::sleep_for(50ms);
+  }
+  return 0;
+}
 
 int main_2() { return 0; }
 
@@ -176,6 +209,6 @@ int main_switch() {
   printf("main() started\n");
   printf("Build: " __DATE__ " - " __TIME__ "\n");
 
-  main_0();
+  main_1();
   return 0;
 }
