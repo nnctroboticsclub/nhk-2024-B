@@ -17,7 +17,7 @@ robotics::logger::Logger logger("hcd.host.usb",
 extern "C" void HAL_HCD_MspInit(HCD_HandleTypeDef* hhcd) {
   if (hhcd->Instance == USB_OTG_FS) {
     //* Enable clock
-    __USB_OTG_FS_CLK_ENABLE();
+    __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
 
     //* GPIO
     GPIO_InitTypeDef gpio;
@@ -29,9 +29,10 @@ extern "C" void HAL_HCD_MspInit(HCD_HandleTypeDef* hhcd) {
     HAL_GPIO_Init(GPIOA, &gpio);
 
     //* NVIC
-    HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_0);
-    HAL_NVIC_SetPriority(OTG_FS_IRQn, 0, 0);
+    // HAL_NVIC_SetPriority(OTG_FS_IRQn, 6, 0);
+    // HAL_NVIC_SetPriority(OTG_FS_WKUP_IRQn, 6, 0);
     NVIC_EnableIRQ(OTG_FS_IRQn);
+    // NVIC_EnableIRQ(OTG_FS_WKUP_IRQn);
   }
 }
 
@@ -89,11 +90,13 @@ class HcdImpl {
     }
   }
   void WaitAttach() {
-    ::WaitForAttach();
+    using namespace std::chrono_literals;
 
-    HAL_Delay(200);
+    ::WaitForAttach();
+    ThisThread::sleep_for(100ms);
+
     HAL_HCD_ResetPort(&hhcd_);
-    HAL_Delay(100);  // Wait for 100 ms after Reset
+    ThisThread::sleep_for(100ms);  // Wait for 100 ms after Reset
 
     // addDevice(NULL, 0, IsLowSpeedHCD());
   }
@@ -111,17 +114,23 @@ void HAL_HCD_Connect_Callback(HCD_HandleTypeDef* hhcd) {
 }
 
 void OTG_FS_IRQHandler(void) { hcd_impl->CallIRQHandler_(); }
+void OTG_HS_IRQHandler(void) { hcd_impl->CallIRQHandler_(); }
+
+void OTG_FS_WKUP_IRQHandler(void) { logger.Info("WKUP HandlerF"); }
 }  // extern "C"
 
 namespace stm32_usb {
 HCD::HCD() {
   if (!hcd_impl) {
+    NVIC_SetVector(OTG_FS_IRQn, (uint32_t)&OTG_FS_IRQHandler);
+    NVIC_SetVector(OTG_HS_IRQn, (uint32_t)&OTG_HS_IRQHandler);
+    NVIC_SetVector(OTG_FS_WKUP_IRQn, (uint32_t)&OTG_FS_WKUP_IRQHandler);
     hcd_impl = new HcdImpl;
   }
 }
 
 void HCD::Init() { hcd_impl->Init(); }
-void HCD::WaitForAttach() { ::WaitForAttach(); }
+void HCD::WaitForAttach() { hcd_impl->WaitAttach(); }
 
 HCD_HandleTypeDef* HCD::GetHandle() { return &hhcd_; }
 
