@@ -12,15 +12,20 @@ robotics::logger::Logger logger("ep.host.usb",
 namespace stm32_usb::host {
 
 int Endpoint::SendPacket(const uint8_t* pbuff, const int length,
-                         const bool setup_packet) {
+                         const bool setup_packet, const bool do_ping) {
   HC hc;
   hc.Init(endpoint_address_, device_.GetAddress(), device_.GetSpeed(), ep_type_,
           length * 2 + length / 2);
-  hc.SubmitRequest(0, const_cast<uint8_t*>(pbuff), length, setup_packet, false);
+  hc.SubmitRequest(0, const_cast<uint8_t*>(pbuff), length, setup_packet,
+                   do_ping);
 
-  logger.Debug("Wait for NOT URB_IDLE");
-  while (hc.GetURBState() == URB_IDLE);
+  while (hc.GetURBState() == URB_IDLE) {
+  }
 
+  if (hc.GetURBState() != URB_DONE) {
+    logger.Error("Send failed; %d", hc.GetURBState());
+    return -1;
+  }
   logger.Debug("Send ok");
   return hc.GetXferCount();
 }
@@ -42,9 +47,9 @@ void EndpointControl::ControlRead(uint8_t* pbuff, int length) {
 
   //* SETUP
   {
-    auto result = SendPacket(pbuff, length, true);
+    auto result = SendPacket(pbuff, length, true, true);
     if (result < 0) {
-      logger.Error("SendPacket failed (Setup Stage; %d)", result);
+      logger.Error("ControlRead failed (Setup Stage; %d)", result);
       return;
     }
   }
@@ -53,16 +58,16 @@ void EndpointControl::ControlRead(uint8_t* pbuff, int length) {
   {
     auto result = ReceivePacket(pbuff, length);
     if (result != HCD_URBStateTypeDef::URB_DONE) {
-      logger.Error("SendPacket failed (Data Stage; %d)", result);
+      logger.Error("ControlRead failed (Data Stage; %d)", result);
       return;
     }
   }
 
   //* DATA
   {
-    auto result = SendPacket(NULL, 0, false);
+    auto result = SendPacket(NULL, 0);
     if (result < 0) {
-      logger.Error("SendPacket failed (result Stage; %d)", result);
+      logger.Error("ControlRead failed (result Stage; %d)", result);
       return;
     }
   }
@@ -74,10 +79,10 @@ void EndpointControl::ControlWrite(uint8_t* pbuff, int length) {
   // O DATA
 
   //* SETUP
-  SendPacket(pbuff, length, true);
+  SendPacket(pbuff, length, true, true);
 
   //* DATA
-  SendPacket(pbuff, length, false);
+  SendPacket(pbuff, length);
 
   //* DATA
   ReceivePacket(pbuff, length);
