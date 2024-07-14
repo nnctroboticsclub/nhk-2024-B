@@ -1,8 +1,7 @@
 #include "hcd.hpp"
 
-#include <mbed.h>
-#include <stm32f4xx_hal_hcd.h>
 #include <robotics/logger/logger.hpp>
+#include <mbed.h>
 
 namespace {
 //* Any USB device is connected to the USB port
@@ -13,7 +12,7 @@ HCD_HandleTypeDef hhcd_;
 
 //* Logger
 robotics::logger::Logger logger("hcd.host.usb",
-                                "\x1b[32mUSB   \x1b[33mHCD\x1b[0m");
+                                "\x1b[32mUSB \x1b[33mHCD  \x1b[0m");
 
 extern "C" void HAL_HCD_MspInit(HCD_HandleTypeDef* hhcd) {
   if (hhcd->Instance == USB_OTG_FS) {
@@ -107,14 +106,11 @@ HcdImpl* hcd_impl;
 //* HAL Callbacks and IRQ Handler
 extern "C" {
 void HAL_HCD_Connect_Callback(HCD_HandleTypeDef* hhcd) {
-  logger.Info("HAL_HCD_Connect_Callback");
+  logger.Info("Device Attached");
   hcd_impl->Attached_();
 }
 
-void OTG_FS_IRQHandler(void) {
-  logger.Info("OTG_FS_IRQHandler");
-  hcd_impl->CallIRQHandler_();
-}
+void OTG_FS_IRQHandler(void) { hcd_impl->CallIRQHandler_(); }
 }  // extern "C"
 
 namespace stm32_usb {

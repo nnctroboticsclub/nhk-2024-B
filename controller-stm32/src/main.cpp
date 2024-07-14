@@ -1,34 +1,13 @@
 #include "mbed.h"
 #include <robotics/logger/logger.hpp>
 
+#include "hcd.hpp"
+#include "device.hpp"
+#include "endpoint.hpp"
+
 UnbufferedSerial pc(USBTX, USBRX, 115200);
 
 robotics::logger::Logger logger{"otg.usb.nw", "   APP   "};
-
-// 0: F401RE-USBHost
-// 1: libusb_stm32
-#define __MODE__ 1
-
-#if __MODE__ == 0
-#include "USBHostHID.h"
-
-void App() {
-  HC::EnableLog();
-  auto hid = new USBHostHID;
-
-  auto connect = hid->connect();
-  logger.Info("connect --> %d", connect);
-  logger.Info("connected = %d", hid->connected());
-}
-#elif __MODE__ == 1
-#include "hcd.hpp"
-
-/*
- * USB_OTG_FS GPIO Configuration
- * PA11: USB_OTG_FS_DM
- * PA12: USB_OTG_FS_DP
- */
-//* HCD (USB Host Controller Driver)
 
 void App() {
   stm32_usb::HCD* hcd = stm32_usb::HCD::GetInstance();
@@ -36,9 +15,25 @@ void App() {
   logger.Info("Init Done");
   hcd->WaitForAttach();
 
+  stm32_usb::host::Device device;
+  device.SetAddress(0);
+
+  stm32_usb::host::EndpointControl ep0(device, 0);
+  uint8_t buf[8] = {
+      0b1'00'00000,        // bmRequestType: D->H, Standard, Device
+      0x60,                // bRequest: GET_DESCRIPTOR / Index 0
+      0x00,         0x00,  // wValue
+
+      0x00,         0x00,  // wIndex
+      0x08,         0x00,  // wLength
+
+  };
+  ep0.ControlRead(buf, 8);
+
+  logger.Hex(robotics::logger::core::Level::kInfo, buf, 8);
+
   logger.Info("USB Device Connected");
 }
-#endif
 
 int main(void) {
   printf("\n\n\n\n\nProgram Started!!!!!\n");

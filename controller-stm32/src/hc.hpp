@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cstddef>
+
+#include <stm32f4xx_hal.h>
+
 namespace stm32_usb::host {
 // Host Channel (HAL_HCD_HC)
 class HC {
@@ -32,6 +36,8 @@ class HC {
                      bool do_ping);
 
   HCD_HCStateTypeDef GetState();
-  HCD_URBStateTypeDef GetURB();
+  HCD_URBStateTypeDef GetURBState();
+
+  int GetXferCount();
 };
 }  // namespace stm32_usb::host
