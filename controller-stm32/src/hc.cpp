@@ -17,8 +17,8 @@ robotics::logger::Logger slot_logger(
 
 //* Available channel mask
 // Example:
-//   0b0000 0000 0000 0000: All ch0 ~ ch15 are available
-//   0b0000 0000 0000 0001: ch0 is not available
+//   0b0000 0000 0000 0000: All ch1 ~ ch15 are available
+//   0b0000 0000 0000 0001: ch1 is not available
 int slot = 0x00;
 
 class SlotMarker {
@@ -31,11 +31,11 @@ class SlotMarker {
          // 0b0000 0000 0000 0001 -> 0b0000 0000 0000 0010
          i++, mask <<= 1);
 
-    if (i == 16) {
+    if (i == 15) {
       return -1;
     }
 
-    return i;
+    return i + 1;
   }
 
   int mask;
@@ -49,18 +49,19 @@ class SlotMarker {
       return;
     }
 
-    slot_logger.Debug("Acquire channel %d", ch);
+    // slot_logger.Debug("Acquire channel %d", ch);
     mask = 1 << ch;
     slot |= mask;
   }
 
   ~SlotMarker() {
-    slot_logger.Debug("Release channel %d", ch);
+    // slot_logger.Debug("Release channel %d", ch);
     slot &= ~mask;
   }
 
   int GetChannel() { return ch; }
 };
+
 }  // namespace
 
 namespace stm32_usb::host {
@@ -89,8 +90,15 @@ class HC::Impl {
   void Init(int ep, int dev, int speed, int ep_type, int max_packet_size) {
     ep_ = ep;
     ep_type_ = ep_type;
-    HAL_HCD_HC_Init(hhcd_, slot_.GetChannel(), ep, dev, speed, ep_type,
-                    max_packet_size);
+    logger.Debug(
+        "Init ch%d ep:%d(%d) dev:%d speed:%d ep_type:%d max_packet_size:%d",
+        slot_.GetChannel(), ep, ep_type, dev, speed, ep_type, max_packet_size);
+    auto ret = HAL_HCD_HC_Init(hhcd_, slot_.GetChannel(), ep, dev, speed,
+                               ep_type, max_packet_size);
+    if (ret != HAL_StatusTypeDef::HAL_OK) {
+      logger.Error("HAL_HCD_HC_Init failed with %d", ret);
+      return;
+    }
   }
 
   /**
@@ -107,16 +115,21 @@ class HC::Impl {
     int token = setup ? HC_PID_SETUP : HC_PID_DATA1;  // SETUP, DATA1
     if (direction == 0) {
       if (setup)
-        logger.Debug("\x1b[1;33m--S->\x1b[0m: ch%d ep:%d(%d)",
-                     slot_.GetChannel(), ep_, ep_type_);
+        logger.Debug("\x1b[1;33m--S->\x1b[0m: ch%d ep:%d(%d) ping:%d",
+                     slot_.GetChannel(), ep_, ep_type_, do_ping);
       else
-        logger.Debug("\x1b[33m---->\x1b[0m: ch%d ep:%d(%d)", slot_.GetChannel(),
-                     ep_, ep_type_);
+        logger.Debug("\x1b[33m---->\x1b[0m: ch%d ep:%d(%d) ping:%d",
+                     slot_.GetChannel(), ep_, ep_type_, do_ping);
 
       logger.Hex(robotics::logger::core::Level::kDebug, pbuff, length);
     }
-    HAL_HCD_HC_SubmitRequest(hhcd_, slot_.GetChannel(), direction, ep_type_,
-                             token, pbuff, length, do_ping);
+    auto ret =
+        HAL_HCD_HC_SubmitRequest(hhcd_, slot_.GetChannel(), direction, ep_type_,
+                                 token, pbuff, length, do_ping);
+    if (ret != HAL_StatusTypeDef::HAL_OK) {
+      logger.Error("HAL_HCD_HC_SubmitRequest failed with %d", ret);
+      return;
+    }
 
     if (direction == 1) {
       logger.Debug("%s\x1b[0m: ch%d ep:%d(%d)",

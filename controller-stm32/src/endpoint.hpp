@@ -12,7 +12,7 @@ struct Endpoint {
 
  protected:
   int SendPacket(const uint8_t* pbuff, const int length,
-                 const bool setup_packet);
+                 const bool setup_packet = false, const bool do_ping = false);
   HCD_URBStateTypeDef ReceivePacket(uint8_t* pbuff, const int length);
 
  public:
@@ -27,7 +27,10 @@ class EndpointControl : public Endpoint {
       : Endpoint(device, ep, EP_TYPE_CTRL) {}
   virtual ~EndpointControl() = default;
 
+  // For Out: Request
+  // For In: Response
   void ControlRead(uint8_t* pbuff, int length);
+
   void ControlWrite(uint8_t* pbuff, int length);
 };
 }  // namespace stm32_usb::host

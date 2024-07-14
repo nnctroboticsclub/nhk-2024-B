@@ -19,7 +19,7 @@ class Device {
   void SetEnumerated(bool is_enumarated) { is_enumarated_ = is_enumarated; }
   bool IsEnumerated() { return is_enumarated_; }
 
-  int GetSpeed() { return HCD_SPEED_FULL; }
+  int GetSpeed() { return HCD_SPEED_LOW; }
 
   void Reset() {
     is_enumarated_ = false;
