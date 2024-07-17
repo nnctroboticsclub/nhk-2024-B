@@ -29,10 +29,28 @@ extern "C" void HAL_HCD_MspInit(HCD_HandleTypeDef* hhcd) {
     HAL_GPIO_Init(GPIOA, &gpio);
 
     //* NVIC
-    // HAL_NVIC_SetPriority(OTG_FS_IRQn, 6, 0);
-    // HAL_NVIC_SetPriority(OTG_FS_WKUP_IRQn, 6, 0);
+    NVIC_SetPriority(OTG_FS_IRQn,
+                     NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0, 0));
     NVIC_EnableIRQ(OTG_FS_IRQn);
     // NVIC_EnableIRQ(OTG_FS_WKUP_IRQn);
+  } else if (hhcd->Instance == USB_OTG_HS) {
+    //* Enable clock
+    __HAL_RCC_USB_OTG_HS_CLK_ENABLE();
+    __HAL_RCC_USB_OTG_HS_ULPI_CLK_ENABLE();
+
+    //* GPIO
+    GPIO_InitTypeDef gpio;
+    gpio.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+    gpio.Mode = GPIO_MODE_AF_PP;
+    gpio.Pull = GPIO_NOPULL;
+    gpio.Speed = GPIO_SPEED_LOW;
+    gpio.Alternate = GPIO_AF10_OTG_HS;
+    HAL_GPIO_Init(GPIOA, &gpio);
+
+    //* NVIC
+    NVIC_SetPriority(OTG_HS_IRQn,
+                     NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0, 0));
+    NVIC_EnableIRQ(OTG_HS_IRQn);
   }
 }
 
@@ -65,7 +83,7 @@ class HcdImpl {
 
   void Init() {
     hhcd_.Instance = USB_OTG_FS;
-    hhcd_.Init.Host_channels = 8;
+    hhcd_.Init.Host_channels = 15;
     hhcd_.Init.speed = HCD_SPEED_FULL;
     hhcd_.Init.dma_enable = DISABLE;
     hhcd_.Init.phy_itface = HCD_PHY_EMBEDDED;
@@ -115,8 +133,6 @@ void HAL_HCD_Connect_Callback(HCD_HandleTypeDef* hhcd) {
 
 void OTG_FS_IRQHandler(void) { hcd_impl->CallIRQHandler_(); }
 void OTG_HS_IRQHandler(void) { hcd_impl->CallIRQHandler_(); }
-
-void OTG_FS_WKUP_IRQHandler(void) { logger.Info("WKUP HandlerF"); }
 }  // extern "C"
 
 namespace stm32_usb {
@@ -124,10 +140,10 @@ HCD::HCD() {
   if (!hcd_impl) {
     NVIC_SetVector(OTG_FS_IRQn, (uint32_t)&OTG_FS_IRQHandler);
     NVIC_SetVector(OTG_HS_IRQn, (uint32_t)&OTG_HS_IRQHandler);
-    NVIC_SetVector(OTG_FS_WKUP_IRQn, (uint32_t)&OTG_FS_WKUP_IRQHandler);
     hcd_impl = new HcdImpl;
   }
 }
+HCD::~HCD() { delete hcd_impl; }
 
 void HCD::Init() { hcd_impl->Init(); }
 void HCD::WaitForAttach() { hcd_impl->WaitAttach(); }

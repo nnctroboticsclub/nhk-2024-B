@@ -12,6 +12,8 @@ namespace stm32_usb {
 class HCD {
  public:
   HCD();
+  ~HCD();
+
   void Init();
   void WaitForAttach();
 

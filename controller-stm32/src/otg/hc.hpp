@@ -13,6 +13,8 @@ class HC {
 
  public:
   HC();
+  ~HC();
+
   /**
    * @brief Initialize the Host Channel
    * @param ep: Endpoint number 1 ~ 15
@@ -35,9 +37,16 @@ class HC {
   void SubmitRequest(int direction, uint8_t* pbuff, int length, bool setup,
                      bool do_ping);
 
+  bool Idle();
+  bool UrbIdle();
+
   HCD_HCStateTypeDef GetState();
   HCD_URBStateTypeDef GetURBState();
 
   int GetXferCount();
+
+  bool Data01();
+  void Data01(bool data01);
+  void ToggleData01();
 };
 }  // namespace stm32_usb::host
