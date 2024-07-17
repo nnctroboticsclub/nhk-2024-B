@@ -1,10 +1,36 @@
 #pragma once
 
-#include <cstddef>
-
-#include <stm32f4xx_hal.h>
+#include <stddef.h>
+#include <stdint.h>
 
 namespace stm32_usb::host {
+
+enum class HCStatus {
+  kIdle,
+  kDone,  // XFRC
+
+  kUrbFailed,
+  /* kHalt,
+  kNAK,
+  kNYet,
+  kStall, */
+
+  // Error
+  kXActErr,
+  kBabbleErr,
+  kDataToggleErr
+};
+
+enum class UrbStatus {
+  kIdle,
+  kDone,
+
+  kNotReady,
+  kNYet,
+  kError,
+  kStall
+};
+
 // Host Channel (HAL_HCD_HC)
 class HC {
  private:
@@ -40,8 +66,10 @@ class HC {
   bool Idle();
   bool UrbIdle();
 
-  HCD_HCStateTypeDef GetState();
-  HCD_URBStateTypeDef GetURBState();
+  void WaitUrbIdle();
+
+  HCStatus GetState();
+  UrbStatus GetURBState();
 
   int GetXferCount();
 

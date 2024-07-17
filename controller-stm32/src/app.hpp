@@ -1,7 +1,7 @@
 #pragma once
-#include "hcd.hpp"
-#include "device.hpp"
-#include "endpoint.hpp"
+#include <usb/hcd.hpp>
+#include <usb/device.hpp>
+#include <usb/endpoint.hpp>
 
 class App {
   static robotics::logger::Logger logger;
@@ -39,7 +39,8 @@ class App {
     logger.Info("Get Configuration");
     logger.Info("\x1b[42m                                             \x1b[m");
     while (true) {
-      if (ep0.ControlRead(buffer, 8, 1) == HCD_URBStateTypeDef::URB_NOTREADY) {
+      if (ep0.ControlRead(buffer, 8, 1) ==
+          stm32_usb::host::EndpointResult::kNotReady) {
         ThisThread::sleep_for(not_ready_delay);
         continue;
       }
@@ -52,15 +53,21 @@ class App {
     return buffer[0];
   }
 
-  void GetDescriptor(uint8_t *buf, uint16_t type = 0x01, int size = 8) {
+  void GetDescriptor(uint8_t *buf, uint8_t type = 0x01, int size = 8) {
     //* Request
     uint8_t req[8] = {
-        0b1'00'00000,        // bmRequestType: D->H, Standard, Device
-        0x06,                // bRequest: GET_DESCRIPTOR
-        0x00,         type,  // wValue: Device Descriptor, index: 0
+        0b1'00'00000,  // bmRequestType: D->H, Standard, Device
+        0x06,          // bRequest: GET_DESCRIPTOR
+        // wValue: Device Descriptor, index: 0
+        0x00,
+        type,
 
-        0x00,         0x00,  // wIndex
-        size,         0x00,  // wLength
+        // wIndex
+        0x00,
+        0x00,
+        // wLength
+        (uint8_t)(size & 0xff),
+        (uint8_t)(size >> 8),
     };
 
     const char *type_string = type == 0x01   ? "Device"
@@ -76,7 +83,8 @@ class App {
       memset(buf, 0, size);
       memcpy(buf, req, 8);
 
-      if (ep0.ControlRead(buf, 8, size) == HCD_URBStateTypeDef::URB_NOTREADY) {
+      if (ep0.ControlRead(buf, 8, size) ==
+          stm32_usb::host::EndpointResult::kNotReady) {
         ThisThread::sleep_for(not_ready_delay);
         continue;
       }
@@ -105,7 +113,7 @@ class App {
       memcpy(buf, req_set_addr, 8);
 
       if (ep0.ControlWrite(buf, 8, nullptr, 0) ==
-          HCD_URBStateTypeDef::URB_NOTREADY) {
+          stm32_usb::host::EndpointResult::kNotReady) {
         ThisThread::sleep_for(not_ready_delay);
         continue;
       }
@@ -121,7 +129,7 @@ class App {
     Init();
     printf("\n");
 
-    HAL_HCD_ResetPort(hcd->GetHandle());
+    HAL_HCD_ResetPort((HCD_HandleTypeDef *)hcd->GetHandle());
     ThisThread::sleep_for(100ms);
 
     memset(buf, 0, 1024);
@@ -129,7 +137,7 @@ class App {
     ep0.SetMaxPacketSize(buf[7]);
     printf("\n");
 
-    HAL_HCD_ResetPort(hcd->GetHandle());
+    HAL_HCD_ResetPort((HCD_HandleTypeDef *)hcd->GetHandle());
     ThisThread::sleep_for(100ms);
 
     memset(buf, 0, 1024);

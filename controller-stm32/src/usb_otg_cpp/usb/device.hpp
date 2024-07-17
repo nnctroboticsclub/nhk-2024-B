@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "hc.hpp"
+#include <usb/hc.hpp>
 
 namespace stm32_usb::host {
 class Device {
@@ -19,7 +19,7 @@ class Device {
   void SetEnumerated(bool is_enumarated) { is_enumarated_ = is_enumarated; }
   bool IsEnumerated() { return is_enumarated_; }
 
-  int GetSpeed() { return HCD_SPEED_LOW; }
+  int GetSpeed();
 
   void Reset() {
     is_enumarated_ = false;

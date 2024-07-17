@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stm32f4xx_hal.h>
-
 namespace stm32_usb {
 
 /*
@@ -17,7 +15,7 @@ class HCD {
   void Init();
   void WaitForAttach();
 
-  HCD_HandleTypeDef* GetHandle();
+  void* GetHandle();  // HCD_HandleTypeDef
 
  private:
   static HCD* instance;

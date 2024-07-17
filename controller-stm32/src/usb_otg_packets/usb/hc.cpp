@@ -85,7 +85,8 @@ class HC::Impl {
   bool data01_;
 
  public:
-  Impl() : hhcd_(stm32_usb::HCD::GetInstance()->GetHandle()) {
+  Impl()
+      : hhcd_((HCD_HandleTypeDef *)stm32_usb::HCD::GetInstance()->GetHandle()) {
     if (slot_.GetChannel() == -1) {
       return;
     }
@@ -126,10 +127,11 @@ class HC::Impl {
   }
 
   bool Idle() {
-    return GetState() != HCD_HCStateTypeDef::HC_IDLE &&
-           GetState() != HCD_HCStateTypeDef::HC_XFRC;
+    return GetState() != HCStatus::kIdle && GetState() != HCStatus::kDone;
   }
-  bool UrbIdle() { return GetURBState() != HCD_URBStateTypeDef::URB_IDLE; }
+  bool UrbIdle() { return GetURBState() != UrbStatus::kIdle; }
+
+  void WaitUrbIdle() { while (UrbIdle()); }
 
   bool DirIn() { return (ep_ & 0x80) == 0x80; }
 
@@ -188,8 +190,7 @@ class HC::Impl {
     auto ret =
         HAL_HCD_HC_SubmitRequest(hhcd_, slot_.GetChannel(), DirIn() ? 1 : 0,
                                  ep_type_, token, pbuff, length, do_ping);
-    while (GetState() == HCD_HCStateTypeDef::HC_IDLE) {
-    }
+    while (GetURBState() == UrbStatus::kIdle);
 
     if (ret != HAL_StatusTypeDef::HAL_OK) {
       logger.Error("HAL_HCD_HC_SubmitRequest failed with %d", ret);
@@ -210,12 +211,56 @@ class HC::Impl {
 
   void ToggleData01() { Data01(!Data01()); }
 
-  HCD_HCStateTypeDef GetState() {
-    return HAL_HCD_HC_GetState(hhcd_, slot_.GetChannel());
+  HCStatus GetState() {
+    auto hal_status = HAL_HCD_HC_GetState(hhcd_, slot_.GetChannel());
+    switch (hal_status) {
+      case HCD_HCStateTypeDef::HC_IDLE:
+        return HCStatus::kIdle;
+
+      case HCD_HCStateTypeDef::HC_XFRC:
+        return HCStatus::kDone;
+
+      case HCD_HCStateTypeDef::HC_XACTERR:
+        return HCStatus::kXActErr;
+
+      case HCD_HCStateTypeDef::HC_BBLERR:
+        return HCStatus::kBabbleErr;
+
+      case HCD_HCStateTypeDef::HC_DATATGLERR:
+        return HCStatus::kDataToggleErr;
+
+      default:
+        return (GetURBState() == UrbStatus::kDone ||
+                GetURBState() == UrbStatus::kIdle)
+                   ? HCStatus::kIdle
+                   : HCStatus::kUrbFailed;
+    }
   }
 
-  HCD_URBStateTypeDef GetURBState() {
-    return HAL_HCD_HC_GetURBState(hhcd_, slot_.GetChannel());
+  UrbStatus GetURBState() {
+    auto state = HAL_HCD_HC_GetURBState(hhcd_, slot_.GetChannel());
+    switch (state) {
+      case HCD_URBStateTypeDef::URB_IDLE:
+        return UrbStatus::kIdle;
+
+      case HCD_URBStateTypeDef::URB_DONE:
+        return UrbStatus::kDone;
+
+      case HCD_URBStateTypeDef::URB_NOTREADY:
+        return UrbStatus::kNotReady;
+
+      case HCD_URBStateTypeDef::URB_NYET:
+        return UrbStatus::kNYet;
+
+      case HCD_URBStateTypeDef::URB_ERROR:
+        return UrbStatus::kError;
+
+      case HCD_URBStateTypeDef::URB_STALL:
+        return UrbStatus::kStall;
+
+      default:
+        return UrbStatus::kIdle;
+    }
   }
 
   int GetXferCount() {
@@ -238,10 +283,10 @@ void HC::SubmitRequest(int direction, uint8_t *pbuff, int length, bool setup,
 
 bool HC::Idle() { return impl_->Idle(); }
 bool HC::UrbIdle() { return impl_->UrbIdle(); }
+void HC::WaitUrbIdle() { impl_->WaitUrbIdle(); }
 
-HCD_HCStateTypeDef HC::GetState() { return impl_->GetState(); }
-
-HCD_URBStateTypeDef HC::GetURBState() { return impl_->GetURBState(); }
+HCStatus HC::GetState() { return impl_->GetState(); }
+UrbStatus HC::GetURBState() { return impl_->GetURBState(); }
 
 int HC::GetXferCount() { return impl_->GetXferCount(); }
 bool HC::Data01() { return impl_->Data01(); }

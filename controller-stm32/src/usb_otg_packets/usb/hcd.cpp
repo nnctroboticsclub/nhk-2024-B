@@ -2,6 +2,8 @@
 
 #include <robotics/logger/logger.hpp>
 #include <mbed.h>
+#include <stm32f4xx_hal.h>
+#include <stm32f4xx_hal_hcd.h>
 
 namespace {
 //* Any USB device is connected to the USB port
@@ -148,7 +150,7 @@ HCD::~HCD() { delete hcd_impl; }
 void HCD::Init() { hcd_impl->Init(); }
 void HCD::WaitForAttach() { hcd_impl->WaitAttach(); }
 
-HCD_HandleTypeDef* HCD::GetHandle() { return &hhcd_; }
+void* HCD::GetHandle() { return &hhcd_; }
 
 HCD* HCD::instance = nullptr;
 }  // namespace stm32_usb

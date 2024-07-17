@@ -1,6 +1,6 @@
 #include "mbed.h"
 #include <robotics/logger/logger.hpp>
-#include "otg/app.hpp"
+#include "app.hpp"
 
 UnbufferedSerial pc(USBTX, USBRX, 115200);
 
