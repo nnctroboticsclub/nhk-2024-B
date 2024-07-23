@@ -18,8 +18,8 @@ robotics::logger::Logger logger("hc.host.usb",
 robotics::logger::Logger slot_logger(
     "slot.hc.host.usb", "\x1b[32mUSB \x1b[34mHC \x1b[35mS \x1b[0m");
 
-constexpr const bool log_verbose_enabled = false;
-constexpr const bool log_enabled = false;
+constexpr const bool log_verbose_enabled = true;
+constexpr const bool log_enabled = true;
 
 //* Available channel mask
 // Example:
@@ -79,14 +79,22 @@ namespace stm32_usb::host {
 class HC::Impl {
   SlotMarker slot_;
   HCD_HandleTypeDef *hhcd_;
+  HCD_HCTypeDef *hc_;
 
+  uint8_t dev_addr_;
+  uint8_t ep_addr_;
+
+  uint8_t speed_;
+  uint8_t data_toggle_;
+  uint8_t max_packet_size_;
   int ep_type_;
-  int ep_;
-  bool data01_;
+
+  bool DirIn() { return (ep_addr_ & 0x80) == 0x80; }
 
  public:
   Impl()
-      : hhcd_((HCD_HandleTypeDef *)stm32_usb::HCD::GetInstance()->GetHandle()) {
+      : hhcd_((HCD_HandleTypeDef *)stm32_usb::HCD::GetInstance()->GetHandle()),
+        hc_(nullptr) {
     if (slot_.GetChannel() == -1) {
       return;
     }
@@ -95,63 +103,34 @@ class HC::Impl {
       logger.Trace("<<<<<< Acquire channel %d", slot_.GetChannel());
     }
 
-    robotics::system::Timer timer;
-    timer.Reset();
-    timer.Start();
-
-    while (Idle()) {
-      if (timer.ElapsedTime() >= 1s) {
-        logger.Error("Failed to acquire channel %d", slot_.GetChannel());
-        logger.Error("State: %d", GetState());
-        slot_.Next();
-        timer.Reset();
-      }
-    }
-
-    if (log_verbose_enabled) {
-      logger.Trace("channel %d Ready!", slot_.GetChannel());
-    }
-
-    if (this->ep_ & 0x80) {
-      data01_ = hhcd_->hc[slot_.GetChannel()].toggle_in == 1;
-    } else {
-      data01_ = hhcd_->hc[slot_.GetChannel()].toggle_out == 1;
-    }
+    hc_ = &hhcd_->hc[slot_.GetChannel()];
   }
 
   ~Impl() {
-    hhcd_->hc[slot_.GetChannel()].state = HCD_HCStateTypeDef::HC_IDLE;
+    hc_->state = HCD_HCStateTypeDef::HC_IDLE;
     if (log_verbose_enabled) {
       logger.Trace(">>>>>> Release channel %d", slot_.GetChannel());
     }
   }
 
-  bool Idle() {
-    return GetState() != HCStatus::kIdle && GetState() != HCStatus::kDone;
-  }
-  bool UrbIdle() { return GetURBState() != UrbStatus::kIdle; }
-
-  void WaitUrbIdle() { while (UrbIdle()); }
-
-  bool DirIn() { return (ep_ & 0x80) == 0x80; }
-
   /**
    * @brief Initialize the Host Channel
-   * @param ep: Endpoint number 1 ~ 15
+   * @param ep_addr: Endpoint number 1 ~ 15
    * @param dev: Device address 0 ~ 255
    * @param speed: Device speed. can be HCD_SPEED_XXX
    * @param ep_type: Endpoint type. can be EP_TYPE_XXX
    * @param max_packet_size: Maximum packet size
    */
-  void Init(int ep, int dev, int speed, int ep_type, int max_packet_size) {
-    ep_ = ep;
+  void Init(int ep_addr, int dev_addr, int speed, int ep_type,
+            int max_packet_size) {
+    ep_addr_ = ep_addr;
+    dev_addr_ = dev_addr;
+    speed_ = speed;
     ep_type_ = ep_type;
-    if (log_verbose_enabled)
-      logger.Debug("Init ch%02d dev%02x(spd:%d)-ep%02d(%d) max_packet_size:%d",
-                   slot_.GetChannel(), dev, speed, ep, ep_type,
-                   max_packet_size);
-    auto ret = HAL_HCD_HC_Init(hhcd_, slot_.GetChannel(), ep & 0x7F, dev, speed,
-                               ep_type, max_packet_size);
+    max_packet_size_ = max_packet_size;
+
+    auto ret = HAL_HCD_HC_Init(hhcd_, slot_.GetChannel(), ep_addr_, dev_addr,
+                               speed, ep_type, max_packet_size);
 
     if (ret != HAL_StatusTypeDef::HAL_OK) {
       logger.Error("HAL_HCD_HC_Init failed with %d", ret);
@@ -161,55 +140,56 @@ class HC::Impl {
 
   /**
    * @brief Submit a request to the Host Channel
-   * @param direction: Direction of the request.
-   *                   0 for OUT, 1 for IN
+   * @param direction: Direction of the request. 0 for OUT, 1 for IN
    * @param pbuff: Buffer to send or receive data
    * @param length: Length of the data
    * @param setup: true if the request is SETUP, false if DATA
    * @param do_ping: true if the request is PING
    */
-  void SubmitRequest(int, uint8_t *pbuff, int length, bool setup,
+  void SubmitRequest(int direction, uint8_t *pbuff, int length, bool setup,
                      bool do_ping) {
     // 0: SETUP
     // 1: DATA1
     int token = setup ? 0 : 1;
 
-    if (log_enabled && !DirIn()) {
-      logger.Debug("%s: ch%2d ep:%02x(%d) <== %#08X (t=%d, l=%d)",
-                   setup ? "\x1b[1;33m--S->\x1b[0m" : "\x1b[33m---->\x1b[0m",
-                   slot_.GetChannel(), ep_, ep_type_, pbuff, data01_, length);
+    if (direction) {
+      hc_->toggle_in = data_toggle_;
+    } else {
+      hc_->toggle_out = data_toggle_;
+    }
+
+    if (log_enabled && !direction) {
+      logger.Debug(
+          "%s: ch%02d d%02Xe%02x (spd%d type%d) <== %#08X (t=%d, l=%d, mps=%d)",
+          setup ? "\x1b[1;33m--S->\x1b[0m" : "\x1b[33m---->\x1b[0m",
+          slot_.GetChannel(),                     //
+          dev_addr_, ep_addr_, speed_, ep_type_,  //
+          pbuff, data_toggle_, length, max_packet_size_);
       logger.Hex(robotics::logger::core::Level::kDebug, pbuff, length);
     }
 
-    if (DirIn()) {
-      hhcd_->hc[slot_.GetChannel()].toggle_in = data01_ ? 1 : 0;
-    } else {
-      hhcd_->hc[slot_.GetChannel()].toggle_out = data01_ ? 1 : 0;
-    }
-
     auto ret =
-        HAL_HCD_HC_SubmitRequest(hhcd_, slot_.GetChannel(), DirIn() ? 1 : 0,
-                                 ep_type_, token, pbuff, length, do_ping);
-    while (GetURBState() == UrbStatus::kIdle);
-
+        HAL_HCD_HC_SubmitRequest(hhcd_, slot_.GetChannel(), direction, ep_type_,
+                                 token, pbuff, length, do_ping ? 1 : 0);
     if (ret != HAL_StatusTypeDef::HAL_OK) {
       logger.Error("HAL_HCD_HC_SubmitRequest failed with %d", ret);
       return;
     }
 
-    if (log_enabled && DirIn()) {
-      logger.Debug("%s: ch%2d ep:%02x(%d) ==> %#08X (t=%d, l=%d)",
-                   setup ? "\x1b[1;34m<-S--\x1b[0m" : "\x1b[34m<----\x1b[0m",
-                   slot_.GetChannel(), ep_, ep_type_, pbuff, data01_, length);
+    if (log_enabled && direction) {
+      logger.Debug(
+          "%s: ch%02d d%02Xe%02x (spd%d type%d) <== %#08X (t=%d, l=%d, mps=%d)",
+          setup ? "\x1b[1;34m<-S--\x1b[0m" : "\x1b[34m<----\x1b[0m",
+          slot_.GetChannel(),                     //
+          dev_addr_, ep_addr_, speed_, ep_type_,  //
+          pbuff, data_toggle_, length, max_packet_size_);
       logger.Hex(robotics::logger::core::Level::kDebug, pbuff, length);
     }
   }
 
-  bool Data01() { return data01_; }
+  int DataToggle() { return data_toggle_; }
 
-  void Data01(bool data01) { data01_ = data01; }
-
-  void ToggleData01() { Data01(!Data01()); }
+  void DataToggle(int toggle) { data_toggle_ = toggle; }
 
   HCStatus GetState() {
     auto hal_status = HAL_HCD_HC_GetState(hhcd_, slot_.GetChannel());
@@ -281,15 +261,10 @@ void HC::SubmitRequest(int direction, uint8_t *pbuff, int length, bool setup,
   impl_->SubmitRequest(direction, pbuff, length, setup, do_ping);
 }
 
-bool HC::Idle() { return impl_->Idle(); }
-bool HC::UrbIdle() { return impl_->UrbIdle(); }
-void HC::WaitUrbIdle() { impl_->WaitUrbIdle(); }
-
 HCStatus HC::GetState() { return impl_->GetState(); }
 UrbStatus HC::GetURBState() { return impl_->GetURBState(); }
 
 int HC::GetXferCount() { return impl_->GetXferCount(); }
-bool HC::Data01() { return impl_->Data01(); }
-void HC::Data01(bool data01) { impl_->Data01(data01); }
-void HC::ToggleData01() { impl_->ToggleData01(); }
+bool HC::Data01() { return impl_->DataToggle(); }
+void HC::Data01(bool data01) { impl_->DataToggle(data01); }
 }  // namespace stm32_usb::host

@@ -15,6 +15,8 @@ class HCD {
   void Init();
   void WaitForAttach();
 
+  void ResetPort();
+
   void* GetHandle();  // HCD_HandleTypeDef
 
  private:

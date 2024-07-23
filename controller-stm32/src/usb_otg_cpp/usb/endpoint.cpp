@@ -26,7 +26,7 @@ EndpointResult Endpoint::SendPacket_1(const uint8_t* pbuff, const int length,
   hc.SubmitRequest(0, const_cast<uint8_t*>(pbuff), length, setup_packet,
                    do_ping);
 
-  while (!hc.UrbIdle());
+  hc.WaitUrbIdle();
   auto state = hc.GetURBState();
   if (state != UrbStatus::kDone) {
     if (state == UrbStatus::kNotReady) {
@@ -49,7 +49,7 @@ EndpointResult Endpoint::ReceivePacket_1(uint8_t* pbuff, const int length) {
   hc.Data01(data01_);
   hc.SubmitRequest(1, pbuff, length, false, false);
 
-  while (!hc.UrbIdle());
+  hc.WaitUrbIdle();
 
   auto state = hc.GetURBState();
   if (state != UrbStatus::kDone) {

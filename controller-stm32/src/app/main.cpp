@@ -1,14 +1,17 @@
 #include "mbed.h"
 #include <robotics/logger/logger.hpp>
-#include "app.hpp"
+// #include "app.hpp"
 
 UnbufferedSerial pc(USBTX, USBRX, 115200);
 
 robotics::logger::Logger logger{".", "\x1b[42m \x1b[0mAPP     "};
 
+extern "C" void usb_rs_run();
+
 void RunApp() {
-  App app;
-  app.Test();
+  // App app;
+  // app.Test();
+  usb_rs_run();
 }
 
 int main(void) {

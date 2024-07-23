@@ -115,13 +115,13 @@ class HcdImpl {
     ::WaitForAttach();
     ThisThread::sleep_for(100ms);
 
-    HAL_HCD_ResetPort(&hhcd_);
-    ThisThread::sleep_for(100ms);  // Wait for 100 ms after Reset
-
     // addDevice(NULL, 0, IsLowSpeedHCD());
   }
 
-  void Request() {}
+  void ResetPort() {
+    HAL_HCD_ResetPort(&hhcd_);
+    ThisThread::sleep_for(100ms);  // Wait for 100 ms after Reset
+  }
 };
 HcdImpl* hcd_impl;
 
@@ -149,6 +149,8 @@ HCD::~HCD() { delete hcd_impl; }
 
 void HCD::Init() { hcd_impl->Init(); }
 void HCD::WaitForAttach() { hcd_impl->WaitAttach(); }
+
+void HCD::ResetPort() { hcd_impl->ResetPort(); }
 
 void* HCD::GetHandle() { return &hhcd_; }
 

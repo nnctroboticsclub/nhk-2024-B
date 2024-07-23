@@ -43,7 +43,8 @@ class HC {
 
   /**
    * @brief Initialize the Host Channel
-   * @param ep: Endpoint number 1 ~ 15
+   * @param ep: Endpoint number
+   *            00h ~ 0Fh for Out, 80h ~ 8Fh for In
    * @param dev: Device address 0 ~ 255
    * @param speed: Device speed. can be HCD_SPEED_XXX
    * @param ep_type: Endpoint type. can be EP_TYPE_XXX
@@ -63,11 +64,6 @@ class HC {
   void SubmitRequest(int direction, uint8_t* pbuff, int length, bool setup,
                      bool do_ping);
 
-  bool Idle();
-  bool UrbIdle();
-
-  void WaitUrbIdle();
-
   HCStatus GetState();
   UrbStatus GetURBState();
 
@@ -75,6 +71,5 @@ class HC {
 
   bool Data01();
   void Data01(bool data01);
-  void ToggleData01();
 };
 }  // namespace stm32_usb::host
