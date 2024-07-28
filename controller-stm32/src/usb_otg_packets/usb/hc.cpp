@@ -8,6 +8,8 @@
 
 #include <robotics/logger/logger.hpp>
 #include <robotics/platform/timer.hpp>
+#include <robotics/platform/thread.hpp>
+#include <robotics/platform/random.hpp>
 
 namespace {
 //* Logger
@@ -18,7 +20,7 @@ robotics::logger::Logger logger("hc.host.usb",
 robotics::logger::Logger slot_logger(
     "slot.hc.host.usb", "\x1b[32mUSB \x1b[34mHC \x1b[35mS \x1b[0m");
 
-constexpr const bool log_verbose_enabled = true;
+constexpr const bool log_verbose_enabled = false;
 constexpr const bool log_enabled = true;
 
 //* Available channel mask
@@ -74,43 +76,48 @@ class SlotMarker {
 };
 
 }  // namespace
+/* extern "C" void HAL_HCD_HC_NotifyURBChange_Callback(
+    HCD_HandleTypeDef *hhcd, uint8_t chnum, HCD_URBStateTypeDef urb_state) {
+  logger.Debug("HC%02d s%d, u%d x%d", chnum, hhcd->hc[chnum].state, urb_state,
+               hhcd->hc[chnum].xfer_count);
+} */
 
 namespace stm32_usb::host {
 class HC::Impl {
   SlotMarker slot_;
   HCD_HandleTypeDef *hhcd_;
-  HCD_HCTypeDef *hc_;
+  HCD_HCTypeDef *hc_ = nullptr;
 
-  uint8_t dev_addr_;
-  uint8_t ep_addr_;
+  robotics::system::Thread *thread_ = nullptr;
 
-  uint8_t speed_;
-  uint8_t data_toggle_;
-  uint8_t max_packet_size_;
+  bool thread_stop_request_mark_ = false;
+  bool thread_running_mark_ = false;
+
   int ep_type_;
-
-  bool DirIn() { return (ep_addr_ & 0x80) == 0x80; }
+  int toggle_ = 0;
 
  public:
   Impl()
-      : hhcd_((HCD_HandleTypeDef *)stm32_usb::HCD::GetInstance()->GetHandle()),
-        hc_(nullptr) {
+      : hhcd_((HCD_HandleTypeDef *)stm32_usb::HCD::GetInstance()->GetHandle()) {
     if (slot_.GetChannel() == -1) {
       return;
     }
 
+    hc_ = &hhcd_->hc[slot_.GetChannel()];
+
     if (log_verbose_enabled) {
       logger.Trace("<<<<<< Acquire channel %d", slot_.GetChannel());
     }
-
-    hc_ = &hhcd_->hc[slot_.GetChannel()];
   }
 
   ~Impl() {
-    hc_->state = HCD_HCStateTypeDef::HC_IDLE;
-    if (log_verbose_enabled) {
-      logger.Trace(">>>>>> Release channel %d", slot_.GetChannel());
-    }
+    thread_stop_request_mark_ = true;
+    while (thread_running_mark_) robotics::system::SleepFor(10ms);
+
+    if (thread_) delete thread_;
+
+    hc_->state = HC_IDLE;
+    hc_->urb_state = URB_IDLE;
   }
 
   /**
@@ -123,19 +130,59 @@ class HC::Impl {
    */
   void Init(int ep_addr, int dev_addr, int speed, int ep_type,
             int max_packet_size) {
-    ep_addr_ = ep_addr;
-    dev_addr_ = dev_addr;
-    speed_ = speed;
     ep_type_ = ep_type;
-    max_packet_size_ = max_packet_size;
 
-    auto ret = HAL_HCD_HC_Init(hhcd_, slot_.GetChannel(), ep_addr_, dev_addr,
-                               speed, ep_type, max_packet_size);
+    hc_->dev_addr = dev_addr;
+    hc_->ch_num = slot_.GetChannel();
+    hc_->ep_num = ep_addr;
+
+    hc_->speed = speed;
+    // hc_->do_ping
+    // hc_->process_ping
+    hc_->ep_type = ep_type;
+    hc_->max_packet = max_packet_size;
+
+    auto ret = USB_HC_Init(hhcd_->Instance, slot_.GetChannel(), ep_addr,
+                           dev_addr, speed, ep_type, max_packet_size);
 
     if (ret != HAL_StatusTypeDef::HAL_OK) {
       logger.Error("HAL_HCD_HC_Init failed with %d", ret);
       return;
     }
+
+    /* (thread_ = new robotics::system::Thread)->Start([this]() {
+      volatile auto &urb_status = hc_->urb_state;
+      volatile auto &hc_status = hc_->state;
+
+      thread_running_mark_ = true;
+
+      int thread_id = robotics::system::Random::GetByte() / 255.f * 10;
+
+      auto state_urb = (HCD_URBStateTypeDef)-1;
+      auto state_hc = (HCD_HCStateTypeDef)-1;
+
+      int tick = 0;
+
+      while (!thread_stop_request_mark_) {
+        if (urb_status != state_urb || hc_status != state_hc
+            //  ||tick % 5000000 == 0
+        ) {
+          state_urb = urb_status;
+          state_hc = hc_status;
+
+          logger.Debug("HC[%d]: u%d h%d, XferCount %d",
+                       slot_.GetChannel(),  //
+                       (int)state_urb,      //
+                       (int)state_hc,       //
+                       GetXferCount());
+          // tick = 0;
+        }
+
+        // tick += 1;
+      }
+      thread_running_mark_ = false;
+    }); */
+    robotics::system::SleepFor(10ms);
   }
 
   /**
@@ -148,48 +195,29 @@ class HC::Impl {
    */
   void SubmitRequest(int direction, uint8_t *pbuff, int length, bool setup,
                      bool do_ping) {
-    // 0: SETUP
-    // 1: DATA1
-    int token = setup ? 0 : 1;
+    hc_->ep_is_in = direction;
 
-    if (direction) {
-      hc_->toggle_in = data_toggle_;
-    } else {
-      hc_->toggle_out = data_toggle_;
-    }
+    hc_->data_pid = setup          ? HC_PID_SETUP
+                    : toggle_ == 0 ? HC_PID_DATA0
+                    : toggle_ == 1 ? HC_PID_DATA1
+                    : toggle_ == 2 ? HC_PID_DATA2
+                                   : HC_PID_DATA0;
 
-    if (log_enabled && !direction) {
-      logger.Debug(
-          "%s: ch%02d d%02Xe%02x (spd%d type%d) <== %#08X (t=%d, l=%d, mps=%d)",
-          setup ? "\x1b[1;33m--S->\x1b[0m" : "\x1b[33m---->\x1b[0m",
-          slot_.GetChannel(),                     //
-          dev_addr_, ep_addr_, speed_, ep_type_,  //
-          pbuff, data_toggle_, length, max_packet_size_);
-      logger.Hex(robotics::logger::core::Level::kDebug, pbuff, length);
-    }
+    hc_->xfer_buff = pbuff;
+    hc_->xfer_len = length;
+    hc_->xfer_count = 0;
 
-    auto ret =
-        HAL_HCD_HC_SubmitRequest(hhcd_, slot_.GetChannel(), direction, ep_type_,
-                                 token, pbuff, length, do_ping ? 1 : 0);
+    /* logger.Info("data_pid%d, toggle[in,out]=[%d,%d] dir%d ping%d",
+                hc_->data_pid, hc_->toggle_in, hc_->toggle_out, direction,
+                do_ping); */
+
+    auto ret = USB_HC_StartXfer(hhcd_->Instance, hc_, hhcd_->Init.dma_enable);
+
     if (ret != HAL_StatusTypeDef::HAL_OK) {
       logger.Error("HAL_HCD_HC_SubmitRequest failed with %d", ret);
       return;
     }
-
-    if (log_enabled && direction) {
-      logger.Debug(
-          "%s: ch%02d d%02Xe%02x (spd%d type%d) <== %#08X (t=%d, l=%d, mps=%d)",
-          setup ? "\x1b[1;34m<-S--\x1b[0m" : "\x1b[34m<----\x1b[0m",
-          slot_.GetChannel(),                     //
-          dev_addr_, ep_addr_, speed_, ep_type_,  //
-          pbuff, data_toggle_, length, max_packet_size_);
-      logger.Hex(robotics::logger::core::Level::kDebug, pbuff, length);
-    }
   }
-
-  int DataToggle() { return data_toggle_; }
-
-  void DataToggle(int toggle) { data_toggle_ = toggle; }
 
   HCStatus GetState() {
     auto hal_status = HAL_HCD_HC_GetState(hhcd_, slot_.GetChannel());
@@ -198,7 +226,15 @@ class HC::Impl {
         return HCStatus::kIdle;
 
       case HCD_HCStateTypeDef::HC_XFRC:
-        return HCStatus::kDone;
+        return HCStatus::kXfrc;
+      case HCD_HCStateTypeDef::HC_HALTED:
+        return HCStatus::kHalted;
+      case HCD_HCStateTypeDef::HC_NAK:
+        return HCStatus::kNak;
+      case HCD_HCStateTypeDef::HC_NYET:
+        return HCStatus::kNYet;
+      case HCD_HCStateTypeDef::HC_STALL:
+        return HCStatus::kStall;
 
       case HCD_HCStateTypeDef::HC_XACTERR:
         return HCStatus::kXActErr;
@@ -210,10 +246,7 @@ class HC::Impl {
         return HCStatus::kDataToggleErr;
 
       default:
-        return (GetURBState() == UrbStatus::kDone ||
-                GetURBState() == UrbStatus::kIdle)
-                   ? HCStatus::kIdle
-                   : HCStatus::kUrbFailed;
+        return HCStatus::kIdle;
     }
   }
 
@@ -246,6 +279,10 @@ class HC::Impl {
   int GetXferCount() {
     return HAL_HCD_HC_GetXferCount(hhcd_, slot_.GetChannel());
   }
+
+  void DataToggle(int toggle) { toggle_ = toggle; }
+
+  int DataToggle() { return toggle_; }
 };
 
 HC::HC() : impl_(new Impl) {}
@@ -265,6 +302,8 @@ HCStatus HC::GetState() { return impl_->GetState(); }
 UrbStatus HC::GetURBState() { return impl_->GetURBState(); }
 
 int HC::GetXferCount() { return impl_->GetXferCount(); }
-bool HC::Data01() { return impl_->DataToggle(); }
-void HC::Data01(bool data01) { impl_->DataToggle(data01); }
+
+void HC::DataToggle(int toggle) { impl_->DataToggle(toggle); }
+
+int HC::DataToggle() { return impl_->DataToggle(); }
 }  // namespace stm32_usb::host

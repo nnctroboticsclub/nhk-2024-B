@@ -7,15 +7,13 @@ namespace stm32_usb::host {
 
 enum class HCStatus {
   kIdle,
-  kDone,  // XFRC
+  kXfrc,  // Transfer completed
 
-  kUrbFailed,
-  /* kHalt,
-  kNAK,
+  kHalted,
+  kNak,
   kNYet,
-  kStall, */
+  kStall,
 
-  // Error
   kXActErr,
   kBabbleErr,
   kDataToggleErr
@@ -69,7 +67,7 @@ class HC {
 
   int GetXferCount();
 
-  bool Data01();
-  void Data01(bool data01);
+  void DataToggle(int toggle);
+  int DataToggle();
 };
 }  // namespace stm32_usb::host

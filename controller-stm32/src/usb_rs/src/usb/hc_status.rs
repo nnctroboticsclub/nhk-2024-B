@@ -1,14 +1,16 @@
 use super::URBResult;
 
 #[derive(Debug)]
-pub enum HCStatus {
-    Busy,
-    Done(URBResult),
-    Unknown,
+pub enum HCError {
+    TransactError,
+    Babble,
+    DataToggle,
 }
 
-impl From<URBResult> for HCStatus {
-    fn from(result: URBResult) -> Self {
-        HCStatus::Done(result)
-    }
+#[derive(Debug)]
+pub enum HCStatus {
+    Idle,
+    Busy,
+    Done(URBResult),
+    Error(HCError),
 }

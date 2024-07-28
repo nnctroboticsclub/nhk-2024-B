@@ -4,6 +4,7 @@ use crate::binding::{
     stm32_usb_host_UrbStatus_kNotReady, stm32_usb_host_UrbStatus_kStall,
 };
 
+#[derive(Debug, PartialEq)]
 pub enum RawURBStatus {
     Idle,
     Done,
