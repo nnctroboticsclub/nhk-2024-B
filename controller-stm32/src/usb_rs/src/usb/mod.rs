@@ -1,3 +1,4 @@
+mod control_ep;
 mod hc;
 mod hc_status;
 mod hcd;
@@ -7,6 +8,7 @@ mod urb_result;
 
 pub mod std_request;
 
+pub use control_ep::ControlEP;
 pub use hc::Transaction;
 pub use hc::TransactionDestination;
 pub use hc::TransactionToken;

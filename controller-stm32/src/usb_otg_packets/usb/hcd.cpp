@@ -114,8 +114,6 @@ class HcdImpl {
 
     ::WaitForAttach();
     ThisThread::sleep_for(100ms);
-
-    // addDevice(NULL, 0, IsLowSpeedHCD());
   }
 
   void ResetPort() {

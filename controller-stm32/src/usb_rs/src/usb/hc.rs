@@ -1,15 +1,10 @@
 use core::fmt::Debug;
 
-use alloc::{fmt, format, string::String, vec::Vec};
+use alloc::{fmt, format};
 
-use crate::{
-    binding::{stm32_usb_host_HC, stm32_usb_host_HCStatus},
-    logger::Logger,
-    sleep_ms,
-    usb::{HCError, RawURBStatus, URBError, URBResult},
-};
+use crate::{binding::stm32_usb_host_HC, logger::Logger, sleep_ms, usb::RawURBStatus};
 
-use super::{HCStatus, RawHCStatus};
+use super::RawHCStatus;
 
 pub enum TransactionToken {
     Setup,
