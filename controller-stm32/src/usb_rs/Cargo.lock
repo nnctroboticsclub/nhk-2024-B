@@ -636,6 +636,7 @@ version = "0.1.0"
 dependencies = [
  "bindgen",
  "cortex-m-rt",
+ "nom",
  "panic-semihosting",
  "stm32f4xx-hal",
  "synopsys-usb-otg 0.4.0",
