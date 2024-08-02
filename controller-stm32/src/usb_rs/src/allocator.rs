@@ -1,11 +1,6 @@
 use core::alloc::GlobalAlloc;
 
-use alloc::format;
-
-use crate::{
-    binding_basic::{__syoch_put_log, free, malloc},
-    common::log,
-};
+use crate::binding_basic::{free, malloc};
 
 struct FFIAllocator;
 

@@ -53,7 +53,7 @@ impl ControlEP {
             length: 8,
         };
 
-        if true {
+        if false {
             self.logger.info(format!("--> {transaction:?}"));
         }
         hc.init(0, 8);
@@ -80,7 +80,7 @@ impl ControlEP {
         hc.init(0, 8);
         hc.submit_urb(&mut transaction);
         hc.wait_done();
-        if true {
+        if false {
             self.logger.info(format!("<-- {transaction:?}"));
         }
 
@@ -101,7 +101,7 @@ impl ControlEP {
             length: length as u8,
         };
 
-        if true {
+        if false {
             self.logger.info(format!("--> {transaction:?}"));
         }
         hc.init(0, 8);

@@ -2,9 +2,9 @@ use core::fmt::Debug;
 
 use alloc::{fmt, format};
 
-use crate::{binding::stm32_usb_host_HC, logger::Logger, sleep_ms, usb::RawURBStatus};
+use crate::{binding::stm32_usb_host_HC, logger::Logger, sleep_ms};
 
-use super::RawHCStatus;
+use super::{RawHCStatus, RawURBStatus};
 
 pub enum TransactionToken {
     Setup,
