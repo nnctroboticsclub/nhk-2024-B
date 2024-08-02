@@ -44,11 +44,10 @@ class HC {
    * @param ep: Endpoint number
    *            00h ~ 0Fh for Out, 80h ~ 8Fh for In
    * @param dev: Device address 0 ~ 255
-   * @param speed: Device speed. can be HCD_SPEED_XXX
    * @param ep_type: Endpoint type. can be EP_TYPE_XXX
    * @param max_packet_size: Maximum packet size
    */
-  void Init(int ep, int dev, int speed, int ep_type, int max_packet_size);
+  void Init(int ep, int dev, int ep_type, int max_packet_size);
 
   /**
    * @brief Submit a request to the Host Channel

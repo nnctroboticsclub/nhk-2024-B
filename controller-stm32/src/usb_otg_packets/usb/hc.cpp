@@ -88,7 +88,7 @@ class HC::Impl {
   HCD_HandleTypeDef *hhcd_;
   HCD_HCTypeDef *hc_ = nullptr;
 
-  robotics::system::Thread *thread_ = nullptr;
+  robotics::system::Thread thread_;
 
   bool thread_stop_request_mark_ = false;
   bool thread_running_mark_ = false;
@@ -114,7 +114,8 @@ class HC::Impl {
     thread_stop_request_mark_ = true;
     while (thread_running_mark_) robotics::system::SleepFor(10ms);
 
-    if (thread_) delete thread_;
+    if (log_verbose_enabled)
+      logger.Trace(">>>>>> Release channel %d", slot_.GetChannel());
 
     hc_->state = HC_IDLE;
     hc_->urb_state = URB_IDLE;
@@ -128,9 +129,12 @@ class HC::Impl {
    * @param ep_type: Endpoint type. can be EP_TYPE_XXX
    * @param max_packet_size: Maximum packet size
    */
-  void Init(int ep_addr, int dev_addr, int speed, int ep_type,
-            int max_packet_size) {
+  void Init(int ep_addr, int dev_addr, int ep_type, int max_packet_size) {
     ep_type_ = ep_type;
+
+    auto speed = HAL_HCD_GetCurrentSpeed(hhcd_) == HCD_SPEED_LOW
+                     ? HCD_SPEED_LOW
+                     : HCD_SPEED_FULL;
 
     hc_->dev_addr = dev_addr;
     hc_->ch_num = slot_.GetChannel();
@@ -142,6 +146,10 @@ class HC::Impl {
     hc_->ep_type = ep_type;
     hc_->max_packet = max_packet_size;
 
+    logger.Info("Init HC[%d]: ep%d, dev%d, speed%d, type%d, size%d",
+                slot_.GetChannel(), ep_addr, dev_addr, speed, ep_type,
+                max_packet_size);
+
     auto ret = USB_HC_Init(hhcd_->Instance, slot_.GetChannel(), ep_addr,
                            dev_addr, speed, ep_type, max_packet_size);
 
@@ -150,38 +158,39 @@ class HC::Impl {
       return;
     }
 
-    /* (thread_ = new robotics::system::Thread)->Start([this]() {
-      volatile auto &urb_status = hc_->urb_state;
-      volatile auto &hc_status = hc_->state;
+    if (0)
+      thread_.Start([this]() {
+        volatile auto &urb_status = hc_->urb_state;
+        volatile auto &hc_status = hc_->state;
 
-      thread_running_mark_ = true;
+        thread_running_mark_ = true;
 
-      int thread_id = robotics::system::Random::GetByte() / 255.f * 10;
+        int thread_id = robotics::system::Random::GetByte() / 255.f * 10;
 
-      auto state_urb = (HCD_URBStateTypeDef)-1;
-      auto state_hc = (HCD_HCStateTypeDef)-1;
+        auto state_urb = (HCD_URBStateTypeDef)-1;
+        auto state_hc = (HCD_HCStateTypeDef)-1;
 
-      int tick = 0;
+        int tick = 0;
 
-      while (!thread_stop_request_mark_) {
-        if (urb_status != state_urb || hc_status != state_hc
-            //  ||tick % 5000000 == 0
-        ) {
-          state_urb = urb_status;
-          state_hc = hc_status;
+        while (!thread_stop_request_mark_) {
+          if (urb_status != state_urb || hc_status != state_hc
+              //  ||tick % 5000000 == 0
+          ) {
+            state_urb = urb_status;
+            state_hc = hc_status;
 
-          logger.Debug("HC[%d]: u%d h%d, XferCount %d",
-                       slot_.GetChannel(),  //
-                       (int)state_urb,      //
-                       (int)state_hc,       //
-                       GetXferCount());
-          // tick = 0;
+            logger.Debug("HC[%d]: u%d h%d, XferCount %d",
+                         slot_.GetChannel(),  //
+                         (int)state_urb,      //
+                         (int)state_hc,       //
+                         GetXferCount());
+            // tick = 0;
+          }
+
+          // tick += 1;
         }
-
-        // tick += 1;
-      }
-      thread_running_mark_ = false;
-    }); */
+        thread_running_mark_ = false;
+      });
     robotics::system::SleepFor(10ms);
   }
 
@@ -289,8 +298,8 @@ HC::HC() : impl_(new Impl) {}
 
 HC::~HC() { delete impl_; }
 
-void HC::Init(int ep, int dev, int speed, int ep_type, int max_packet_size) {
-  impl_->Init(ep, dev, speed, ep_type, max_packet_size);
+void HC::Init(int ep, int dev, int ep_type, int max_packet_size) {
+  impl_->Init(ep, dev, ep_type, max_packet_size);
 }
 
 void HC::SubmitRequest(int direction, uint8_t *pbuff, int length, bool setup,

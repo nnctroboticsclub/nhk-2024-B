@@ -89,15 +89,10 @@ impl HC {
         }
     }
 
-    pub fn init(&mut self, speed: i32, ep_type: i32, max_packet_size: i32) {
+    pub fn init(&mut self, ep_type: i32, max_packet_size: i32) {
         unsafe {
-            self.hc.Init(
-                self.ep as i32,
-                self.dev as i32,
-                speed,
-                ep_type,
-                max_packet_size,
-            );
+            self.hc
+                .Init(self.ep as i32, self.dev as i32, ep_type, max_packet_size);
         }
     }
 
