@@ -1,21 +1,24 @@
 use alloc::format;
 
-use crate::{logger::Logger, sleep_ms};
+use crate::logger::Logger;
 
-use super::{std_request::StdRequest, Transaction, TransactionDestination, TransactionToken, HC};
+use super::{
+    hc::{EPType, Transaction, TransactionDestination, TransactionResult, TransactionToken, HC},
+    std_request::StdRequest,
+};
 
-pub struct ControlEP {
+pub struct ControlEP<H: HC> {
     logger: Logger,
+    hc: H,
 
-    mps: u8,    // max packet size
-    toggle: u8, // data toggle
-    dev: u8,    // device addr
-    ep: u8,     // ep num
+    dest: TransactionDestination,
+    mps: u8,
+    toggle: u8,
 }
 
-impl ControlEP {
-    pub fn new(dev: u8, ep: u8) -> ControlEP {
-        sleep_ms(500);
+impl<H: HC> ControlEP<H> {
+    pub fn new(dev: u8, ep: u8) -> ControlEP<H> {
+        let dest = TransactionDestination { dev, ep };
 
         ControlEP {
             logger: Logger::new(
@@ -24,8 +27,9 @@ impl ControlEP {
             ),
             mps: 8,
             toggle: 0,
-            dev,
-            ep,
+            dest,
+
+            hc: H::new(dest, EPType::Control, 8),
         }
     }
 
@@ -37,81 +41,69 @@ impl ControlEP {
         self.mps = mps;
     }
 
-    pub fn send_setup(&mut self, req: StdRequest) {
-        let mut hc = HC::new(self.dev, self.ep);
+    pub fn send_setup(&mut self, req: StdRequest) -> TransactionResult {
+        let mut hc = H::new(self.dest, EPType::Control, self.mps as i32);
 
         let mut buf: [u8; 8] = req.into();
 
         let mut transaction = Transaction {
             token: TransactionToken::Setup,
-            dest: TransactionDestination {
-                dev: self.dev,
-                ep: self.ep,
-            },
             toggle: 0,
             buffer: &mut buf,
             length: 8,
         };
 
-        if false {
+        if true {
             self.logger.info(format!("--> {transaction:?}"));
         }
-        hc.init(0, 8);
-        hc.submit_urb(&mut transaction);
-        hc.wait_done();
+        hc.submit_urb(&mut transaction)?;
 
         self.toggle = 1; // first toggle of data stage is always 1
+
+        Ok(())
     }
 
-    fn recv_packet(&mut self, buf: &mut [u8], length: usize) {
-        let mut hc = HC::new(self.dev, self.ep);
+    fn recv_packet(&mut self, buf: &mut [u8], length: usize) -> TransactionResult {
+        let mut hc = H::new(self.dest, EPType::Control, self.mps as i32);
 
         let mut transaction = Transaction {
             token: TransactionToken::In,
-            dest: TransactionDestination {
-                dev: self.dev,
-                ep: self.ep,
-            },
             toggle: self.toggle,
             buffer: buf,
             length: length as u8,
         };
 
-        hc.init(0, 8);
-        hc.submit_urb(&mut transaction);
-        hc.wait_done();
-        if false {
+        hc.submit_urb(&mut transaction)?;
+        if true {
             self.logger.info(format!("<-- {transaction:?}"));
         }
 
         self.toggle = 1 - self.toggle;
+
+        Ok(())
     }
 
-    fn send_packet(&mut self, buf: &mut [u8], length: usize) {
-        let mut hc = HC::new(self.dev, self.ep);
+    fn send_packet(&mut self, buf: &mut [u8], length: usize) -> TransactionResult {
+        let mut hc = H::new(self.dest, EPType::Control, self.mps as i32);
 
         let mut transaction = Transaction {
             token: TransactionToken::Out,
-            dest: TransactionDestination {
-                dev: self.dev,
-                ep: self.ep,
-            },
             toggle: self.toggle,
             buffer: buf,
             length: length as u8,
         };
 
-        if false {
+        if true {
             self.logger.info(format!("--> {transaction:?}"));
         }
-        hc.init(0, 8);
-        hc.submit_urb(&mut transaction);
-        hc.wait_done();
+        hc.submit_urb(&mut transaction)?;
 
         self.toggle = 1 - self.toggle;
+
+        Ok(())
     }
 
-    pub fn send_packets(&mut self, buf: &mut [u8], length: usize) {
+    pub fn send_packets(&mut self, buf: &mut [u8], length: usize) -> TransactionResult {
         let mps = self.mps.into();
 
         let chunks = length / mps;
@@ -119,14 +111,16 @@ impl ControlEP {
 
         for i in 0..chunks {
             let slice = &mut buf[i * mps..(i + 1) * mps];
-            self.send_packet(slice, mps);
+            self.send_packet(slice, mps)?;
         }
 
         let slice = &mut buf[length - remain..];
-        self.send_packet(slice, remain);
+        self.send_packet(slice, remain)?;
+
+        Ok(())
     }
 
-    pub fn recv_packets(&mut self, buf: &mut [u8], length: usize) {
+    pub fn recv_packets(&mut self, buf: &mut [u8], length: usize) -> TransactionResult {
         let mps = self.mps.into();
 
         let chunks = length / mps;
@@ -134,10 +128,12 @@ impl ControlEP {
 
         for i in 0..chunks {
             let slice = &mut buf[i * mps..(i + 1) * mps];
-            self.recv_packet(slice, mps);
+            self.recv_packet(slice, mps)?;
         }
 
         let slice = &mut buf[length - remain..];
-        self.recv_packet(slice, remain);
+        self.recv_packet(slice, remain)?;
+
+        Ok(())
     }
 }

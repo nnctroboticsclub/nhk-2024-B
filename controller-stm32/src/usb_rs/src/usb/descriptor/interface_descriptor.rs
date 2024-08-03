@@ -1,27 +1,23 @@
-use core::fmt::Display;
+use core::fmt::Debug;
 
-use alloc::{format, string::String};
+use alloc::string::String;
 
 use nom::{number::complete::le_u8, IResult};
 
-use crate::{
-    common::log,
-    usb::{ParsingContext, UsbString, EP0},
-};
+use crate::usb::{ParsingContext, UsbString, EP0};
 
 use super::{descriptor::Descriptor, hid_descriptor::HIDDescriptor, EndpointDescriptor};
 
-#[derive(Debug)]
 pub struct InterfaceDescriptor {
-    id: u8,
-    if_class: u8,
-    if_subclass: u8,
-    if_proto: u8,
+    pub id: u8,
+    pub name: String,
 
-    interface: String,
+    pub if_class: u8,
+    pub if_subclass: u8,
+    pub if_proto: u8,
 
-    alt_setting: u8,
-    num_endpoints: u8,
+    pub alt_setting: u8,
+    pub num_endpoints: u8,
 }
 
 impl Descriptor for InterfaceDescriptor {
@@ -33,13 +29,6 @@ impl Descriptor for InterfaceDescriptor {
     }
 
     fn parse<'a>(ctx: &mut ParsingContext<impl EP0>, input: &'a [u8]) -> IResult<&'a [u8], Self> {
-        log(format!(
-            "InterfaceDescriptor::parse ({})",
-            input[0..2]
-                .iter()
-                .map(|x| format!("{:02X}", x))
-                .collect::<String>()
-        ));
         let (input, _) = le_u8(input)?; // length
         let (input, _) = le_u8(input)?; // type
         let (input, id) = le_u8(input)?;
@@ -80,24 +69,22 @@ impl Descriptor for InterfaceDescriptor {
             if_class,
             if_subclass,
             if_proto,
-            interface: interface_string,
+            name: interface_string,
         };
-
-        log(format!("{desc}"));
 
         Ok((input, desc))
     }
 }
 
-impl Display for InterfaceDescriptor {
+impl Debug for InterfaceDescriptor {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Interface({}) {{ ", self.interface)?;
-        write!(f, "id: {}, ", self.id)?;
+        write!(f, "Interface{}({}) {{ ", self.id, self.name)?;
         write!(f, "setting: {}, ", self.alt_setting)?;
         write!(f, "class: {}, ", self.if_class)?;
         write!(f, "subclass: {}, ", self.if_subclass)?;
         write!(f, "proto: {}, ", self.if_proto)?;
-        write!(f, "{} ep(s)}}", self.num_endpoints)?;
+        write!(f, "{} ep(s)", self.num_endpoints)?;
+        write!(f, "}}")?;
 
         Ok(())
     }

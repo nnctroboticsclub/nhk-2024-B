@@ -1,11 +1,15 @@
-#![no_std]
+#![cfg_attr(target_os = "none", no_std)]
 #![feature(str_from_utf16_endian)]
 
+#[cfg(target_os = "none")]
 mod binding;
-mod binding_basic;
-mod binding_logger;
 
+#[cfg(target_os = "none")]
+mod binding_basic;
+
+#[cfg(target_os = "none")]
 mod allocator;
+
 mod common;
 mod logger;
 mod usb;
@@ -15,6 +19,7 @@ extern crate alloc;
 
 use alloc::format;
 use alloc::vec;
+use common::log;
 use common::sleep_ms;
 use logger::Logger;
 use usb::ConfigurationDescriptor;
@@ -22,27 +27,33 @@ use usb::Descriptor;
 use usb::DeviceDescriptor;
 use usb::NewDescriptor;
 use usb::ParsingContext;
+use usb::PhysicalEP0;
 use usb::EP0;
 use usb::USBEP0;
-use usb_core::Hcd;
+use usb_core::hc::BindedHC;
+use usb_core::hcd::BindedHcd;
+use usb_core::hcd::Hcd;
 
-fn run() -> () {
+fn run() {
     let mut logger = Logger::new("usb.com", "RUST CODE");
 
     logger.info("Rust code started");
 
     {
-        let mut hcd = Hcd::new();
+        let mut hcd = BindedHcd::new();
         hcd.init();
         hcd.wait_device();
+        sleep_ms(200);
 
         hcd.reset_port();
         sleep_ms(100);
     }
 
-    let mut ep0 = USBEP0::new(0);
+    let mut ep0: USBEP0<BindedHC> = USBEP0::new(0);
 
-    // ep0.set_address(1);
+    logger.trace("\x1b[45m                                        \x1b[0m");
+    ep0.set_address(1);
+    logger.trace("\x1b[45m                                        \x1b[0m");
 
     {
         let mut ctx = ParsingContext { ep0: &mut ep0 };
@@ -61,8 +72,9 @@ fn run() -> () {
         logger.info(format!("  Product     : {}", desc.product));
         logger.info(format!("  Serial      : {}", desc.serial));
     }
+    logger.trace("\x1b[45m                                        \x1b[0m");
 
-    {
+    if false {
         let mut ctx = ParsingContext { ep0: &mut ep0 };
 
         let total_size = {
@@ -74,13 +86,27 @@ fn run() -> () {
         let mut buf = vec![0; total_size as usize];
         ctx.ep0
             .get_descriptor(0x02, 0, buf.as_mut_slice(), total_size);
-        logger.hex(
-            logger::LoggerLevel::Info,
-            buf.as_mut_slice(),
-            total_size.into(),
-        );
 
-        let _config = ConfigurationDescriptor::parse(&mut ctx, buf.as_mut_slice());
+        let (_, config) = ConfigurationDescriptor::parse(&mut ctx, buf.as_mut_slice()).unwrap();
+
+        log(format!(
+            "Configuration Descriptor[{}: {}]:",
+            config.id, config.name
+        ));
+        log(format!("- Attributes: {}", config.attributes));
+        log(format!("- Max Power: {}", config.max_power));
+        for interface in config.interfaces {
+            log(format!(
+                "- Interface [{}: {}]",
+                interface.id, interface.name
+            ));
+            log(format!(
+                "  - Kind: {}-{}-{}",
+                interface.if_class, interface.if_subclass, interface.if_proto
+            ));
+            log(format!("  - Alt Setting: {}", interface.alt_setting));
+            log(format!("  - Endpoints: {}", interface.num_endpoints));
+        }
     }
 }
 

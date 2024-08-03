@@ -1,19 +1,20 @@
 use alloc::{string::String, vec};
 
 use crate::usb_core::{
+    hc::HC,
     std_request::{Direction, Recipient, RequestByte, RequestKind, RequestType, StdRequest},
     ControlEP,
 };
 
 use super::{PhysicalEP0, EP0};
 
-pub struct USBEP0 {
-    ep: ControlEP,
+pub struct USBEP0<H: HC> {
+    ep: ControlEP<H>,
     dev: u8,
 }
 
-impl USBEP0 {
-    pub fn new(dev: u8) -> USBEP0 {
+impl<H: HC> USBEP0<H> {
+    pub fn new(dev: u8) -> USBEP0<H> {
         USBEP0 {
             ep: ControlEP::new(dev, 0),
             dev,
@@ -57,7 +58,7 @@ impl USBEP0 {
     }
 }
 
-impl PhysicalEP0 for USBEP0 {
+impl<H: HC> PhysicalEP0 for USBEP0<H> {
     fn set_max_packet_size(&mut self, mps: u8) {
         self.ep.set_max_packet_size(mps);
     }
@@ -80,7 +81,7 @@ impl PhysicalEP0 for USBEP0 {
     }
 }
 
-impl EP0 for USBEP0 {
+impl<H: HC> EP0 for USBEP0<H> {
     fn get_descriptor(&mut self, descriptor_type: u8, index: u8, buf: &mut [u8], length: u16) {
         let value = (descriptor_type as u16) << 8 | (index as u16);
         let value = value.into();

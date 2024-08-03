@@ -1,6 +1,6 @@
-use nom::IResult;
-
 use crate::usb::{ep0::EP0, ParsingContext};
+use core::option::Option;
+use nom::IResult;
 
 pub trait Descriptor: Sized {
     fn get_type() -> u8;

@@ -1,28 +1,27 @@
-use core::fmt::Display;
-
 use super::{
     descriptor::Descriptor, interface_descriptor::InterfaceDescriptor,
     new_descriptor::NewDescriptor,
 };
-use crate::{
-    common::log,
-    usb::{ParsingContext, PhysicalEP0, UsbString, EP0},
-};
+use crate::usb::{ParsingContext, PhysicalEP0, UsbString, EP0};
 
-use alloc::{format, string::String, vec, vec::Vec};
+use core::fmt::Debug;
+use core::option::Option::{self, Some};
+use core::result::Result::Ok;
+use core::write;
+
+use alloc::{string::String, vec, vec::Vec};
 use nom::{
     multi::count,
     number::complete::{le_u16, le_u8},
     IResult,
 };
 
-#[derive(Debug)]
 pub struct ConfigurationDescriptor {
-    interfaces: Vec<InterfaceDescriptor>,
-    id_configuration: u8,
-    name: String,
-    attributes: u8,
-    max_power: u8,
+    pub id: u8,
+    pub name: String,
+    pub attributes: u8,
+    pub max_power: u8,
+    pub interfaces: Vec<InterfaceDescriptor>,
 }
 
 impl Descriptor for ConfigurationDescriptor {
@@ -50,13 +49,11 @@ impl Descriptor for ConfigurationDescriptor {
 
         let desc = ConfigurationDescriptor {
             interfaces,
-            id_configuration: configuration_value,
+            id: configuration_value,
             name,
             attributes,
             max_power: max_power.try_into().unwrap(),
         };
-
-        // log(format!("{desc:?}"));
 
         Ok((input, desc))
     }
@@ -79,14 +76,14 @@ impl<T: EP0 + PhysicalEP0> NewDescriptor<T> for ConfigurationDescriptor {
     }
 }
 
-impl Display for ConfigurationDescriptor {
+impl Debug for ConfigurationDescriptor {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Configuration({}) {{", self.name);
-        write!(f, "id: {}, ", self.id_configuration);
-        write!(f, "attributes: {}, ", self.attributes);
-        write!(f, "max_power: {}, ", self.max_power);
-        write!(f, "interfaces: {}, ", self.interfaces.len());
-        write!(f, "}}");
+        write!(f, "Configuration({}) {{", self.name)?;
+        write!(f, "id: {}, ", self.id)?;
+        write!(f, "attributes: {}, ", self.attributes)?;
+        write!(f, "max_power: {}, ", self.max_power)?;
+        write!(f, "interfaces: {:?}", self.interfaces)?;
+        write!(f, "}}")?;
 
         Ok(())
     }

@@ -1,4 +1,7 @@
-use crate::usb::{ParsingContext, PhysicalEP0, UsbString, EP0};
+use crate::{
+    common::log,
+    usb::{ParsingContext, PhysicalEP0, UsbString, EP0},
+};
 use alloc::string::String;
 use nom::{
     bytes::complete::tag,
@@ -78,46 +81,64 @@ impl Descriptor for DeviceDescriptor {
 
 impl<T: EP0 + PhysicalEP0> NewDescriptor<T> for DeviceDescriptor {
     fn new(ctx: &mut ParsingContext<T>, index: u8) -> Option<Self> {
+        log("\x1b[46m                                        \x1b[0m");
         let mps = {
             let buf = &mut [0; 8];
             ctx.ep0.get_descriptor(1, index, buf, 8);
             buf[7]
         };
         ctx.ep0.set_max_packet_size(mps);
+        log("\x1b[46m                                        \x1b[0m");
 
         // usually object construction
         let buf = &mut [0; 0x12];
         ctx.ep0.get_descriptor(1, index, buf, 0x12);
+        log("\x1b[46m                                        \x1b[0m");
+
         Self::parse(ctx, buf).map(|x| x.1).ok()
     }
 }
 
+#[cfg(not(target_os = "none"))]
 #[cfg(test)]
-mod test {
+mod tests {
+    use crate::usb::{
+        fake_ep0::{DescriptorType, FakeEP0},
+        NewDescriptor,
+    };
+
     #[test]
     fn test_device_descriptor() {
         let buf = [
-            0x12, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x40, 0x04, 0x25, 0x00, 0x01, 0x02, 0x03,
-            0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+            0x12, 0x01, 0x10, 0x01, 0x00, 0x01, 0x02, 0x08, //
+            0x22, 0x11, 0x44, 0x33, 0x66, 0x55, 0x01, 0x02, //
+            0x03, 0x01,
         ];
 
         let mut ctx = super::ParsingContext {
-            ep0: &mut super::EP0::new(0),
+            ep0: &mut FakeEP0::default(),
         };
 
-        let desc = super::DeviceDescriptor::parse(&mut ctx, &buf).unwrap().1;
+        ctx.ep0
+            .add_descriptor(DescriptorType::Device, 0, buf.to_vec());
 
-        assert_eq!(desc.bcd_usb, 0x012);
+        ctx.ep0.add_string(1, "Manufacturer".to_string());
+        ctx.ep0.add_string(2, "Product".to_string());
+        ctx.ep0.add_string(3, "Serial".to_string());
+
+        let desc = super::DeviceDescriptor::new(&mut ctx, 0).unwrap();
+
+        assert_eq!(desc.bcd_usb, 0x0110);
         assert_eq!(desc.usb_class, 0x00);
-        assert_eq!(desc.usb_subclass, 0x02);
-        assert_eq!(desc.usb_proto, 0x00);
-        assert_eq!(desc.mps, 0x40);
-        assert_eq!(desc.vid, 0x254);
-        assert_eq!(desc.pid, 0x01);
-        assert_eq!(desc.bcd, 0x02);
-        assert_eq!(desc.manufacturer, "☃☃☃");
-        assert_eq!(desc.product, "☃☃☃☃☃");
-        assert_eq!(desc.serial, "☃☃☃☃☃☃");
-        assert_eq!(desc.num_configurations, 0x06);
+        assert_eq!(desc.usb_subclass, 0x01);
+        assert_eq!(desc.usb_proto, 0x02);
+        assert_eq!(desc.mps, 0x08);
+        assert_eq!(desc.vid, 0x1122);
+        assert_eq!(desc.pid, 0x3344);
+        assert_eq!(desc.bcd, 0x5566);
+        assert_eq!(desc.manufacturer, "Manufacturer");
+        assert_eq!(desc.product, "Product");
+        assert_eq!(desc.serial, "Serial");
+        assert_eq!(desc.num_configurations, 0x01);
     }
 }

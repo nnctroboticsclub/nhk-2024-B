@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, ffi::CString, string::String};
 
-use crate::binding_logger::{
+use super::binding_logger::{
     robotics_logger_GenericLogger, robotics_logger_GenericLogger_Log, robotics_logger_core_Level,
     robotics_logger_core_Level_kDebug, robotics_logger_core_Level_kError,
     robotics_logger_core_Level_kInfo, robotics_logger_core_Level_kTrace,

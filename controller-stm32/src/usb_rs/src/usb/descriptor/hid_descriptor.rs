@@ -1,22 +1,19 @@
-use alloc::{format, vec::Vec};
+use alloc::vec::Vec;
 use nom::{
     multi::count,
     number::complete::{le_u16, le_u8},
     IResult,
 };
 
-use crate::{
-    common::log,
-    usb::{ParsingContext, EP0},
-};
+use crate::usb::{ParsingContext, EP0};
 
 use super::{descriptor::Descriptor, hid_class_descriptor::HIDClassDescriptor};
 
 #[derive(Debug)]
 pub struct HIDDescriptor {
-    bcd_hid: u16,
-    country_code: u8,
-    class_descriptors: Vec<HIDClassDescriptor>,
+    pub bcd_hid: u16,
+    pub country_code: u8,
+    pub class_descriptors: Vec<HIDClassDescriptor>,
 }
 
 impl Descriptor for HIDDescriptor {
@@ -44,8 +41,6 @@ impl Descriptor for HIDDescriptor {
             country_code,
             class_descriptors,
         };
-
-        log(format!("{desc:?}"));
 
         Ok((input, desc))
     }

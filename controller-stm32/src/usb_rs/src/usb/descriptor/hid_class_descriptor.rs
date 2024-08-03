@@ -1,9 +1,4 @@
-use alloc::format;
-
-use crate::{
-    common::log,
-    usb::{ParsingContext, EP0},
-};
+use crate::usb::{ParsingContext, EP0};
 use nom::{
     number::complete::{le_u16, le_u8},
     IResult,
@@ -31,8 +26,6 @@ impl HIDClassDescriptor {
         } else {
             HIDClassDescriptor::Unknown { kind, size }
         };
-
-        log(format!("{desc:?}"));
 
         Ok((input, desc))
     }

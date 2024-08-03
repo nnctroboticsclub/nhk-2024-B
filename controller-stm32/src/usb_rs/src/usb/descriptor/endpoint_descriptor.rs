@@ -1,13 +1,9 @@
-use alloc::format;
 use nom::{
     number::complete::{le_u16, le_u8},
     IResult,
 };
 
-use crate::{
-    common::log,
-    usb::{ParsingContext, EP0},
-};
+use crate::usb::{ParsingContext, EP0};
 
 use super::descriptor::Descriptor;
 
@@ -41,8 +37,6 @@ impl Descriptor for EndpointDescriptor {
             mps,
             interval,
         };
-
-        log(format!("{desc:?}"));
 
         Ok((input, desc))
     }
