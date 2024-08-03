@@ -41,7 +41,7 @@ impl<H: HC> ControlEP<H> {
         self.mps = mps;
     }
 
-    pub fn send_setup(&mut self, req: StdRequest) -> TransactionResult {
+    pub fn send_setup(&mut self, req: StdRequest) -> TransactionResult<()> {
         let mut hc = H::new(self.dest, EPType::Control, self.mps as i32);
 
         let mut buf: [u8; 8] = req.into();
@@ -63,7 +63,7 @@ impl<H: HC> ControlEP<H> {
         Ok(())
     }
 
-    fn recv_packet(&mut self, buf: &mut [u8], length: usize) -> TransactionResult {
+    fn recv_packet(&mut self, buf: &mut [u8], length: usize) -> TransactionResult<()> {
         let mut hc = H::new(self.dest, EPType::Control, self.mps as i32);
 
         let mut transaction = Transaction {
@@ -83,7 +83,7 @@ impl<H: HC> ControlEP<H> {
         Ok(())
     }
 
-    fn send_packet(&mut self, buf: &mut [u8], length: usize) -> TransactionResult {
+    fn send_packet(&mut self, buf: &mut [u8], length: usize) -> TransactionResult<()> {
         let mut hc = H::new(self.dest, EPType::Control, self.mps as i32);
 
         let mut transaction = Transaction {
@@ -103,7 +103,7 @@ impl<H: HC> ControlEP<H> {
         Ok(())
     }
 
-    pub fn send_packets(&mut self, buf: &mut [u8], length: usize) -> TransactionResult {
+    pub fn send_packets(&mut self, buf: &mut [u8], length: usize) -> TransactionResult<()> {
         let mps = self.mps.into();
 
         let chunks = length / mps;
@@ -120,7 +120,7 @@ impl<H: HC> ControlEP<H> {
         Ok(())
     }
 
-    pub fn recv_packets(&mut self, buf: &mut [u8], length: usize) -> TransactionResult {
+    pub fn recv_packets(&mut self, buf: &mut [u8], length: usize) -> TransactionResult<()> {
         let mps = self.mps.into();
 
         let chunks = length / mps;

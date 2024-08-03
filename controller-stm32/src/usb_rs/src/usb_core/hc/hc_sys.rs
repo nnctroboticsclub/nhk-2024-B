@@ -47,7 +47,7 @@ impl HC for BindedHC {
         BindedHC { hc, dest, logger }
     }
 
-    fn submit_urb(&mut self, transaction: &mut Transaction) -> TransactionResult {
+    fn submit_urb(&mut self, transaction: &mut Transaction) -> TransactionResult<()> {
         let is_in = !transaction.token.is_outgoing_token();
 
         let Transaction {

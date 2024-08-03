@@ -8,11 +8,11 @@ use super::{
 pub trait HC {
     fn new(dest: TransactionDestination, ep_type: EPType, max_packet_size: i32) -> Self;
 
-    fn submit_urb(&mut self, transaction: &mut Transaction) -> TransactionResult;
+    fn submit_urb(&mut self, transaction: &mut Transaction) -> TransactionResult<()>;
 
     fn get_urb_status(&mut self) -> URBStatus;
 
-    fn wait_done(&mut self) -> TransactionResult {
+    fn wait_done(&mut self) -> TransactionResult<()> {
         let mut tick: u32 = 0;
         while self.get_urb_status() != URBStatus::Done {
             sleep_ms(10);

@@ -2,8 +2,10 @@ use super::{
     descriptor::Descriptor, interface_descriptor::InterfaceDescriptor,
     new_descriptor::NewDescriptor,
 };
+use super::{DescriptorError, DescriptorResult};
 use crate::usb::{ParsingContext, PhysicalEP0, UsbString, EP0};
 
+use alloc::format;
 use core::fmt::Debug;
 use core::option::Option::{self, Some};
 use core::result::Result::Ok;
@@ -45,7 +47,10 @@ impl Descriptor for ConfigurationDescriptor {
         let (input, interfaces) =
             count(|x| InterfaceDescriptor::parse(ctx, x), num_interface.into())(input)?;
 
-        let name = UsbString::new(i_configuration).read(ctx);
+        let name = match UsbString::new(i_configuration).read(ctx) {
+            Ok(s) => s,
+            Err(e) => format!("Error[{:?}]", e),
+        };
 
         let desc = ConfigurationDescriptor {
             interfaces,
@@ -60,10 +65,10 @@ impl Descriptor for ConfigurationDescriptor {
 }
 
 impl<T: EP0 + PhysicalEP0> NewDescriptor<T> for ConfigurationDescriptor {
-    fn new(ctx: &mut ParsingContext<T>, index: u8) -> Option<Self> {
+    fn new(ctx: &mut ParsingContext<T>, index: u8) -> DescriptorResult<Self> {
         let total_length: u16 = {
             let buf = &mut [0; 4];
-            ctx.ep0.get_descriptor(1, index, buf, 4);
+            ctx.ep0.get_descriptor(1, index, buf, 4)?;
 
             (buf[4] as u16) << 8 | buf[3] as u16
         };
@@ -71,8 +76,10 @@ impl<T: EP0 + PhysicalEP0> NewDescriptor<T> for ConfigurationDescriptor {
         // usually object construction
         let mut buf = vec![0; total_length.into()];
         ctx.ep0
-            .get_descriptor(1, index, buf.as_mut_slice(), total_length.into());
-        Self::parse(ctx, buf.as_mut_slice()).map(|x| x.1).ok()
+            .get_descriptor(1, index, buf.as_mut_slice(), total_length.into())?;
+        Self::parse(ctx, buf.as_mut_slice())
+            .map(|x| x.1)
+            .map_err(|_| DescriptorError::GeneralParseError)
     }
 }
 

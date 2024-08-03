@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 
-use alloc::string::String;
+use alloc::{format, string::String};
 
 use nom::{number::complete::le_u8, IResult};
 
@@ -39,7 +39,10 @@ impl Descriptor for InterfaceDescriptor {
         let (input, if_proto) = le_u8(input)?;
         let (input, interface_string_id) = le_u8(input)?;
 
-        let interface_string = UsbString::new(interface_string_id).read(ctx);
+        let interface_string = match UsbString::new(interface_string_id).read(ctx) {
+            Ok(s) => s,
+            Err(e) => format!("Error[{:?}]", e),
+        };
 
         let mut i = 0;
         let mut input = input;

@@ -1,4 +1,7 @@
-use alloc::{borrow::Cow, ffi::CString};
+use alloc::borrow::Cow;
+
+#[cfg(target_os = "none")]
+use alloc::ffi::CString;
 
 #[cfg(target_os = "none")]
 use crate::binding_basic;
@@ -9,10 +12,16 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+#[cfg(target_os = "none")]
 pub fn sleep_ms(ms: i32) {
     unsafe {
         binding_basic::sleep_ms(ms);
     }
+}
+
+#[cfg(not(target_os = "none"))]
+pub fn sleep_ms(ms: i32) {
+    std::thread::sleep(std::time::Duration::from_millis(ms as u64));
 }
 
 #[cfg(target_os = "none")]

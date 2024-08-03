@@ -12,6 +12,8 @@ void sleep_ms(int ms);
 void* malloc(size_t size);
 void free(void* ptr);
 
+void __syoch_put_log(const char*);
+
 #ifdef __cplusplus
 }
 #endif

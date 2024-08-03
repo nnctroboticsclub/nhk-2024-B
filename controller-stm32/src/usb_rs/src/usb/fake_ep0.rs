@@ -2,6 +2,8 @@ use core::panic;
 
 use alloc::{collections::btree_map::BTreeMap, string::String, vec::Vec};
 
+use crate::usb_core::hc::TransactionResult;
+
 use super::{PhysicalEP0, EP0};
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
@@ -50,7 +52,13 @@ impl FakeEP0 {
 }
 
 impl EP0 for FakeEP0 {
-    fn get_descriptor(&mut self, descriptor_type: u8, index: u8, buf: &mut [u8], length: u16) {
+    fn get_descriptor(
+        &mut self,
+        descriptor_type: u8,
+        index: u8,
+        buf: &mut [u8],
+        length: u16,
+    ) -> TransactionResult<()> {
         let address = DescriptorAddress {
             kind: descriptor_type.into(),
             index,
@@ -62,19 +70,23 @@ impl EP0 for FakeEP0 {
 
         let data = self.descriptors.get(&address).unwrap();
         buf.copy_from_slice(&data[..length as usize]);
+
+        Ok(())
     }
 
-    fn get_string(&mut self, index: u8) -> String {
+    fn get_string(&mut self, index: u8) -> TransactionResult<String> {
         if !self.strings.contains_key(&index) {
             panic!("String not found: {}", index);
         }
 
-        self.strings.get(&index).unwrap().clone()
+        Ok(self.strings.get(&index).unwrap().clone())
     }
 }
 
 impl PhysicalEP0 for FakeEP0 {
-    fn set_address(&mut self, _address: u8) {}
+    fn set_address(&mut self, _address: u8) -> TransactionResult<()> {
+        Ok(())
+    }
 
     fn set_max_packet_size(&mut self, _mps: u8) {}
 }

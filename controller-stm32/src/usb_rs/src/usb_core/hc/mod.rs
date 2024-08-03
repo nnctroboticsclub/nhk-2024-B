@@ -17,6 +17,7 @@ pub use ep_type::EPType;
 pub use hc::HC;
 pub use transaction::Transaction;
 pub use transaction_dest::TransactionDestination;
+pub use transaction_result::TransactionError;
 pub use transaction_result::TransactionResult;
 pub use transaction_token::TransactionToken;
 

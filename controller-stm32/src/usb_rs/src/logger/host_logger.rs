@@ -21,7 +21,7 @@ impl Into<&str> for LoggerLevel {
 }
 
 pub struct Logger {
-    id: String,
+    _id: String,
     header: String,
 }
 
@@ -37,7 +37,7 @@ impl Logger {
         let id = id.into_owned();
         let header = header.into_owned();
 
-        Logger { id, header }
+        Logger { _id: id, header }
     }
 
     fn log(&mut self, level: LoggerLevel, message: String) {

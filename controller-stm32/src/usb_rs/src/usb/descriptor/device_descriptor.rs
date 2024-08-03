@@ -2,14 +2,16 @@ use crate::{
     common::log,
     usb::{ParsingContext, PhysicalEP0, UsbString, EP0},
 };
-use alloc::string::String;
+use alloc::{format, string::String};
 use nom::{
     bytes::complete::tag,
     number::complete::{le_u16, le_u8},
     IResult,
 };
 
-use super::{descriptor::Descriptor, new_descriptor::NewDescriptor};
+use super::{
+    descriptor::Descriptor, new_descriptor::NewDescriptor, DescriptorError, DescriptorResult,
+};
 
 pub struct DeviceDescriptor {
     // length
@@ -55,9 +57,20 @@ impl Descriptor for DeviceDescriptor {
         let (input, i_serial) = le_u8(input)?;
         let (input, num_configurations) = le_u8(input)?;
 
-        let manufacturer = UsbString::new(i_manufacturer).read(ctx);
-        let product = UsbString::new(i_product).read(ctx);
-        let serial = UsbString::new(i_serial).read(ctx);
+        let manufacturer = match UsbString::new(i_manufacturer).read(ctx) {
+            Ok(s) => s,
+            Err(e) => format!("Error[{:?}]", e),
+        };
+
+        let product = match UsbString::new(i_product).read(ctx) {
+            Ok(s) => s,
+            Err(e) => format!("Error[{:?}]", e),
+        };
+
+        let serial = match UsbString::new(i_serial).read(ctx) {
+            Ok(s) => s,
+            Err(e) => format!("Error[{:?}]", e),
+        };
 
         Ok((
             input,
@@ -80,11 +93,11 @@ impl Descriptor for DeviceDescriptor {
 }
 
 impl<T: EP0 + PhysicalEP0> NewDescriptor<T> for DeviceDescriptor {
-    fn new(ctx: &mut ParsingContext<T>, index: u8) -> Option<Self> {
+    fn new(ctx: &mut ParsingContext<T>, index: u8) -> DescriptorResult<Self> {
         log("\x1b[46m                                        \x1b[0m");
         let mps = {
             let buf = &mut [0; 8];
-            ctx.ep0.get_descriptor(1, index, buf, 8);
+            ctx.ep0.get_descriptor(1, index, buf, 8)?;
             buf[7]
         };
         ctx.ep0.set_max_packet_size(mps);
@@ -92,10 +105,12 @@ impl<T: EP0 + PhysicalEP0> NewDescriptor<T> for DeviceDescriptor {
 
         // usually object construction
         let buf = &mut [0; 0x12];
-        ctx.ep0.get_descriptor(1, index, buf, 0x12);
+        ctx.ep0.get_descriptor(1, index, buf, 0x12)?;
         log("\x1b[46m                                        \x1b[0m");
 
-        Self::parse(ctx, buf).map(|x| x.1).ok()
+        Self::parse(ctx, buf)
+            .map(|x| x.1)
+            .map_err(|_| DescriptorError::GeneralParseError)
     }
 }
 
