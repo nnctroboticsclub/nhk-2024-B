@@ -6,7 +6,13 @@ use super::{
 };
 
 pub trait HC {
-    fn new(dest: TransactionDestination, ep_type: EPType, max_packet_size: i32) -> Self;
+    fn new(dest: TransactionDestination, ep_type: EPType, max_packet_size: u32) -> Self;
+
+    fn set_max_packet_size(&mut self, max_packet_size: u32);
+
+    fn get_dest_mut(&mut self) -> &mut TransactionDestination;
+
+    fn get_dest(&self) -> &TransactionDestination;
 
     fn submit_urb(&mut self, transaction: &mut Transaction) -> TransactionResult<()>;
 

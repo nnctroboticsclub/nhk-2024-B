@@ -1,4 +1,4 @@
-use alloc::{string::String, vec};
+use alloc::{boxed::Box, string::String, vec};
 
 use crate::usb_core::{
     hc::{TransactionResult, HC},
@@ -14,10 +14,10 @@ pub struct USBEP0<H: HC> {
 }
 
 impl<H: HC> USBEP0<H> {
-    pub fn new(dev: u8) -> USBEP0<H> {
+    pub fn new(hc: Box<H>) -> USBEP0<H> {
         USBEP0 {
-            ep: ControlEP::new(dev, 0),
-            dev,
+            dev: hc.get_dest().dev,
+            ep: ControlEP::new(hc),
         }
     }
 
@@ -34,6 +34,7 @@ impl<H: HC> USBEP0<H> {
     ) -> TransactionResult<()> {
         let is_out = direction == Direction::HostToDevice;
 
+        self.ep.set_data_toggle(0);
         self.ep.send_setup(StdRequest {
             request_type: RequestType {
                 direction,
@@ -47,15 +48,18 @@ impl<H: HC> USBEP0<H> {
         })?;
 
         if is_out {
-            self.ep.send_packets(buf, length.into())?;
+            if length != 0 {
+                self.ep.send_packets(buf, length.into())?;
+            }
             self.ep.set_data_toggle(1);
             self.ep.recv_packets(buf, 0)?;
         } else {
-            self.ep.recv_packets(buf, length.into())?;
+            if length != 0 {
+                self.ep.recv_packets(buf, length.into())?;
+            }
             self.ep.set_data_toggle(1);
             self.ep.send_packets(buf, 0)?;
         }
-
         Ok(())
     }
 }
@@ -79,7 +83,7 @@ impl<H: HC> PhysicalEP0 for USBEP0<H> {
         )?;
 
         self.dev = new_address;
-        self.ep = ControlEP::new(self.dev, 0);
+        self.ep.set_address(new_address)?;
 
         Ok(())
     }

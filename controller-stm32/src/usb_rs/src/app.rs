@@ -1,3 +1,7 @@
+use alloc::boxed::Box;
+
+use crate::usb_core::hc::HC;
+
 use super::alloc::format;
 use super::alloc::vec;
 use super::common::log;
@@ -15,7 +19,7 @@ use super::usb_core::hc::BindedHC;
 use super::usb_core::hcd::BindedHcd;
 use super::usb_core::hcd::Hcd;
 
-fn run() {
+fn run() -> Result<(), Box<dyn core::error::Error>> {
     let mut logger = Logger::new("usb.com", "RUST CODE");
 
     logger.info("Rust code started");
@@ -23,6 +27,8 @@ fn run() {
     {
         let mut hcd = BindedHcd::new();
         hcd.init();
+        sleep_ms(200);
+
         hcd.wait_device();
         sleep_ms(200);
 
@@ -30,11 +36,14 @@ fn run() {
         sleep_ms(100);
     }
 
-    let mut ep0: USBEP0<BindedHC> = USBEP0::new(0);
+    let hc = Box::new(BindedHC::new(
+        super::usb_core::hc::TransactionDestination { dev: 0, ep: 0 },
+        super::usb_core::hc::EPType::Control,
+        8,
+    ));
+    let mut ep0: USBEP0<BindedHC> = USBEP0::new(hc);
 
-    logger.trace("\x1b[45m                                        \x1b[0m");
-    ep0.set_address(1);
-    logger.trace("\x1b[45m                                        \x1b[0m");
+    ep0.set_address(1)?;
 
     {
         let mut ctx = ParsingContext { ep0: &mut ep0 };
@@ -53,20 +62,19 @@ fn run() {
         logger.info(format!("  Product     : {}", desc.product));
         logger.info(format!("  Serial      : {}", desc.serial));
     }
-    logger.trace("\x1b[45m                                        \x1b[0m");
 
-    if false {
+    {
         let mut ctx = ParsingContext { ep0: &mut ep0 };
 
         let total_size = {
             let mut buf = [0; 4];
-            ctx.ep0.get_descriptor(0x02, 0, &mut buf, 0x4);
+            ctx.ep0.get_descriptor(0x02, 0, &mut buf, 0x4)?;
             (buf[3] as u16) << 8 | (buf[2] as u16)
         };
 
         let mut buf = vec![0; total_size as usize];
         ctx.ep0
-            .get_descriptor(0x02, 0, buf.as_mut_slice(), total_size);
+            .get_descriptor(0x02, 0, buf.as_mut_slice(), total_size)?;
 
         let (_, config) = ConfigurationDescriptor::parse(&mut ctx, buf.as_mut_slice()).unwrap();
 
@@ -89,9 +97,16 @@ fn run() {
             log(format!("  - Endpoints: {}", interface.num_endpoints));
         }
     }
+
+    Ok(())
 }
 
 #[no_mangle]
 pub extern "C" fn usb_rs_run() {
-    run();
+    let res = run();
+    if res.is_err() {
+        log(format!("Error: {:?}", res.err()));
+    }
+
+    log("Rust code finished");
 }

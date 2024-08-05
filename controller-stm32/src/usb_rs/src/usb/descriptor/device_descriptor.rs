@@ -94,19 +94,16 @@ impl Descriptor for DeviceDescriptor {
 
 impl<T: EP0 + PhysicalEP0> NewDescriptor<T> for DeviceDescriptor {
     fn new(ctx: &mut ParsingContext<T>, index: u8) -> DescriptorResult<Self> {
-        log("\x1b[46m                                        \x1b[0m");
         let mps = {
             let buf = &mut [0; 8];
             ctx.ep0.get_descriptor(1, index, buf, 8)?;
             buf[7]
         };
         ctx.ep0.set_max_packet_size(mps);
-        log("\x1b[46m                                        \x1b[0m");
 
         // usually object construction
         let buf = &mut [0; 0x12];
         ctx.ep0.get_descriptor(1, index, buf, 0x12)?;
-        log("\x1b[46m                                        \x1b[0m");
 
         Self::parse(ctx, buf)
             .map(|x| x.1)

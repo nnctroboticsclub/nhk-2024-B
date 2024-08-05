@@ -1,4 +1,6 @@
-use alloc::format;
+use core::marker::PhantomData;
+
+use alloc::{boxed::Box, format};
 
 use crate::logger::Logger;
 
@@ -9,7 +11,7 @@ use super::{
 
 pub struct ControlEP<H: HC> {
     logger: Logger,
-    hc: H,
+    pub(super) hc: Box<H>,
 
     dest: TransactionDestination,
     mps: u8,
@@ -17,19 +19,22 @@ pub struct ControlEP<H: HC> {
 }
 
 impl<H: HC> ControlEP<H> {
-    pub fn new(dev: u8, ep: u8) -> ControlEP<H> {
-        let dest = TransactionDestination { dev, ep };
+    pub fn new(hc: Box<H>) -> ControlEP<H> {
+        let dest = hc.get_dest();
 
         ControlEP {
             logger: Logger::new(
-                format!("dev{dev}-ep{ep}.usb.com"),
-                format!("\x1b[32mCO \x1b[34md{dev:02X}\x1b[35me{ep:02X}\x1b[m"),
+                format!("dev{}-ep{}.usb.com", dest.dev, dest.ep),
+                format!(
+                    "\x1b[32mCO \x1b[34md{:02X}\x1b[35me{:02X}\x1b[m",
+                    dest.dev, dest.ep
+                ),
             ),
             mps: 8,
             toggle: 0,
-            dest,
+            dest: dest.clone(),
 
-            hc: H::new(dest, EPType::Control, 8),
+            hc,
         }
     }
 
@@ -39,11 +44,10 @@ impl<H: HC> ControlEP<H> {
 
     pub fn set_max_packet_size(&mut self, mps: u8) {
         self.mps = mps;
+        self.hc.set_max_packet_size(mps as u32);
     }
 
     pub fn send_setup(&mut self, req: StdRequest) -> TransactionResult<()> {
-        let mut hc = H::new(self.dest, EPType::Control, self.mps as i32);
-
         let mut buf: [u8; 8] = req.into();
 
         let mut transaction = Transaction {
@@ -53,10 +57,10 @@ impl<H: HC> ControlEP<H> {
             length: 8,
         };
 
-        if true {
+        if false {
             self.logger.info(format!("--> {transaction:?}"));
         }
-        hc.submit_urb(&mut transaction)?;
+        self.hc.submit_urb(&mut transaction)?;
 
         self.toggle = 1; // first toggle of data stage is always 1
 
@@ -64,8 +68,6 @@ impl<H: HC> ControlEP<H> {
     }
 
     fn recv_packet(&mut self, buf: &mut [u8], length: usize) -> TransactionResult<()> {
-        let mut hc = H::new(self.dest, EPType::Control, self.mps as i32);
-
         let mut transaction = Transaction {
             token: TransactionToken::In,
             toggle: self.toggle,
@@ -73,8 +75,8 @@ impl<H: HC> ControlEP<H> {
             length: length as u8,
         };
 
-        hc.submit_urb(&mut transaction)?;
-        if true {
+        self.hc.submit_urb(&mut transaction)?;
+        if false {
             self.logger.info(format!("<-- {transaction:?}"));
         }
 
@@ -84,8 +86,6 @@ impl<H: HC> ControlEP<H> {
     }
 
     fn send_packet(&mut self, buf: &mut [u8], length: usize) -> TransactionResult<()> {
-        let mut hc = H::new(self.dest, EPType::Control, self.mps as i32);
-
         let mut transaction = Transaction {
             token: TransactionToken::Out,
             toggle: self.toggle,
@@ -93,10 +93,10 @@ impl<H: HC> ControlEP<H> {
             length: length as u8,
         };
 
-        if true {
+        if false {
             self.logger.info(format!("--> {transaction:?}"));
         }
-        hc.submit_urb(&mut transaction)?;
+        self.hc.submit_urb(&mut transaction)?;
 
         self.toggle = 1 - self.toggle;
 
@@ -114,8 +114,10 @@ impl<H: HC> ControlEP<H> {
             self.send_packet(slice, mps)?;
         }
 
-        let slice = &mut buf[length - remain..];
-        self.send_packet(slice, remain)?;
+        if length == 0 || remain != 0 {
+            let slice = &mut buf[length - remain..];
+            self.send_packet(slice, remain)?;
+        }
 
         Ok(())
     }
@@ -131,9 +133,45 @@ impl<H: HC> ControlEP<H> {
             self.recv_packet(slice, mps)?;
         }
 
-        let slice = &mut buf[length - remain..];
-        self.recv_packet(slice, remain)?;
+        if length == 0 || remain != 0 {
+            let slice = &mut buf[length - remain..];
+            self.recv_packet(slice, remain)?;
+        }
 
         Ok(())
+    }
+
+    pub fn set_address(&mut self, new_address: u8) -> TransactionResult<()> {
+        self.dest.dev = new_address;
+
+        self.hc.get_dest_mut().dev = new_address;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::usb_core::hc::FakeHC;
+
+    #[test]
+    fn splitted_recv_bound_8() {
+        let hc = Box::new(FakeHC::new(
+            TransactionDestination { dev: 0, ep: 0 },
+            EPType::Control,
+            8,
+        ));
+
+        let mut ep = ControlEP::new(hc);
+
+        let mut buf = [0; 8];
+        let length = 8;
+
+        ep.recv_packets(&mut buf, length).unwrap();
+
+        assert_eq!(buf, [0, 1, 2, 3, 4, 5, 6, 7]);
+
+        assert_eq!(ep.hc.request_fired, 1);
     }
 }

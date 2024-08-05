@@ -9,6 +9,8 @@ use super::{
 pub struct BindedHC {
     hc: stm32_usb_host_HC,
     dest: TransactionDestination,
+    ep_type: super::EPType,
+    mps: u32,
 
     logger: Logger,
 }
@@ -24,8 +26,21 @@ impl Into<i32> for super::EPType {
     }
 }
 
+impl BindedHC {
+    fn init(&mut self) {
+        unsafe {
+            self.hc.Init(
+                self.dest.ep as i32,
+                self.dest.dev as i32,
+                self.ep_type.into(),
+                self.mps as i32,
+            );
+        }
+    }
+}
+
 impl HC for BindedHC {
-    fn new(dest: TransactionDestination, ep_type: super::EPType, max_packet_size: i32) -> Self {
+    fn new(dest: TransactionDestination, ep_type: super::EPType, max_packet_size: u32) -> Self {
         let logger = Logger::new(
             format!("ep{}.dev{}.host.usb", dest.ep, dest.dev),
             format!(
@@ -34,17 +49,22 @@ impl HC for BindedHC {
             ),
         );
 
-        let mut hc = unsafe { stm32_usb_host_HC::new() };
-        unsafe {
-            hc.Init(
-                dest.ep as i32,
-                dest.dev as i32,
-                ep_type.into(),
-                max_packet_size,
-            );
-        }
+        let sys_hc = unsafe { stm32_usb_host_HC::new() };
+        let mut hc = BindedHC {
+            hc: sys_hc,
+            dest,
+            logger,
+            ep_type,
+            mps: max_packet_size,
+        };
 
-        BindedHC { hc, dest, logger }
+        hc.init();
+
+        hc
+    }
+
+    fn set_max_packet_size(&mut self, max_packet_size: u32) {
+        self.mps = max_packet_size;
     }
 
     fn submit_urb(&mut self, transaction: &mut Transaction) -> TransactionResult<()> {
@@ -66,17 +86,28 @@ impl HC for BindedHC {
         };
         let do_ping = false;
 
+        self.init();
         unsafe {
             self.hc.DataToggle(*toggle as i32);
             self.hc
                 .SubmitRequest(direction, pbuff, length, setup, do_ping)
         }
 
-        self.wait_done()
+        self.wait_done()?;
+
+        Ok(())
     }
 
     fn get_urb_status(&mut self) -> URBStatus {
         unsafe { self.hc.GetURBState() }.into()
+    }
+
+    fn get_dest(&self) -> &TransactionDestination {
+        &self.dest
+    }
+
+    fn get_dest_mut(&mut self) -> &mut TransactionDestination {
+        &mut self.dest
     }
 }
 

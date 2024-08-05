@@ -1,11 +1,13 @@
 #include "hcd.hpp"
 
 #include <robotics/logger/logger.hpp>
+#include <robotics/platform/thread.hpp>
 #include <mbed.h>
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_hcd.h>
 
 extern "C" void OTG_FS_IRQHandler(void);
+extern "C" void OTG_HS_IRQHandler(void);
 
 extern "C" void HAL_HCD_MspInit(HCD_HandleTypeDef* hhcd) {
   __HAL_RCC_PWR_CLK_ENABLE();
@@ -34,12 +36,12 @@ extern "C" void HAL_HCD_MspInit(HCD_HandleTypeDef* hhcd) {
 
     //* GPIO
     GPIO_InitTypeDef gpio;
-    gpio.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+    gpio.Pin = GPIO_PIN_14 | GPIO_PIN_15;
     gpio.Mode = GPIO_MODE_AF_PP;
     gpio.Pull = GPIO_NOPULL;
     gpio.Speed = GPIO_SPEED_LOW;
-    gpio.Alternate = GPIO_AF10_OTG_HS;
-    HAL_GPIO_Init(GPIOA, &gpio);
+    gpio.Alternate = GPIO_AF12_OTG_HS_FS;
+    HAL_GPIO_Init(GPIOB, &gpio);
   }
 }
 
@@ -75,22 +77,36 @@ bool IsLowSpeedHCD() {
 DigitalOut vbus(PC_0);
 
 class HcdImpl {
+  // robotics::system::Thread thread_;
+
  public:
+  HcdImpl() {
+    /* thread_.SetThreadName("HCD");
+    thread_.SetStackSize(1024);
+    thread_.Start([this]() {
+      logger.Trace("HCD Thread Started");
+      int frame = -1;
+      while (1) {
+        if (frame != HAL_HCD_GetCurrentFrame(&hhcd_)) {
+          frame = HAL_HCD_GetCurrentFrame(&hhcd_);
+          logger.Debug("HCD: Frame %d", frame);
+        }
+      }
+    }); */
+  }
+
   void CallIRQHandler_() { HAL_HCD_IRQHandler(&hhcd_); }
 
-  void Attached_() {
-    logger.Info("USB Device Attached");
-    attach_done = true;
-  }
+  void Attached_() { attach_done = true; }
 
   void Init() {
     __HAL_RCC_GPIOC_CLK_ENABLE();
-    pin_mode(PC_0, PinMode::OpenDrainPullDown);
     vbus = 0;
+    ThisThread::sleep_for(100ms);
 
     memset((void*)&hhcd_, 0, sizeof(hhcd_));
     hhcd_.Instance = USB_OTG_FS;
-    hhcd_.Init.Host_channels = 11;
+    hhcd_.Init.Host_channels = 8;
     hhcd_.Init.speed = HCD_SPEED_FULL;
     hhcd_.Init.dma_enable = DISABLE;
     hhcd_.Init.phy_itface = HCD_PHY_EMBEDDED;
@@ -101,12 +117,16 @@ class HcdImpl {
 
     NVIC_DisableIRQ(OTG_FS_IRQn);
     NVIC_SetVector(OTG_FS_IRQn, (uint32_t)&OTG_FS_IRQHandler);
+
+    // NVIC_DisableIRQ(OTG_HS_IRQn);
+    // NVIC_SetVector(OTG_HS_IRQn, (uint32_t)&OTG_HS_IRQHandler);
     auto ret = HAL_HCD_Init(&hhcd_);
     if (ret != HAL_StatusTypeDef::HAL_OK) {
       logger.Error("HAL_HCD_Init failed with %d", ret);
       return;
     }
     NVIC_EnableIRQ(OTG_FS_IRQn);
+    // NVIC_EnableIRQ(OTG_HS_IRQn);
 
     hhcd_.pData = this;
 
@@ -116,15 +136,15 @@ class HcdImpl {
       return;
     }
 
+    ThisThread::sleep_for(100ms);
+
     vbus = 1;
+    ThisThread::sleep_for(100ms);
   }
   void WaitAttach() {
     using namespace std::chrono_literals;
 
     ::WaitForAttach();
-    // USB_OTG_SPEED_HIGH_IN_FULL --> 1
-    // HCD_SPEED_LOW --> 1
-    HCD_SPEED_LOW;
     logger.Info("HAL_HCD_GetCurrentSpeed --> %d",
                 HAL_HCD_GetCurrentSpeed(&hhcd_));
   }
@@ -137,7 +157,6 @@ HcdImpl* hcd_impl;
 //* HAL Callbacks and IRQ Handler
 extern "C" {
 void HAL_HCD_Connect_Callback(HCD_HandleTypeDef* hhcd) {
-  logger.Info("Device Attached");
   hcd_impl->Attached_();
 }
 

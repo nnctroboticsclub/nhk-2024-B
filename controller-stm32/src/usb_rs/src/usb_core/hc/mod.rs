@@ -1,6 +1,4 @@
 #[cfg(target_os = "none")]
-mod hc_sys;
-#[cfg(target_os = "none")]
 mod raw_hc_status;
 #[cfg(target_os = "none")]
 mod raw_urb_status;
@@ -20,6 +18,15 @@ pub use transaction_dest::TransactionDestination;
 pub use transaction_result::TransactionError;
 pub use transaction_result::TransactionResult;
 pub use transaction_token::TransactionToken;
+
+#[cfg(not(target_os = "none"))]
+mod fake_hc;
+
+#[cfg(not(target_os = "none"))]
+pub use fake_hc::FakeHC;
+
+#[cfg(target_os = "none")]
+mod hc_sys;
 
 #[cfg(target_os = "none")]
 pub use hc_sys::BindedHC;
