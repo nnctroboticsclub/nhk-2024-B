@@ -146,6 +146,7 @@ int main_1() {
   while (1) {
     float velocity = sin(i++ / 200.0);
     if (-0.25 < velocity && velocity < 0.25) velocity = 0;
+    velocity = velocity * 0.3;
 
     bd.SetValue(velocity);
 
