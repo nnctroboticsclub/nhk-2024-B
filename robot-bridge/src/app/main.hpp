@@ -11,7 +11,7 @@
 #include "app.hpp"
 #include "identify.h"
 
-class IkakoRobomasTest {
+/* class IkakoRobomasTest {
  public:
   DigitalIn button{PC_13};
   DigitalOut led{LED1};
@@ -65,9 +65,9 @@ class IkakoRobomasTest {
     cnt._1ms++;
     test_to.Update();
 
-    /* if (m3.get_read_flag())
-        controller->set_response(m3.get_vel());
-    controller->update(); */
+    // if (m3.get_read_flag())
+    //     controller->set_response(m3.get_vel());
+    // controller->update();
   }
 
   // 約1msごとに処理される関数。この関数の中では通信処理ができる
@@ -81,53 +81,54 @@ class IkakoRobomasTest {
 
     test_to.velocity.SetValue(mrp.speed);
 
-    /* controller->set_reference(mrp.speed);
-    m3.set_ref(controller->get_output()); */
-  }
+    // controller->set_reference(mrp.speed);
+    // m3.set_ref(controller->get_output());
+}
 
-  // printデバッグ用関数
-  void print_debug() {
-    printf("\n\r");
-    printf("attach:'%d', ", cnt.attach_time);
-    printf("cnt:'%d', ", cnt._1ms);
-    printf("time:'%d', ", measure.dt);
-    printf("button:'%d', ", (int)button);
-    printf("send:'%d', ", can.get_send_flag());
-    printf("read:'%d', ", can.get_read_flag());
-    printf("current:'%0.2f', ", test_to.->get_current());
-    printf("velocity:'%0.2f %0.2f', ", m3->get_vel(), mrp.speed);
-    printf("motor:'%d %d %d', ", motor.motor[0]->mc.current,
-           motor.motor[0]->mc.data_array[0], motor.motor[0]->mc.data_array[1]);
-    printf("out:'%d %d %d', ", motor.df_0x200.current[0],
-           motor.df_0x200.data_array[0], motor.df_0x200.data_array[1]);
-  }
+// printデバッグ用関数
+void print_debug() {
+  printf("\n\r");
+  printf("attach:'%d', ", cnt.attach_time);
+  printf("cnt:'%d', ", cnt._1ms);
+  printf("time:'%d', ", measure.dt);
+  printf("button:'%d', ", (int)button);
+  printf("send:'%d', ", can.get_send_flag());
+  printf("read:'%d', ", can.get_read_flag());
+  printf("current:'%0.2f', ", test_to.->get_current());
+  printf("velocity:'%0.2f %0.2f', ", m3->get_vel(), mrp.speed);
+  printf("motor:'%d %d %d', ", motor.motor[0]->mc.current,
+         motor.motor[0]->mc.data_array[0], motor.motor[0]->mc.data_array[1]);
+  printf("out:'%d %d %d', ", motor.df_0x200.current[0],
+         motor.df_0x200.data_array[0], motor.df_0x200.data_array[1]);
+}
 
-  int main() {
-    led = 0;
-    timer.start();
-    timer.reset();
-    can.read_start();
-    ticker.attach([this]() { attach_function(); }, 1ms);
-    while (1) {  // ここから下が無限ループ内
-      // ↓こうすることで1ms割り込みで通信などの処理ができる
-      if (cnt.attach_time > 0) {
-        measure.dt = timer.read_ms() - measure.time[0];
-        measure.time[0] = timer.read_ms();
-        attach_1ms_function();
-        if (!(cnt._1ms % 100)) print_debug();
-        cnt.attach_time--;
-      }
-
-      main_update();
+int main() {
+  led = 0;
+  timer.start();
+  timer.reset();
+  can.read_start();
+  ticker.attach([this]() { attach_function(); }, 1ms);
+  while (1) {  // ここから下が無限ループ内
+    // ↓こうすることで1ms割り込みで通信などの処理ができる
+    if (cnt.attach_time > 0) {
+      measure.dt = timer.read_ms() - measure.time[0];
+      measure.time[0] = timer.read_ms();
+      attach_1ms_function();
+      if (!(cnt._1ms % 100)) print_debug();
+      cnt.attach_time--;
     }
+
+    main_update();
   }
+}
 };
+*/
 
 int main_0() {  // ここの下に書く
-  IkakoRobomasTest *test = new IkakoRobomasTest;
+  /* IkakoRobomasTest *test = new IkakoRobomasTest;
   test->main();
 
-  return 0;
+  return 0; */
 }
 
 int main_1() { return 0; }
