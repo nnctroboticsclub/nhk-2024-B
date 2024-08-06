@@ -1,4 +1,6 @@
-#[derive(Debug)]
+// TODO: Refactor this
+
+#[derive(Debug, Clone, Copy)]
 pub enum RequestByte {
     GetStatus,
     ClearFeature,
@@ -11,6 +13,8 @@ pub enum RequestByte {
     GetInterface,
     SetInterface,
     SynchFrame,
+
+    HidGetReport,
 }
 
 impl Into<u8> for RequestByte {
@@ -28,6 +32,8 @@ impl Into<u8> for RequestByte {
             GetInterface => 10u8,
             SetInterface => 11u8,
             SynchFrame => 12u8,
+
+            HidGetReport => 1u8,
         }
     }
 }

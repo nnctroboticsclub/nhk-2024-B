@@ -1,9 +1,12 @@
-use alloc::{boxed::Box, string::String, vec};
+use alloc::{boxed::Box, format, string::String, vec};
 
-use crate::usb_core::{
-    hc::{TransactionResult, HC},
-    std_request::{Direction, Recipient, RequestByte, RequestKind, RequestType, StdRequest},
-    ControlEP,
+use crate::{
+    common::{log, sleep_ms},
+    usb_core::{
+        hc::{TransactionError, TransactionResult, HC},
+        std_request::{Direction, Recipient, RequestByte, RequestKind, RequestType, StdRequest},
+        ControlEP,
+    },
 };
 
 use super::{PhysicalEP0, EP0};
@@ -21,7 +24,7 @@ impl<H: HC> USBEP0<H> {
         }
     }
 
-    fn transaction(
+    fn transaction_(
         &mut self,
         direction: Direction,
         req_type: RequestKind,
@@ -30,9 +33,10 @@ impl<H: HC> USBEP0<H> {
         value: u16,
         index: u16,
         buf: &mut [u8],
-        length: u16,
     ) -> TransactionResult<()> {
         let is_out = direction == Direction::HostToDevice;
+
+        let length = buf.len() as u16;
 
         self.ep.set_data_toggle(0);
         self.ep.send_setup(StdRequest {
@@ -49,18 +53,60 @@ impl<H: HC> USBEP0<H> {
 
         if is_out {
             if length != 0 {
-                self.ep.send_packets(buf, length.into())?;
+                self.ep.send_packets(buf)?;
             }
             self.ep.set_data_toggle(1);
-            self.ep.recv_packets(buf, 0)?;
+            self.ep.recv_packets(&mut [])?;
         } else {
             if length != 0 {
-                self.ep.recv_packets(buf, length.into())?;
+                self.ep.recv_packets(buf)?;
             }
             self.ep.set_data_toggle(1);
-            self.ep.send_packets(buf, 0)?;
+            self.ep.send_packets(&mut [])?;
         }
         Ok(())
+    }
+
+    pub fn transaction(
+        &mut self,
+        direction: Direction,
+        req_type: RequestKind,
+        recipient: Recipient,
+        request: RequestByte,
+        value: u16,
+        index: u16,
+        buf: &mut [u8],
+    ) -> TransactionResult<()> {
+        let mut retries = 0;
+        let retry_limit = 50;
+
+        loop {
+            if retries >= retry_limit {
+                return Err(TransactionError::Timeout);
+            }
+            retries += 1;
+
+            match self.transaction_(direction, req_type, recipient, request, value, index, buf) {
+                Ok(_) => break,
+                Err(TransactionError::NotReady) => {
+                    log(format!("Retry: {:?}", retries));
+                    sleep_ms(500);
+                    continue;
+                }
+                Err(TransactionError::Error) => {
+                    log(format!("Retry: {:?}", retries));
+                    sleep_ms(500);
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn get_ep(&mut self) -> &mut ControlEP<H> {
+        &mut self.ep
     }
 }
 
@@ -70,7 +116,6 @@ impl<H: HC> PhysicalEP0 for USBEP0<H> {
     }
 
     fn set_address(&mut self, new_address: u8) -> TransactionResult<()> {
-        let mut buf = [0u8; 0];
         self.transaction(
             Direction::HostToDevice,
             RequestKind::Standard,
@@ -78,8 +123,7 @@ impl<H: HC> PhysicalEP0 for USBEP0<H> {
             RequestByte::SetAddress,
             new_address.into(), // value = addr
             0x00_00,            // index = 0
-            &mut buf,           // buffer (dummy)
-            0,                  // length = 0
+            &mut [],            // buffer (dummy)
         )?;
 
         self.dev = new_address;
@@ -95,7 +139,6 @@ impl<H: HC> EP0 for USBEP0<H> {
         descriptor_type: u8,
         index: u8,
         buf: &mut [u8],
-        length: u16,
     ) -> TransactionResult<()> {
         let value = (descriptor_type as u16) << 8 | (index as u16);
         let value = value.into();
@@ -108,7 +151,6 @@ impl<H: HC> EP0 for USBEP0<H> {
             value,
             0x00_00,
             buf,
-            length,
         )?;
 
         Ok(())
@@ -117,13 +159,13 @@ impl<H: HC> EP0 for USBEP0<H> {
     fn get_string(&mut self, index: u8) -> TransactionResult<String> {
         let length = {
             let buf = &mut [0; 2];
-            self.get_descriptor(3, index, buf, 2)?;
+            self.get_descriptor(3, index, buf)?;
             buf[0] as usize
         };
 
         let mut buf = vec![0; length];
 
-        self.get_descriptor(3, index, buf.as_mut_slice(), length.try_into().unwrap())?;
+        self.get_descriptor(3, index, buf.as_mut_slice())?;
 
         let v = &buf[0..length];
         Ok(String::from_utf16le_lossy(v))

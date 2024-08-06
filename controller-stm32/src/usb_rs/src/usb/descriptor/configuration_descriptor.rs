@@ -68,15 +68,14 @@ impl<T: EP0 + PhysicalEP0> NewDescriptor<T> for ConfigurationDescriptor {
     fn new(ctx: &mut ParsingContext<T>, index: u8) -> DescriptorResult<Self> {
         let total_length: u16 = {
             let buf = &mut [0; 4];
-            ctx.ep0.get_descriptor(1, index, buf, 4)?;
+            ctx.ep0.get_descriptor(1, index, buf)?;
 
             (buf[4] as u16) << 8 | buf[3] as u16
         };
 
         // usually object construction
         let mut buf = vec![0; total_length.into()];
-        ctx.ep0
-            .get_descriptor(1, index, buf.as_mut_slice(), total_length.into())?;
+        ctx.ep0.get_descriptor(1, index, buf.as_mut_slice())?;
         Self::parse(ctx, buf.as_mut_slice())
             .map(|x| x.1)
             .map_err(|_| DescriptorError::GeneralParseError)

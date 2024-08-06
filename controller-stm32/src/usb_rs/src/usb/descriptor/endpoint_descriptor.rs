@@ -9,10 +9,10 @@ use super::descriptor::Descriptor;
 
 #[derive(Debug)]
 pub struct EndpointDescriptor {
-    address: u8,
-    attributes: u8,
-    mps: u16,
-    interval: u8,
+    pub address: u8,
+    pub attributes: u8,
+    pub mps: u16,
+    pub interval: u8,
 }
 
 impl Descriptor for EndpointDescriptor {

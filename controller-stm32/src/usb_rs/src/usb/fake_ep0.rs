@@ -57,7 +57,6 @@ impl EP0 for FakeEP0 {
         descriptor_type: u8,
         index: u8,
         buf: &mut [u8],
-        length: u16,
     ) -> TransactionResult<()> {
         let address = DescriptorAddress {
             kind: descriptor_type.into(),
@@ -68,6 +67,7 @@ impl EP0 for FakeEP0 {
             panic!("Descriptor not found: {:?}", address);
         }
 
+        let length = buf.len();
         let data = self.descriptors.get(&address).unwrap();
         buf.copy_from_slice(&data[..length as usize]);
 

@@ -96,14 +96,14 @@ impl<T: EP0 + PhysicalEP0> NewDescriptor<T> for DeviceDescriptor {
     fn new(ctx: &mut ParsingContext<T>, index: u8) -> DescriptorResult<Self> {
         let mps = {
             let buf = &mut [0; 8];
-            ctx.ep0.get_descriptor(1, index, buf, 8)?;
+            ctx.ep0.get_descriptor(1, index, buf)?;
             buf[7]
         };
         ctx.ep0.set_max_packet_size(mps);
 
         // usually object construction
         let buf = &mut [0; 0x12];
-        ctx.ep0.get_descriptor(1, index, buf, 0x12)?;
+        ctx.ep0.get_descriptor(1, index, buf)?;
 
         Self::parse(ctx, buf)
             .map(|x| x.1)

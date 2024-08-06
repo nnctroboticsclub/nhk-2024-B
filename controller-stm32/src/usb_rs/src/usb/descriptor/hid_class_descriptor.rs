@@ -4,7 +4,7 @@ use nom::{
     IResult,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum HIDClassDescriptor {
     Report { size: u16 },
     Physical { size: u16 },

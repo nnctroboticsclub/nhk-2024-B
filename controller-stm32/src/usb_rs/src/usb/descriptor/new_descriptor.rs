@@ -14,12 +14,12 @@ pub trait NewDescriptor<T: EP0>: Descriptor {
         if length.is_err() {
             return Err(DescriptorError::InvalidLength);
         }
-        let length = length.unwrap();
+        let length: usize = length.unwrap();
 
-        let mut buf = vec![0; length as usize];
+        let mut buf = vec![0; length];
 
         ctx.ep0
-            .get_descriptor(Self::get_type(), index, buf.as_mut_slice(), length)?;
+            .get_descriptor(Self::get_type(), index, buf.as_mut_slice())?;
 
         Self::parse(ctx, buf.as_mut_slice())
             .map(|x| x.1)

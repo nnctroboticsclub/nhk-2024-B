@@ -176,8 +176,8 @@ class HC::Impl {
     ep_type_ = ep_type;
 
     auto speed = HAL_HCD_GetCurrentSpeed(hhcd_) == HCD_DEVICE_SPEED_LOW
-                     ? 0
-                     : HCD_DEVICE_SPEED_FULL;
+                     ? HCD_DEVICE_SPEED_LOW
+                     : 1;
 
     hc_->dev_addr = dev_addr;
     hc_->ch_num = slot_.GetChannel();

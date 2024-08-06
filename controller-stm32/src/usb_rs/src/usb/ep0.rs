@@ -8,7 +8,6 @@ pub trait EP0 {
         descriptor_type: u8,
         index: u8,
         buf: &mut [u8],
-        length: u16,
     ) -> TransactionResult<()>;
     fn get_string(&mut self, index: u8) -> TransactionResult<String>;
 }

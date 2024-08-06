@@ -12,3 +12,5 @@ pub use logger::Logger;
 
 #[cfg(not(target_os = "none"))]
 pub use host_logger::Logger;
+
+pub use logger::LoggerLevel;

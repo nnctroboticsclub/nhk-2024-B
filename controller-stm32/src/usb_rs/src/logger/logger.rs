@@ -1,5 +1,7 @@
 use alloc::{borrow::Cow, ffi::CString, string::String};
 
+use crate::common::sleep_ms;
+
 use super::binding_logger::{
     robotics_logger_GenericLogger, robotics_logger_GenericLogger_Log, robotics_logger_core_Level,
     robotics_logger_core_Level_kDebug, robotics_logger_core_Level_kError,
@@ -53,6 +55,8 @@ impl Logger {
 
         let c_message = CString::new(message).unwrap();
         let c_message_ptr = c_message.as_ptr();
+
+        sleep_ms(100);
 
         unsafe {
             robotics_logger_GenericLogger_Log(

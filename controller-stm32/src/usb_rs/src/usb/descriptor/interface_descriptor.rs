@@ -1,10 +1,13 @@
 use core::fmt::Debug;
 
-use alloc::{format, string::String};
+use alloc::{format, string::String, vec, vec::Vec};
 
 use nom::{number::complete::le_u8, IResult};
 
-use crate::usb::{ParsingContext, UsbString, EP0};
+use crate::{
+    common::log,
+    usb::{ParsingContext, UsbString, EP0},
+};
 
 use super::{descriptor::Descriptor, hid_descriptor::HIDDescriptor, EndpointDescriptor};
 
@@ -17,7 +20,8 @@ pub struct InterfaceDescriptor {
     pub if_proto: u8,
 
     pub alt_setting: u8,
-    pub num_endpoints: u8,
+    pub endpoints: Vec<EndpointDescriptor>,
+    pub hid_desc: Option<HIDDescriptor>,
 }
 
 impl Descriptor for InterfaceDescriptor {
@@ -44,6 +48,9 @@ impl Descriptor for InterfaceDescriptor {
             Err(e) => format!("Error[{:?}]", e),
         };
 
+        let mut endpoints = vec![];
+        let mut hid_desc = None;
+
         let mut i = 0;
         let mut input = input;
         // let mut endpoints: Vec<_> = vec![];
@@ -52,10 +59,15 @@ impl Descriptor for InterfaceDescriptor {
 
             if kind == 0x21 {
                 let (input_, _desc) = HIDDescriptor::parse(ctx, input)?;
+                if let Some(hid_desc) = hid_desc {
+                    log(format!("HID Descriptor already exists: {:?}", hid_desc));
+                }
+                hid_desc = Some(_desc);
                 input = input_;
             } else {
                 let (input_, _desc) = EndpointDescriptor::parse(ctx, input)?;
                 input = input_;
+                endpoints.push(_desc);
 
                 i += 1;
             }
@@ -68,11 +80,12 @@ impl Descriptor for InterfaceDescriptor {
         let desc = InterfaceDescriptor {
             id,
             alt_setting,
-            num_endpoints,
             if_class,
             if_subclass,
             if_proto,
             name: interface_string,
+            endpoints,
+            hid_desc,
         };
 
         Ok((input, desc))
@@ -86,7 +99,11 @@ impl Debug for InterfaceDescriptor {
         write!(f, "class: {}, ", self.if_class)?;
         write!(f, "subclass: {}, ", self.if_subclass)?;
         write!(f, "proto: {}, ", self.if_proto)?;
-        write!(f, "{} ep(s)", self.num_endpoints)?;
+        write!(f, "endpoints: [")?;
+        for ep in &self.endpoints {
+            write!(f, "{:?}, ", ep)?;
+        }
+        write!(f, "], ")?;
         write!(f, "}}")?;
 
         Ok(())

@@ -9,7 +9,7 @@ use crate::usb::{ParsingContext, EP0};
 
 use super::{descriptor::Descriptor, hid_class_descriptor::HIDClassDescriptor};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HIDDescriptor {
     pub bcd_hid: u16,
     pub country_code: u8,

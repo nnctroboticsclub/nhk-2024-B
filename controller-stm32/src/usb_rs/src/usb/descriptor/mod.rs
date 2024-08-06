@@ -14,6 +14,7 @@ pub use descriptor_error::DescriptorError;
 pub use descriptor_error::DescriptorResult;
 pub use device_descriptor::DeviceDescriptor;
 pub use endpoint_descriptor::EndpointDescriptor;
+pub use hid_class_descriptor::HIDClassDescriptor;
 pub use hid_descriptor::HIDDescriptor;
 pub use interface_descriptor::InterfaceDescriptor;
 pub use new_descriptor::NewDescriptor;
