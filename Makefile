@@ -33,9 +33,13 @@ ds1:
 	PATH=$(PATH):/opt/gcc-arm-none-eabi-10.3-2021.10/bin $(MAKE) -C robot1-main -j 12
 
 ds2:
-	git switch robot-bridge
-	PATH=$(PATH):/opt/gcc-arm-none-eabi-10.3-2021.10/bin $(MAKE) -C robot-bridge -j 12
+	PATH=$(PATH):/opt/gcc-arm-none-eabi-10.3-2021.10/bin $(MAKE) -C robot-bridge -j 12 write
 
 ds3:
 	git switch robot-collect
 	PATH=$(PATH):/opt/gcc-arm-none-eabi-10.3-2021.10/bin $(MAKE) -C robot-collect -j 12
+S5_LOG_TAG      := SerialProxy (UART: 1)
+S5_SKIP_COMPILE ?= 0
+S5_SERIAL       ?= 066AFF495057717867162927
+$(eval $(call STM32_DefineRules,s1,$(ESP32_IP),$(S5_LOG_TAG),$(PWD)/stm32-controller,$(S5_SKIP_COMPILE),NUCLEO_F446RE,/mnt/st5,$(S5_SERIAL)))
+
