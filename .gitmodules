@@ -19,3 +19,9 @@
 [submodule "common_libs/mbed-os"]
 	path = common_libs/mbed-os
 	url = git@github.com:mbed-ce/mbed-os.git
+[submodule "common_libs/IkakoRobomas"]
+	path = common_libs/IkakoRobomas
+	url = git@github.com:nnctroboticsclub/IkakoRobomas.git
+[submodule "common_libs/MotorController"]
+	path = common_libs/MotorController
+	url = git@github.com:nnctroboticsclub/MotorController.git
