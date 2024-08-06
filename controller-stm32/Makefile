@@ -21,4 +21,6 @@ rebuild: clean build
 
 .PHONY: build
 build: $(BUILD)/build.ninja
+	[ -e BUILD/NUCLEO_F446RE/libusb_rs.a ] && rm BUILD/NUCLEO_F446RE/libusb_rs.a || :
+	cd src/usb_rs; cargo build
 	cd $(BUILD); ninja -j 12

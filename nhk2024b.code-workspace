@@ -1,25 +1,36 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": ".",
+			"name": "NHK 2024 Nagaoka B"
 		},
 		{
-			"path": "robot1-main"
+			"path": "robot1-main",
+			"name": "Robot1"
 		},
 		{
-			"path": "robot-bridge"
+			"path": "robot-bridge",
+			"name": "Robot2"
 		},
 		{
-			"path": "robot-collect"
+			"path": "robot-collect",
+			"name": "Robot3"
 		},
 		{
-			"path": "controller"
+			"path": "controller-stm32",
+			"name": "Controller"
 		},
 		{
-			"path": "esp32"
+			"path": "esp32",
+			"name": "ESP32"
 		},
 		{
-			"path": "debugger-client"
+			"path": "debugger-client",
+			"name": "Debugger (Client)"
+		},
+		{
+			"path": "controller-stm32/src/usb_rs",
+			"name": "USB (Rust Implementation)"
 		}
 	],
 	"settings": {
