@@ -6,6 +6,8 @@
 #include <cinttypes>
 #include <mbed-robotics/ikakorobomas_node.hpp>
 #include <mbed-robotics/simple_can.hpp>
+#include <robotics/platform/pwm.hpp>
+#include <robotics/node/BD621x.hpp>
 #include <vector>
 
 #include "app.hpp"
@@ -133,35 +135,21 @@ int main_0() {  // ここの下に書く
 
 int main_1() {
   using namespace std::chrono_literals;
+  printf("BD621x test started\n");
 
-  PwmOut fin{PC_8};
-  PwmOut rin{PC_9};
+  auto fin = std::make_shared<robotics::driver::PWM>(PC_8);
+  auto rin = std::make_shared<robotics::driver::PWM>(PC_9);
 
-  fin.pulsewidth_us(20);
-  rin.pulsewidth_us(20);
-
-  fin.resume();
-  rin.resume();
+  robotics::node::BD621x bd{rin, fin};
 
   int i = 0;
-
   while (1) {
-    float velocity = sin(i++ / 100.0);
+    float velocity = sin(i++ / 200.0);
+    if (-0.25 < velocity && velocity < 0.25) velocity = 0;
 
-    if (0.05 < velocity && velocity < 0.05) velocity = 0;
+    bd.SetValue(velocity);
 
-    if (velocity == 0) {
-      fin.write(1);
-      rin.write(1);
-    } else if (velocity > 0) {
-      fin.write(velocity);
-      rin.write(0);
-    } else if (velocity < 0) {
-      fin.write(0);
-      rin.write(-velocity);
-    }
-
-    ThisThread::sleep_for(50ms);
+    ThisThread::sleep_for(1ms);
   }
   return 0;
 }
@@ -210,6 +198,6 @@ int main_switch() {
   printf("main() started\n");
   printf("Build: " __DATE__ " - " __TIME__ "\n");
 
-  main_0();
+  main_1();
   return 0;
 }
