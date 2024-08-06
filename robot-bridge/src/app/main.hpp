@@ -199,6 +199,6 @@ int main_switch() {
   printf("main() started\n");
   printf("Build: " __DATE__ " - " __TIME__ "\n");
 
-  main_1();
+  main_pro();
   return 0;
 }
