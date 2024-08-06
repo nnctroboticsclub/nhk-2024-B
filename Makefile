@@ -20,6 +20,11 @@ S2_SKIP_COMPILE ?= 0
 S2_SERIAL       ?= 066BFF333535554157134434
 $(eval $(call STM32_DefineRules,s2,$(ESP32_IP),$(S2_LOG_TAG),$(PWD)/robot-bridge,$(S2_SKIP_COMPILE),NUCLEO_F446RE,/mnt/st2,$(S2_SERIAL)))
 
+S3_LOG_TAG      := SerialProxy (UART: 0)
+S3_SKIP_COMPILE ?= 0
+S3_SERIAL       ?= 066BFF333535554157134434
+$(eval $(call STM32_DefineRules,s3,$(ESP32_IP),$(S3_LOG_TAG),$(PWD)/robot-collect,$(S3_SKIP_COMPILE),NUCLEO_F446RE,/mnt/st2,$(S3_SERIAL)))
+
 E_SKIP_COMPILE ?= 0
 $(eval $(call ESP32_DefineRules,e,$(PWD)/esp32,$(E_SKIP_COMPILE)))
 
@@ -34,3 +39,8 @@ ds2:
 ds3:
 	git switch robot-collect
 	PATH=$(PATH):/opt/gcc-arm-none-eabi-10.3-2021.10/bin $(MAKE) -C robot-collect -j 12
+S5_LOG_TAG      := SerialProxy (UART: 1)
+S5_SKIP_COMPILE ?= 0
+S5_SERIAL       ?= 066AFF495057717867162927
+$(eval $(call STM32_DefineRules,s1,$(ESP32_IP),$(S5_LOG_TAG),$(PWD)/stm32-controller,$(S5_SKIP_COMPILE),NUCLEO_F446RE,/mnt/st5,$(S5_SERIAL)))
+

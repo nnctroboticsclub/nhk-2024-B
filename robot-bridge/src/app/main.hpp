@@ -131,7 +131,40 @@ int main_0() {  // ここの下に書く
   return 0; */
 }
 
-int main_1() { return 0; }
+int main_1() {
+  using namespace std::chrono_literals;
+
+  PwmOut fin{PC_8};
+  PwmOut rin{PC_9};
+
+  fin.pulsewidth_us(20);
+  rin.pulsewidth_us(20);
+
+  fin.resume();
+  rin.resume();
+
+  int i = 0;
+
+  while (1) {
+    float velocity = sin(i++ / 100.0);
+
+    if (0.05 < velocity && velocity < 0.05) velocity = 0;
+
+    if (velocity == 0) {
+      fin.write(1);
+      rin.write(1);
+    } else if (velocity > 0) {
+      fin.write(velocity);
+      rin.write(0);
+    } else if (velocity < 0) {
+      fin.write(0);
+      rin.write(-velocity);
+    }
+
+    ThisThread::sleep_for(50ms);
+  }
+  return 0;
+}
 
 int main_2() { return 0; }
 
