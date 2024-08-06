@@ -1,6 +1,7 @@
-#include "main.hpp"
+#include <stdio.h>
+#include <robotics/network/iuart.hpp>
 
-int main() {
-  main_switch();
+int main(int argc, char const *argv[]) {
+  puts("Hello world!");
   return 0;
 }
