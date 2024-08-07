@@ -13,6 +13,7 @@
 
 #include "app.hpp"
 #include "identify.h"
+#include <can_servo.h>
 
 robotics::logger::Logger logger{"app", "Main  App"};
 
@@ -111,29 +112,11 @@ int main_1() {
 }
 
 int main_2() {
-  using Time = std::chrono::milliseconds;
-  using Duration = std::chrono::milliseconds;
-
-  using Scheduler =
-      robotics::experimental::scheduler::Scheduler<Time, Duration>;
-  using Task = robotics::experimental::scheduler::Task<Time, Duration>;
-
-  auto scheduler = new Scheduler;
-
-  /* scheduler->AddTask(Task::Later(  //
-      "Task1", 1000ms, 200ms,      //
-      []() { logger.Info("Task1"); })); */
-
-  scheduler->AddTask(Task::RepeatUntil(  //
-      "Task2", 2000ms, 100ms, 10,        //
-      []() { logger.Info("Task2"); }));
-
-  /* scheduler->AddTask(Task::RepeatInterval(  //
-      "Task3", 3000ms, 500ms,               //
-      []() { logger.Info("Task3"); })); */
-
-  // scheduler->Start();
-
+  ikarashiCAN_mk2 can{
+      PA_11,
+      PA_12,
+      2,
+  } can_servo servo(&ican, 2);
   return 0;
 }
 

@@ -90,6 +90,21 @@ target_link_libraries(ikarashiCAN_mk2 PRIVATE
 )
 
 #
+# can_servo
+#
+add_library(can_servo STATIC)
+target_include_directories(can_servo PUBLIC
+  ./can_servo
+)
+target_sources(can_servo PRIVATE
+  can_servo/can_servo.cpp
+)
+target_link_libraries(can_servo PRIVATE
+  mbed-os
+  ikarashiCAN_mk2
+)
+
+#
 # ikakoMDC
 #
 add_library(ikakoMDC STATIC)

@@ -3,6 +3,10 @@
     {
       "name": "CMake",
       "configurationProvider": "ms-vscode.cmake-tools"
+    },
+    {
+      "name": "Compile DB",
+      "compileCommands": "${workspaceFolder}/BUILD/NUCLEO_F446RE/compile_commands.json"
     }
   ],
   "version": 4
