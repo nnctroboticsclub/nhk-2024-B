@@ -9,6 +9,7 @@
 #include <robotics/utils/neopixel.hpp>
 
 #include "communication.hpp"
+#include "bridge.hpp"
 
 class App {
   class Impl;
@@ -16,6 +17,7 @@ class App {
  public:
   struct Config {
     Communication::Config com;
+    nhk2024b::BridgeController::Config bridge_ctrl;
 
     bool can1_debug;
   };
