@@ -17,13 +17,15 @@ class App::Impl {
       std::make_shared<robotics::driver::Dout>(PC_1)};
 
   //* Components
-  //! some
+  nhk2024b::Bridge bridge;
 
   //* Threads
   std::shared_ptr<Thread> main_thread;
 
  public:
-  Impl(App::Config &config) : com(std::make_unique<Communication>(config.com)) {
+  Impl(App::Config &config)
+      : com(std::make_unique<Communication>(config.com)),
+        bridge(config.bridge_ctrl) {
     auto keep_alive = emc->AddNode();
     this->com->can_.OnKeepAliveLost([keep_alive]() {
       printf("EMC(CAN) setted to %d\n", false);

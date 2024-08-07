@@ -90,6 +90,21 @@ target_link_libraries(ikarashiCAN_mk2 PRIVATE
 )
 
 #
+# can_servo
+#
+add_library(can_servo STATIC)
+target_include_directories(can_servo PUBLIC
+  ./can_servo
+)
+target_sources(can_servo PRIVATE
+  can_servo/can_servo.cpp
+)
+target_link_libraries(can_servo PRIVATE
+  mbed-os
+  ikarashiCAN_mk2
+)
+
+#
 # ikakoMDC
 #
 add_library(ikakoMDC STATIC)
@@ -107,26 +122,6 @@ target_link_libraries(ikakoMDC PRIVATE
   mbed-os
   ikarashiCAN_mk2
 )
-
-#
-# USBHost
-#
-# add_library(USBHost STATIC)
-# target_include_directories(USBHost PUBLIC
-#   ./USBHost/USBHost
-#   ./USBHost/USBHostHID
-# )
-# file(GLOB_RECURSE USBHost_SOURCES
-#   ./USBHost/USBHost/*.cpp
-#   ./USBHost/USBHostHID/*.cpp
-# )
-# target_sources(USBHost PRIVATE
-#   ${USBHost_SOURCES}
-# )
-# target_link_libraries(USBHost PRIVATE
-#   mbed-os
-#   syoch-robotics
-# )
 
 project(ControllerSTM32)
 

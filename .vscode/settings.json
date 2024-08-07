@@ -1,4 +1,20 @@
 {
   "python.analysis.autoImportCompletions": true,
-  "python.analysis.typeCheckingMode": "basic"
+  "python.analysis.typeCheckingMode": "basic",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "connection-test": true,
+    "controller-stm32": true,
+    "debugger-client": true,
+    "esp32": true,
+    "robot-bridge": true,
+    "robot-collect": true,
+    "robot1-main": true,
+  },
+  "editor.inlayHints.enabled": "on",
 }

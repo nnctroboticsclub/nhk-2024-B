@@ -8,129 +8,85 @@
 #include <mbed-robotics/simple_can.hpp>
 #include <robotics/platform/pwm.hpp>
 #include <robotics/node/BD621x.hpp>
+#include <robotics/experimental/scheduler.hpp>
 #include <vector>
 
 #include "app.hpp"
 #include "identify.h"
+#include <can_servo.h>
 
-/* class IkakoRobomasTest {
+robotics::logger::Logger logger{"app", "Main  App"};
+
+class IkakoRobomasBus {
+  ikarashiCAN_mk2 &can;  // must be global lifetime
+  IkakoRobomasSender sender;
+  std::vector<IkakoRobomasNode *> nodes;
+
  public:
-  DigitalIn button{PC_13};
+  IkakoRobomasBus(ikarashiCAN_mk2 &can) : can(can), sender(&can) {}
+
+  void Write() { sender.write(); }
+
+  IkakoRobomasNode *NewNode(int index) {
+    auto node = new IkakoRobomasNode(index);
+    sender.set_motors(node->GetIkakoM3508().get_motor());
+    nodes.push_back(node);
+    return node;
+  }
+
+  // dt = 0.001 (1ms)
+  void Update() {
+    for (auto node : nodes) {
+      node->Update();
+    }
+  }
+
+  void Tick() { sender.read(); }
+
+  bool ReadSuccess() { return can.get_read_flag(); }
+};
+
+class IkakoRobomasTest {
+ public:
   DigitalOut led{LED1};
   ikarashiCAN_mk2 can{PB_8, PB_9, 0, 1000000};
 
-  IkakoRobomasSender motor{&can};
-
-  IkakoRobomasNode test_to;
+  IkakoRobomasBus test_to{can};
+  IkakoRobomasNode *motor_;
 
   Ticker ticker;
-  Timer timer;
 
-  struct controller_param {
-    float Ts = 0.001;
-    float kp = 1.0;
-    float ki = 0;
-    float kd = 0;
-    float current_limit = 5.0;
-    float omega = 1 * 2 * M_PI;
-  };
-  controller_param cprm;
-
-  struct counter {
-    int attach_time = 0;
-    int _1ms = 0;
-  };
-  counter cnt;
-
-  struct motor_reference_param {
-    float current = 0;
-    const float current_ref = 0.005;
-    float speed = 0;
-    const float speed_ref = 1 * 2 * M_PI;
-  };
-  motor_reference_param mrp;
-
-  struct Measure {
-    int time[2] = {0, 0};
-    int dt = 0;
-  };
-  Measure measure;
-
-  IkakoRobomasTest() : test_to(1) {
-    // モータの事前処理。絶対に1番最初に実行するように！！（経験者は語る）
-    motor.set_motors(test_to.GetIkakoM3508().get_motor());
+  IkakoRobomasTest() : test_to(can), motor_(test_to.NewNode(0)) {
+    can.read_start();
   }
 
   // tickerで1msごとに割り込み処理させる関数
-  void attach_function() {
-    cnt.attach_time++;
-    cnt._1ms++;
-    test_to.Update();
-
-    // if (m3.get_read_flag())
-    //     controller->set_response(m3.get_vel());
-    // controller->update();
-  }
+  void TickISR() { test_to.Update(); }
 
   // 約1msごとに処理される関数。この関数の中では通信処理ができる
-  void attach_1ms_function() { motor.write(); }
+  void Tick() { test_to.Write(); }
 
-  // メインの無限ループ
-  void main_update() {
-    motor.read();
-    led = test_to.GetReadFlag();
-    mrp.speed = (int)button ? mrp.speed_ref : -mrp.speed_ref;
+  int Main() {
+    led = 0;
+    ticker.attach([this]() { TickISR(); }, 1ms);
+    while (1) {  // ここから下が無限ループ内
+      Tick();
 
-    test_to.velocity.SetValue(mrp.speed);
+      test_to.Tick();
+      led = test_to.ReadSuccess();
 
-    // controller->set_reference(mrp.speed);
-    // m3.set_ref(controller->get_output());
-}
-
-// printデバッグ用関数
-void print_debug() {
-  printf("\n\r");
-  printf("attach:'%d', ", cnt.attach_time);
-  printf("cnt:'%d', ", cnt._1ms);
-  printf("time:'%d', ", measure.dt);
-  printf("button:'%d', ", (int)button);
-  printf("send:'%d', ", can.get_send_flag());
-  printf("read:'%d', ", can.get_read_flag());
-  printf("current:'%0.2f', ", test_to.->get_current());
-  printf("velocity:'%0.2f %0.2f', ", m3->get_vel(), mrp.speed);
-  printf("motor:'%d %d %d', ", motor.motor[0]->mc.current,
-         motor.motor[0]->mc.data_array[0], motor.motor[0]->mc.data_array[1]);
-  printf("out:'%d %d %d', ", motor.df_0x200.current[0],
-         motor.df_0x200.data_array[0], motor.df_0x200.data_array[1]);
-}
-
-int main() {
-  led = 0;
-  timer.start();
-  timer.reset();
-  can.read_start();
-  ticker.attach([this]() { attach_function(); }, 1ms);
-  while (1) {  // ここから下が無限ループ内
-    // ↓こうすることで1ms割り込みで通信などの処理ができる
-    if (cnt.attach_time > 0) {
-      measure.dt = timer.read_ms() - measure.time[0];
-      measure.time[0] = timer.read_ms();
-      attach_1ms_function();
-      if (!(cnt._1ms % 100)) print_debug();
-      cnt.attach_time--;
+      motor_->velocity.SetValue(2);
     }
-
-    main_update();
   }
-}
 };
-*/
 
 int main_0() {  // ここの下に書く
-  /* IkakoRobomasTest *test = new IkakoRobomasTest;
-  test->main();
+  logger.Info("IkakoRobomasTest started");
 
-  return 0; */
+  IkakoRobomasTest *test = new IkakoRobomasTest;
+  test->Main();
+
+  return 0;
 }
 
 int main_1() {
@@ -155,11 +111,17 @@ int main_1() {
   return 0;
 }
 
-int main_2() { return 0; }
-
-int main_3() { return 0; }
+int main_2() {
+  ikarashiCAN_mk2 can{
+      PA_11,
+      PA_12,
+      2,
+  } can_servo servo(&ican, 2);
+  return 0;
+}
 
 int main_pro() {
+  logger.Info("Prod code started");
   App::Config config{        //
                      .com =  //
                      {
@@ -167,22 +129,29 @@ int main_pro() {
                              {
                                  .id = CAN_ID,
                                  .freqency = (int)1E6,
-                                 .rx = PB_8,
-                                 .tx = PB_9,
+                                 .rx = PA_11,
+                                 .tx = PA_12,
                              },
                          .driving_can =
                              {
-                                 .rx = PB_5, /* PB_5, */
-                                 .tx = PB_6, /* PB_6, */
+                                 .rx = PB_5,
+                                 .tx = PB_6,
                              },
                          .i2c =
                              {
-                                 .sda = PC_9,
-                                 .scl = PA_8,
+                                 .sda = PB_9,
+                                 .scl = PB_8,
                              },
 
                          .value_store_config = {},
                      },
+                     .bridge_ctrl =
+                         {
+                             .move_id = 0,
+                             .deploy_id = 1,
+                             .test_unlock_inc_id = 50,
+                             .test_unlock_dec_id = 51,
+                         },
                      .can1_debug = false};
 
   App app(config);
@@ -198,7 +167,9 @@ int main_pro() {
 int main_switch() {
   printf("main() started\n");
   printf("Build: " __DATE__ " - " __TIME__ "\n");
+  robotics::logger::Init();
 
-  main_1();
+  main_2();
+
   return 0;
 }

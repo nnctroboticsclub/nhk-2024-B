@@ -25,3 +25,6 @@
 [submodule "common_libs/MotorController"]
 	path = common_libs/MotorController
 	url = git@github.com:nnctroboticsclub/MotorController.git
+[submodule "common_libs/can_servo"]
+	path = common_libs/can_servo
+	url = git@github.com:nnctroboticsclub/can_servo.git

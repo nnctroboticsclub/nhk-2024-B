@@ -1,13 +1,1 @@
-{
-    "configurations": [
-        {
-            "name": "Compile DB",
-            "compileCommands": "${workspaceFolder}/BUILD/NUCLEO_F446RE/compile_commands.json",
-        },
-        {
-            "name": "CMake",
-            "configurationProvider": "ms-vscode.cmake-tools"
-        }
-    ],
-    "version": 4
-}
+../../.vscode/c_cpp_properties.mbed.json
