@@ -57,7 +57,7 @@ impl<H: HC> ControlEP<H> {
             length: 8,
         };
 
-        if true {
+        if false {
             self.logger.info(format!("--> {transaction:?}"));
         }
         self.hc.submit_urb(&mut transaction)?;
@@ -78,7 +78,7 @@ impl<H: HC> ControlEP<H> {
         };
 
         self.hc.submit_urb(&mut transaction)?;
-        if true {
+        if false {
             self.logger.info(format!("<-- {transaction:?}"));
         }
 
@@ -96,7 +96,7 @@ impl<H: HC> ControlEP<H> {
             length: length as u8,
         };
 
-        if true {
+        if false {
             self.logger.info(format!("--> {transaction:?}"));
         }
         self.hc.submit_urb(&mut transaction)?;

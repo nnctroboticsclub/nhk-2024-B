@@ -21,7 +21,7 @@ pub trait HC {
     fn wait_done(&mut self) -> TransactionResult<()> {
         let mut tick: u32 = 0;
         while self.get_urb_status() == URBStatus::Idle {
-            sleep_ms(10);
+            sleep_ms(1);
 
             if tick > 50 {
                 return Err(TransactionError::Timeout);

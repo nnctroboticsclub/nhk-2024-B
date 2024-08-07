@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 
 use crate::logger::LoggerLevel;
 use crate::usb::HIDClassDescriptor;
+use crate::usb_core::hc::TransactionError;
 use crate::usb_core::hc::HC;
 use crate::usb_core::std_request::Direction;
 use crate::usb_core::std_request::Recipient;
@@ -124,6 +125,16 @@ fn enumerate(hc: Box<BindedHC>) -> Result<ConfigurationDescriptor, Box<dyn core:
         }
     }
 
+    ep0.transaction(
+        Direction::HostToDevice,
+        RequestKind::Standard,
+        Recipient::Device,
+        RequestByte::SetConfiguration,
+        1,
+        0,
+        &mut [],
+    )?;
+
     Ok(config)
 }
 
@@ -158,67 +169,40 @@ fn run() -> Result<(), Box<dyn core::error::Error>> {
 
     let interface = interface.unwrap(); */
 
-    if false {
-        let hc = Box::new(BindedHC::new(
-            super::usb_core::hc::TransactionDestination { dev: 1, ep: 0 },
-            super::usb_core::hc::EPType::Control,
-            8,
-        ));
-        let mut ep0 = USBEP0::new(hc);
+    /* let ep1_hc = Box::new(BindedHC::new(
+        super::usb_core::hc::TransactionDestination { dev: 1, ep: 0x81 },
+        super::usb_core::hc::EPType::Interrupt,
+        8,
+    ));
+    let ep2_hc = Box::new(BindedHC::new(
+        super::usb_core::hc::TransactionDestination { dev: 1, ep: 0x82 },
+        super::usb_core::hc::EPType::Interrupt,
+        7,
+    ));
 
-        let mut buf = [0; 32];
-        let mut failed_count = 0;
+    let mut ep2 = ControlEP::new(ep1_hc);
+    let mut buf = [0; 9];
 
-        loop {
-            let ret = ep0.transaction(
-                Direction::DeviceToHost,
-                RequestKind::Class,
-                Recipient::Interface,
-                RequestByte::HidGetReport,
-                0x0101, // report type, report id
-                1,      // interface
-                &mut buf,
-            );
+    /* let mut cursor_pos_x = 0;
+    let mut cursor_pos_y = 0; */
 
-            if ret.is_ok() {
-                logger.hex(LoggerLevel::Info, &buf, 32);
-            }
+    loop {
+        let ret = ep2.recv_packets(&mut buf);
 
-            if ret.is_err() {
-                failed_count += 1;
-                if failed_count > 10 {
-                    log(format!("Error: {:?}", ret));
+        if ret.is_ok() {
+            logger.hex(LoggerLevel::Info, &buf, 9);
 
-                    failed_count = 0;
-                }
-            }
+            /* let dx = buf[1] as i8;
+            let dy = buf[2] as i8;
 
-            sleep_ms(500);
+            cursor_pos_x = (cursor_pos_x as i8 + dx) as i32;
+            cursor_pos_y = (cursor_pos_y as i8 + dy) as i32;
+
+            log(format!("Cursor: ({}, {})", cursor_pos_x, cursor_pos_y)); */
         }
-    } else {
-        let hc = Box::new(BindedHC::new(
-            super::usb_core::hc::TransactionDestination { dev: 1, ep: 0x2 },
-            super::usb_core::hc::EPType::Interrupt,
-            7,
-        ));
 
-        let mut ep = ControlEP::new(hc);
-        let mut buf = [0; 7];
-
-        loop {
-            let ret = ep.recv_packets(&mut buf);
-
-            if ret.is_ok() {
-                logger.hex(LoggerLevel::Info, &buf, 7);
-            }
-
-            if ret.is_err() {
-                log(format!("Error: {:?}", ret));
-            }
-
-            sleep_ms(200);
-        }
-    }
+        sleep_ms(7);
+    } */
 
     Ok(())
 }

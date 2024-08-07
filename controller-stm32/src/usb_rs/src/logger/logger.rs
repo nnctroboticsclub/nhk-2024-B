@@ -56,8 +56,6 @@ impl Logger {
         let c_message = CString::new(message).unwrap();
         let c_message_ptr = c_message.as_ptr();
 
-        sleep_ms(100);
-
         unsafe {
             robotics_logger_GenericLogger_Log(
                 &mut self.logger,
