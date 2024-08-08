@@ -138,6 +138,26 @@ fn enumerate(hc: Box<BindedHC>) -> Result<ConfigurationDescriptor, Box<dyn core:
     Ok(config)
 }
 
+fn loop_mouse() -> Result<(), Box<dyn core::error::Error>> {
+    let mut logger = Logger::new("usb.com", "RUST CODE");
+
+    let ep2_hc = Box::new(BindedHC::new(
+        super::usb_core::hc::TransactionDestination { dev: 1, ep: 0x82 },
+        super::usb_core::hc::EPType::Interrupt,
+        7,
+    ));
+
+    let mut ep2 = ControlEP::new(ep2_hc);
+    let mut buf_ep2 = [0; 5];
+
+    loop {
+        if let Ok(()) = ep2.recv_packets(&mut buf_ep2) {
+            logger.hex(LoggerLevel::Info, &buf_ep2, 5);
+        };
+        sleep_ms(10);
+    }
+}
+
 fn run() -> Result<(), Box<dyn core::error::Error>> {
     let mut logger = Logger::new("usb.com", "RUST CODE");
 
@@ -169,40 +189,65 @@ fn run() -> Result<(), Box<dyn core::error::Error>> {
 
     let interface = interface.unwrap(); */
 
-    /* let ep1_hc = Box::new(BindedHC::new(
-        super::usb_core::hc::TransactionDestination { dev: 1, ep: 0x81 },
-        super::usb_core::hc::EPType::Interrupt,
+    // loop_mouse()?;
+
+    /* let result = ep0.send_setup(StdRequest {
+        request_type: RequestType {
+            direction: Direction::DeviceToHost,
+            req_type: RequestKind::Class,
+            recipient: Recipient::Interface,
+        },
+        request: RequestByte::HidGetReport,
+        value: 0x02_00, // report type: input, report id: 0
+        index: 0,       // interface index
+        length: 1,
+    })?;
+
+    buf.fill(0x5A);
+    ep0.recv_packets(&mut buf)?;
+    ep0.send_packets(&mut [])?; */
+
+    let ep0_hc = Box::new(BindedHC::new(
+        super::usb_core::hc::TransactionDestination { dev: 1, ep: 0 },
+        super::usb_core::hc::EPType::Control,
         8,
     ));
-    let ep2_hc = Box::new(BindedHC::new(
-        super::usb_core::hc::TransactionDestination { dev: 1, ep: 0x82 },
-        super::usb_core::hc::EPType::Interrupt,
-        7,
-    ));
 
-    let mut ep2 = ControlEP::new(ep1_hc);
-    let mut buf = [0; 9];
+    let mut ep0 = ControlEP::new(ep0_hc);
 
-    /* let mut cursor_pos_x = 0;
-    let mut cursor_pos_y = 0; */
+    let mut buf = [0; 16];
 
     loop {
-        let ret = ep2.recv_packets(&mut buf);
+        sleep_ms(50);
 
-        if ret.is_ok() {
-            logger.hex(LoggerLevel::Info, &buf, 9);
-
-            /* let dx = buf[1] as i8;
-            let dy = buf[2] as i8;
-
-            cursor_pos_x = (cursor_pos_x as i8 + dx) as i32;
-            cursor_pos_y = (cursor_pos_y as i8 + dy) as i32;
-
-            log(format!("Cursor: ({}, {})", cursor_pos_x, cursor_pos_y)); */
+        let result = ep0.send_setup(StdRequest {
+            request_type: RequestType {
+                direction: Direction::DeviceToHost,
+                req_type: RequestKind::Class,
+                recipient: Recipient::Interface,
+            },
+            request: RequestByte::HidGetReport,
+            value: 0x01_00, // report type: input, report id: 0
+            index: 0,       // interface index
+            length: 8,
+        });
+        if result.is_err() {
+            continue;
         }
 
-        sleep_ms(7);
-    } */
+        buf.fill(0x5A);
+        let result = ep0.recv_packets(&mut buf[0..8]);
+        if result.is_err() {
+            continue;
+        }
+
+        let result = ep0.send_packets(&mut []);
+        if result.is_err() {
+            continue;
+        }
+
+        logger.hex(LoggerLevel::Info, &buf, 16);
+    }
 
     Ok(())
 }
