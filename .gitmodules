@@ -25,3 +25,6 @@
 [submodule "common_libs/MotorController"]
 	path = common_libs/MotorController
 	url = git@github.com:nnctroboticsclub/MotorController.git
+[submodule "common_libs/PS4_RX"]
+	path = common_libs/PS4_RX
+	url = git@github.com:nnctroboticsclub/PS4_RX.git
