@@ -15,6 +15,7 @@ pub enum RequestByte {
     SynchFrame,
 
     HidGetReport,
+    HidSetReport,
 }
 
 impl Into<u8> for RequestByte {
@@ -34,6 +35,7 @@ impl Into<u8> for RequestByte {
             SynchFrame => 12u8,
 
             HidGetReport => 1u8,
+            HidSetReport => 9u8,
         }
     }
 }
