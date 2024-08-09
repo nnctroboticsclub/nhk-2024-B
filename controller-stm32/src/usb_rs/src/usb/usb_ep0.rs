@@ -24,7 +24,7 @@ impl<H: HC> USBEP0<H> {
         }
     }
 
-    fn transaction_(
+    pub fn transaction_(
         &mut self,
         direction: Direction,
         req_type: RequestKind,
@@ -89,13 +89,13 @@ impl<H: HC> USBEP0<H> {
             match self.transaction_(direction, req_type, recipient, request, value, index, buf) {
                 Ok(_) => break,
                 Err(TransactionError::NotReady) => {
-                    log(format!("Retry: {:?}", retries));
-                    sleep_ms(500);
+                    log(format!("Retry: {:?} NRDY", retries));
+                    sleep_ms(50);
                     continue;
                 }
                 Err(TransactionError::Error) => {
-                    log(format!("Retry: {:?}", retries));
-                    sleep_ms(500);
+                    log(format!("Retry: {:?} NERR", retries));
+                    sleep_ms(50);
                     continue;
                 }
                 Err(e) => return Err(e),
