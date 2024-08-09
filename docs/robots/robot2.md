@@ -12,6 +12,18 @@ BNO: SCL PB8; SDA PB9; Rst PB0
 LED: PB15 PB14 PC10 PC12 PB7 PB4
 ```
 
+## OCUI (On-Chip User Interface) 割当
+
+### ブート周り
+
+|LED0|LED1|モード|
+|:-:|:-:|:-:|
+|0|0|テスト 0|
+|0|1|テスト 1|
+|1|0|テスト 2|
+|1|1|実環境コード|
+
+
 ## コントローラー
 
 |部品|機能|種類|
@@ -27,9 +39,19 @@ LED: PB15 PB14 PC10 PC12 PB7 PB4
 graph TD
   F4[F446]
   EMC[EMC]
-  c620[c620]
   ESP32[ESP32]
+  c620_0[c620 0]
+  c620_1[c620 1]
+  Srv[サーボ基板]
+  Srv0[ロック周り 0]
+  Srv1[ロック周り 1]
+  expand[展開]
   F4 --> EMC
-  F4 <-- can --> c620
-  F4 <-- SPI --> ESP32
+  F4 -- CAN1 --> c620_0
+  F4 -- CAN1 --> c620_1
+  F4 -- SPI --> ESP32
+  F4 -- CAN2 --> Srv
+  Srv --> Srv0
+  Srv --> Srv1
+  F4 -- ??? --> expand
 ```
