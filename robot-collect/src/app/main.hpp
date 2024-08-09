@@ -49,15 +49,22 @@ class Test {
   using PS4Con = nhk2024b::ps4_con::PS4Con;
   using Actuators = nhk2024b::robot3::Actuators;
 
+  DigitalOut emc{PA_15};
+
   Actuators actuators{(Actuators::Config){
+      // M4
       .move_motor_l_fin = PB_10,
       .move_motor_l_rin = PB_2,
+
+      // M3
       .move_motor_r_fin = PB_9,
       .move_motor_r_rin = PB_8,
 
+      // M2
       .arm_elevation_motor_fin = PA_11,
       .arm_elevation_motor_rin = PA_10,
 
+      // M1
       .arm_extension_motor_fin = PA_9,
       .arm_extension_motor_rin = PA_8,
   }};
@@ -83,6 +90,8 @@ class Test {
     robot.LinkController();
 
     ps4.Init();
+
+    emc.write(1);
 
     logger.Info("Init done");
   }
