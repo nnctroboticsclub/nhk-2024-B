@@ -1,30 +1,26 @@
 #pragma once
 
-#include <atomic>
+#include "can_servo.hpp"
+#include "ikako_robomas_bus.hpp"
 
-#include <mbed.h>
-
-#include <robotics/utils/emc.hpp>
-#include <robotics/node/digital_out.hpp>
-#include <robotics/utils/neopixel.hpp>
-
-#include "communication.hpp"
-#include "bridge.hpp"
-
-class App {
-  class Impl;
-
+namespace nhk2024b::robot2 {
+class Actuators {
  public:
   struct Config {
-    Communication::Config com;
-    nhk2024b::BridgeController::Config bridge_ctrl;
-
-    bool can1_debug;
+    PinName can_1_rd;
+    PinName can_1_td;
   };
 
-  Impl* impl;
+ private:
+  ikarashiCAN_mk2 can;
 
-  App(Config& config);
+ public:
+  common::CanServoBus can_servo;
+  common::IkakoRobomasBus ikako_robomas;
 
-  void Init();
+  Actuators(Config config)
+      : can(config.can_1_rd, config.can_1_td, (int)500E3),
+        can_servo(can, 2),
+        ikako_robomas(can) {}
 };
+}  // namespace nhk2024b::robot2
