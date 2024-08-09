@@ -26,11 +26,11 @@ class Robot  // ノードにデータを送るよ
     float forward_back = ctrl_stick_forward_back.GetValue()[1];
     float rotate = ctrl_stick_rotate.GetValue()[0];
 
-    float left = forward_back + rotate;
-    float right = forward_back - rotate;
+    float left = (forward_back + rotate) / 2;
+    float right = (forward_back - rotate) / 2;
 
-    out_move_left.SetValue(left * 0.4);
-    out_move_right.SetValue(right * 0.4);
+    out_move_left.SetValue(left * 1);
+    out_move_right.SetValue(right * 1);
   }
 
  public:
@@ -43,13 +43,13 @@ class Robot  // ノードにデータを送るよ
 
     // ボタンの設定
     ctrl_button_arm_up.SetChangeCallback(
-        [this](bool btn) { out_arm_elevation.SetValue(btn ? 0.4 : 0); });
+        [this](bool btn) { out_arm_elevation.SetValue(btn ? 0.6 : 0); });
     ctrl_button_arm_down.SetChangeCallback(
-        [this](bool btn) { out_arm_elevation.SetValue(btn ? -0.4 : 0); });
+        [this](bool btn) { out_arm_elevation.SetValue(btn ? -0.6 : 0); });
     ctrl_button_arm_open.SetChangeCallback(
-        [this](bool btn) { out_arm_extension.SetValue(btn ? 0.4 : 0); });
+        [this](bool btn) { out_arm_extension.SetValue(btn ? 0.6 : 0); });
     ctrl_button_arm_close.SetChangeCallback(
-        [this](bool btn) { out_arm_extension.SetValue(btn ? -0.4 : 0); });
+        [this](bool btn) { out_arm_extension.SetValue(btn ? -0.6 : 0); });
   }
 };
-}  // namespace nhk2024b
+}  // namespace nhk2024b::robot3
