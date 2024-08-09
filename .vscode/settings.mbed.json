@@ -16,6 +16,8 @@
     "**/CVS": true,
     "**/.DS_Store": true,
     "**/Thumbs.db": true,
+    ".mbed": true,
+    "mbed_settings.py": true,
     "bno055": true,
     "ikakoMDC": true,
     "IkakoRobomas": true,
