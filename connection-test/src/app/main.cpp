@@ -242,25 +242,39 @@ class CanDebug {
 
   const int kHeaderLines = 2;
 
+  bool printf_lock_ = false;
+
   void InitScreen() {
     printf("\x1b[2J\x1b[1;1H");
     printf("\x1b[?25l");
   }
 
   void DrawLine(uint8_t y, uint32_t id, uint8_t* data, size_t len) {
+    while (printf_lock_) {
+      robotics::system::SleepFor(1ms);
+    }
+
+    printf_lock_ = true;
     printf("\x1b[%d;1H", kHeaderLines + y);
     printf("%08X (%5d):", id, count_per_id_[id]);
     for (size_t i = 0; i < len; i++) {
       printf(" %02X", data[i]);
     }
     printf("\x1b[0K\n");
+    printf_lock_ = false;
   }
 
   void ShowHeader() {
+    while (printf_lock_) {
+      robotics::system::SleepFor(1ms);
+    }
+
+    printf_lock_ = true;
     printf("\x1b[1;1H");
     printf("\x1b[2K");
     printf("Tick: %5d\x1b[0K\n", tick_);
     printf("Messages: %5d\x1b[0K\n", messages_count_);
+    printf_lock_ = false;
   }
 
   void Init() {
