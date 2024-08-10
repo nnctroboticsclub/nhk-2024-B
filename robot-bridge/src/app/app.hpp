@@ -22,5 +22,15 @@ class Actuators {
       : can(config.can_1_rd, config.can_1_td, (int)500E3),
         can_servo(can, 2),
         ikako_robomas(can) {}
+
+  void Send() {
+    can_servo.Send();
+    ikako_robomas.Write();
+  }
+
+  void Tick() {
+    ikako_robomas.Tick();
+    ikako_robomas.Update();
+  }
 };
 }  // namespace nhk2024b::robot2

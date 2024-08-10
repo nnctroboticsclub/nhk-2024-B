@@ -77,6 +77,7 @@ class App {
 
   void Init() {
     logger.Info("Init");
+
     ps4.stick_right >> robot.ctrl_move;
     ps4.button_cross >> robot.ctrl_deploy;
     ps4.button_square >> robot.ctrl_test_unlock_dec;
@@ -89,6 +90,9 @@ class App {
       servo0->SetValue(127 + duty);
       servo1->SetValue(127 - duty);
     });
+
+    emc.write(1);
+
     logger.Info("Init - Done");
   }
 
@@ -98,14 +102,17 @@ class App {
     while (1) {
       if (i % 1000 == 0) logger.Info("Update");
       ps4.Update();
+      actuators.Send();
+      actuators.Tick();
 
       if (i % 100 == 0) {
-        auto stick = ps4.stick_right.GetValue();
-        logger.Info("Report");
-        logger.Info("  s %f, %f", stick[0], stick[1]);
-        logger.Info("  o %f %f %f %f", robot.out_deploy.GetValue(),
-                    robot.out_unlock_duty.GetValue(),
-                    robot.out_move_l.GetValue(), robot.out_move_r.GetValue());
+        // auto stick = ps4.stick_right.GetValue();
+        // logger.Info("Report");
+        // logger.Info("  s %f, %f", stick[0], stick[1]);
+        // logger.Info("  o %f %f %f %f", robot.out_deploy.GetValue(),
+        //             robot.out_unlock_duty.GetValue(),
+        //             robot.out_move_l.GetValue(),
+        //             robot.out_move_r.GetValue());
       }
       i += 1;
       ThisThread::sleep_for(1ms);
