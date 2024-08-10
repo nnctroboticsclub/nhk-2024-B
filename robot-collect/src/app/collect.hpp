@@ -29,11 +29,8 @@ class Robot  // ノードにデータを送るよ
     float left = (forward_back + rotate);
     float right = (forward_back - rotate);
 
-    float max = std::max(std::abs(left), std::abs(right));
-    if (max > 1) {
-      left /= max;
-      right /= max;
-    }
+    if (left > 1) left = 1;
+    if (right > 1) right = 1;
 
     out_move_left.SetValue(left * 1);
     out_move_right.SetValue(-right * 1);
