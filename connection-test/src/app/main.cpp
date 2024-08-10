@@ -234,7 +234,7 @@ class App {
 };
 
 class CanDebug {
-  robotics::network::SimpleCAN can_{PA_11, PA_12, (int)500E3};
+  robotics::network::SimpleCAN can_{PA_11, PA_12, (int)1E6};
   std::unordered_map<uint32_t, uint8_t> id_to_line_y_;
   std::unordered_map<uint32_t, uint16_t> count_per_id_;
   uint32_t messages_count_ = 0;
@@ -249,19 +249,18 @@ class CanDebug {
 
   void DrawLine(uint8_t y, uint32_t id, uint8_t* data, size_t len) {
     printf("\x1b[%d;1H", kHeaderLines + y);
-    printf("\x1b[2K");
-    printf("%08X (%5d): ", id, count_per_id_[id]);
+    printf("%08X (%5d):", id, count_per_id_[id]);
     for (size_t i = 0; i < len; i++) {
-      printf("%02X ", data[i]);
+      printf(" %02X", data[i]);
     }
-    printf("\n");
+    printf("\x1b[0K\n");
   }
 
   void ShowHeader() {
     printf("\x1b[1;1H");
     printf("\x1b[2K");
-    printf("Tick: %5d\n", tick_);
-    printf("Messages: %5d\n", messages_count_);
+    printf("Tick: %5d\x1b[0K\n", tick_);
+    printf("Messages: %5d\x1b[0K\n", messages_count_);
   }
 
   void Init() {
