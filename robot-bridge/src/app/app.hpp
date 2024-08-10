@@ -22,7 +22,12 @@ class Actuators {
   Actuators(Config config)
       : can(config.can_1_rd, config.can_1_td, (int)1E6),
         can_servo(can, 2),
-        ikako_robomas(can) {}
+        ikako_robomas(can) {
+    printf("Actuators::Actuators\n");
+    uint8_t arr[] = {0, 1, 2, 3};
+    can.set(arr, 7);
+    can.write(0x3ff);
+  }
 
   int Send() {
     int ret = can_servo.Send();

@@ -10,7 +10,7 @@
 #include <mbed-robotics/uart_stream.hpp>
 
 #include <robotics/logger/logger.hpp>
-
+#include <mbed-robotics/simple_can.hpp>
 #include <nhk2024b/fep_ps4_con.hpp>
 #include "bridge.hpp"
 
@@ -45,12 +45,53 @@ void InitFEP() {
   }
 }
 
+class PseudoController {
+  robotics::system::Thread thread;
+
+ public:
+  robotics::Node<robotics::types::JoyStick2D> stick_right;
+  robotics::Node<bool> button_square;
+  robotics::Node<bool> button_cross;
+  robotics::Node<bool> button_circle;
+  // robotics::Node<bool> button_triangle;
+
+  PseudoController() {
+    thread.SetThreadName("PseudoController");
+    thread.Start([this]() {
+      button_square.SetValue(false);
+      while (1) {
+        stick_right.SetValue({0, 0});
+        button_cross.SetValue(false);
+        button_circle.SetValue(false);
+        // button_triangle.SetValue(false);
+
+        ThisThread::sleep_for(100ms);
+
+        stick_right.SetValue({0, 1});
+
+        button_cross.SetValue(true);
+        button_circle.SetValue(true);
+        // button_triangle.SetValue(true);
+
+        ThisThread::sleep_for(100ms);
+      }
+    });
+  }
+
+  void Update() {}
+};
+
 class App {
-  using PS4Con = nhk2024b::ps4_con::PS4Con;
   using Actuators = nhk2024b::robot2::Actuators;
   using Robot = nhk2024b::robot2::Robot;
 
   DigitalOut emc{PA_15};
+
+  using PS4Con = PseudoController;
+  PS4Con ps4;
+
+  // using PS4Con = nhk2024b::ps4_con::PS4Con;
+  // PS4Con ps4{PC_6, PC_7, 115200};
 
   robotics::logger::Logger logger{"Robot2App", "robot2.app"};
 
@@ -64,8 +105,6 @@ class App {
   nhk2024b::common::CanServo *servo0;
   nhk2024b::common::CanServo *servo1;
 
-  PS4Con ps4{PC_6, PC_7, 115200};
-
   Robot robot;
 
  public:
@@ -77,6 +116,8 @@ class App {
 
   void Init() {
     logger.Info("Init");
+
+    // InitFEP();
 
     ps4.stick_right >> robot.ctrl_move;
     ps4.button_cross >> robot.ctrl_deploy;
@@ -129,8 +170,6 @@ class App {
 int main_0() {
   Thread thread{osPriorityNormal, 8192, nullptr, "Main"};
   thread.start([]() {
-    InitFEP();
-
     auto test = new App();
 
     test->Init();
@@ -144,7 +183,15 @@ int main_0() {
   return 0;
 }
 
-int main_1() { return 0; }
+int main_1() {
+  robotics::network::SimpleCAN can_{PA_11, PA_12, (int)1E6};
+  while (1) {
+    logger.Info("Init");
+    can_.Send(0x3ff, {1, 2, 3, 4});
+    ThisThread::sleep_for(1s);
+  }
+  return 0;
+}
 
 int main_2() { return 0; }
 
@@ -193,6 +240,6 @@ int main_switch() {
 
   robotics::logger::Init();
 
-  main_0();
+  main_1();
   return 0;
 }
