@@ -55,8 +55,8 @@ class App {
   robotics::logger::Logger logger{"Robot2App", "robot2.app"};
 
   Actuators actuators{(Actuators::Config){
-      .can_1_rd = PA_12,
-      .can_1_td = PA_11,
+      .can_1_rd = PA_11,
+      .can_1_td = PA_12,
   }};
   IkakoRobomasNode *move_l;
   IkakoRobomasNode *move_r;
@@ -100,10 +100,10 @@ class App {
       ps4.Update();
 
       if (i % 100 == 0) {
+        auto stick = ps4.stick_right.GetValue();
         logger.Info("Report");
-        logger.Info("  Stick: jr %f, %f", ps4.stick_right.GetValue()[0],
-                    ps4.stick_right.GetValue()[1]);
-        logger.Info("  output: dulr %f %f %f %f", robot.out_deploy.GetValue(),
+        logger.Info("  s %f, %f", stick[0], stick[1]);
+        logger.Info("  o %f %f %f %f", robot.out_deploy.GetValue(),
                     robot.out_unlock_duty.GetValue(),
                     robot.out_move_l.GetValue(), robot.out_move_r.GetValue());
       }
