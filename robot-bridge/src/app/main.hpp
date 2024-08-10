@@ -186,6 +186,7 @@ int main_0() {
 int main_1() {
   robotics::network::SimpleCAN can_{PA_11, PA_12, (int)1E6};
   logger.Info("Init");
+  can_.Init();
   while (1) {
     ThisThread::sleep_for(50ms);
     auto ret = can_.Send(0x200, {1, 2, 3, 4});
