@@ -239,8 +239,9 @@ class CanDebug {
   std::unordered_map<uint32_t, uint16_t> count_per_id_;
   uint32_t messages_count_ = 0;
   int tick_ = 0;
+  int last_failed_tick_ = 0;
 
-  const int kHeaderLines = 2;
+  const int kHeaderLines = 3;
 
   bool printf_lock_ = false;
 
@@ -274,6 +275,7 @@ class CanDebug {
     printf("\x1b[2K");
     printf("Tick: %5d\x1b[0K\n", tick_);
     printf("Messages: %5d\x1b[0K\n", messages_count_);
+    printf("Last Failed: %5d\x1b[0K\n", last_failed_tick_);
     printf_lock_ = false;
   }
 
@@ -294,6 +296,15 @@ class CanDebug {
     });
   }
 
+  void TestSend() {
+    std::vector<uint8_t> data = {0x01, 0x02, 0x03, 0x04};
+    auto ret = can_.Send(0x3f0, data);
+
+    if (ret != 1) {
+      last_failed_tick_ = tick_;
+    }
+  }
+
  public:
   void Main() {
     Init();
@@ -303,6 +314,8 @@ class CanDebug {
       ShowHeader();
       tick_++;
       robotics::system::SleepFor(100ms);
+
+      TestSend();
     }
   }
 };
