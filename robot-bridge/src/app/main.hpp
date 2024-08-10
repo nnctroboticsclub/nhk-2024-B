@@ -102,8 +102,14 @@ class App {
     while (1) {
       if (i % 1000 == 0) logger.Info("Update");
       ps4.Update();
-      actuators.Send();
-      actuators.Tick();
+      {
+        int ret = actuators.Send();
+        if (ret != 0) {
+          // logger.Error("Actuators::Send failed [%d]", ret);
+        }
+      }
+
+      // actuators.Tick();
 
       if (i % 100 == 0) {
         // auto stick = ps4.stick_right.GetValue();

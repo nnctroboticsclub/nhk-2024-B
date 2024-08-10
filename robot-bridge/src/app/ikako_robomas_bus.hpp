@@ -12,7 +12,7 @@ class IkakoRobomasBus {
  public:
   IkakoRobomasBus(ikarashiCAN_mk2 &can) : can(can), sender(&can) {}
 
-  void Write() { sender.write(); }
+  int Write() {return  sender.write(); }
 
   IkakoRobomasNode *NewNode(int index) {
     auto node = new IkakoRobomasNode(index);
