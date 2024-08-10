@@ -185,10 +185,13 @@ int main_0() {
 
 int main_1() {
   robotics::network::SimpleCAN can_{PA_11, PA_12, (int)1E6};
+  logger.Info("Init");
   while (1) {
-    logger.Info("Init");
-    can_.Send(0x3ff, {1, 2, 3, 4});
-    ThisThread::sleep_for(1s);
+    ThisThread::sleep_for(50ms);
+    auto ret = can_.Send(0x200, {1, 2, 3, 4});
+    if (ret != 1) {
+      logger.Error("Send failed [%d]", ret);
+    }
   }
   return 0;
 }
