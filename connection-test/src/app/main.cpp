@@ -11,6 +11,7 @@
 #include <robotics/network/fep/fep_driver.hpp>
 #include <robotics/network/rep.hpp>
 #include <robotics/network/froute/froute.hpp>
+#include <mbed-robotics/simple_can.hpp>
 
 #include <robotics/network/ssp/ssp.hpp>
 #include <robotics/network/ssp/relay.hpp>
@@ -232,6 +233,57 @@ class App {
   }
 };
 
+class CanDebug {
+  robotics::network::SimpleCAN can_{PA_11, PA_12, (int)500E3};
+  std::unordered_map<uint32_t, uint8_t> id_to_line_y_;
+  int tick_ = 0;
+
+  const int kHeaderLines = 2;
+
+  void InitScreen() {
+    printf("\x1b[2J\x1b[1;1H");
+    printf("\x1b[?25l");
+  }
+
+  void DrawLine(uint8_t y, uint32_t id, uint8_t* data, size_t len) {
+    printf("\x1b[%d;1H", kHeaderLines + y);
+    printf("\x1b[2K");
+    printf("%08X: ", id);
+    for (size_t i = 0; i < len; i++) {
+      printf("%02X ", data[i]);
+    }
+    printf("\n");
+  }
+
+  void ShowHeader() {
+    printf("\x1b[1;1H");
+    printf("\x1b[2K");
+    printf("Tick: %5d\n", tick_);
+  }
+
+  void Init() {
+    InitScreen();
+    can_.OnRx([this](uint32_t id, std::vector<uint8_t> data) {
+      if (id_to_line_y_.find(id) == id_to_line_y_.end()) {
+        id_to_line_y_[id] = id_to_line_y_.size() + 1;
+      }
+      DrawLine(id_to_line_y_[id], id, data.data(), data.size());
+    });
+  }
+
+ public:
+  void Main() {
+    Init();
+    can_.Init();
+
+    while (1) {
+      ShowHeader();
+      tick_++;
+      robotics::system::SleepFor(100ms);
+    }
+  }
+};
+
 int main() {
   using namespace std::chrono_literals;
 
@@ -242,7 +294,7 @@ int main() {
 
   robotics::logger::Init();
 
-  App* app = new App();
+  auto app = new CanDebug();
 
   app->Main();
 
