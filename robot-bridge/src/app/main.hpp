@@ -107,6 +107,8 @@ class App {
 
   Robot robot;
 
+  int status_actuators_send_ = 0;
+
  public:
   App()
       : move_l(actuators.ikako_robomas.NewNode(0)),
@@ -133,6 +135,7 @@ class App {
     });
 
     emc.write(1);
+    actuators.Init();
 
     logger.Info("Init - Done");
   }
@@ -143,23 +146,21 @@ class App {
     while (1) {
       if (i % 1000 == 0) logger.Info("Update");
       ps4.Update();
-      {
-        int ret = actuators.Send();
-        if (ret != 0) {
-          // logger.Error("Actuators::Send failed [%d]", ret);
-        }
-      }
+      actuators.Read();
 
-      // actuators.Tick();
+      status_actuators_send_ = actuators.Send();
+
+      actuators.Tick();
 
       if (i % 100 == 0) {
-        // auto stick = ps4.stick_right.GetValue();
-        // logger.Info("Report");
-        // logger.Info("  s %f, %f", stick[0], stick[1]);
-        // logger.Info("  o %f %f %f %f", robot.out_deploy.GetValue(),
-        //             robot.out_unlock_duty.GetValue(),
-        //             robot.out_move_l.GetValue(),
-        //             robot.out_move_r.GetValue());
+        auto stick = ps4.stick_right.GetValue();
+        logger.Info("Status");
+        logger.Info("  actuators_send %d", status_actuators_send_);
+        logger.Info("Report");
+        logger.Info("  s %f, %f", stick[0], stick[1]);
+        logger.Info("  o %f %f %f %f", robot.out_deploy.GetValue(),
+                    robot.out_unlock_duty.GetValue(),
+                    robot.out_move_l.GetValue(), robot.out_move_r.GetValue());
       }
       i += 1;
       ThisThread::sleep_for(1ms);
@@ -167,7 +168,7 @@ class App {
   }
 };
 
-int main_0() {
+int main0_alt0() {
   Thread thread{osPriorityNormal, 8192, nullptr, "Main"};
   thread.start([]() {
     auto test = new App();
@@ -183,10 +184,54 @@ int main_0() {
   return 0;
 }
 
-int main_1() {
+int main0_alt1() {
+  nhk2024b::robot2::Actuators actuators{(nhk2024b::robot2::Actuators::Config){
+      .can_1_rd = PA_11,
+      .can_1_td = PA_12,
+  }};
+  auto &can = actuators.can;
+
+  logger.Info("Init");
+  union {
+    uint32_t i;
+    uint8_t data[4];
+  };
+  can.read_start();
+  ThisThread::sleep_for(200ms);
+
+  Thread thread{};
+  thread.start([&]() {
+    while (1) {
+      can.reset();
+      ThisThread::sleep_for(10ms);
+    }
+  });
+
+  while (1) {
+    can.set(data, 4);
+
+    auto ret = can.write(2);
+    if (ret != 1) {
+      logger.Error("Send failed [%d]", ret);
+    }
+
+    i += 1;
+    ThisThread::sleep_for(100ms);
+  }
+  return 0;
+};
+
+int main1_alt0() {
   robotics::network::SimpleCAN can_{PA_11, PA_12, (int)1E6};
+
   logger.Info("Init");
   can_.Init();
+
+  can_.OnRx([](uint32_t id, std::vector<uint8_t> data) {
+    logger.Info("Rx %08X (%d): %02X %02X %02X %02X", id, data.size(), data[0],
+                data[1], data[2], data[3]);
+  });
+
   while (1) {
     ThisThread::sleep_for(50ms);
     auto ret = can_.Send(0x200, {1, 2, 3, 4});
@@ -197,11 +242,78 @@ int main_1() {
   return 0;
 }
 
-int main_2() { return 0; }
+int main1_alt1() {
+  ikarashiCAN_mk2 can{PA_11, PA_12, 0x01f, (int)1E6};
 
-int main_3() { return 0; }
+  logger.Info("Init");
+  union {
+    uint32_t i;
+    uint8_t data[4];
+  };
+  can.read_start();
+  ThisThread::sleep_for(200ms);
 
-int main_pro() {
+  Thread thread{};
+  thread.start([&]() {
+    while (1) {
+      can.reset();
+      ThisThread::sleep_for(10ms);
+    }
+  });
+
+  while (1) {
+    can.set(data, 4);
+
+    auto ret = can.write(2);
+    if (ret != 1) {
+      logger.Error("Send failed [%d]", ret);
+    }
+
+    i += 1;
+    ThisThread::sleep_for(100ms);
+  }
+  return 0;
+}
+
+int main1_alt2() {
+  CAN can_{PA_11, PA_12, (int)1E6};
+  CANMessage msg;
+  logger.Info("Init");
+  int i = 0;
+
+  while (1) {
+    i += 1;
+
+    /*
+    can_.reset();
+    auto ret = can_.read(msg);
+    if (ret == 1) {
+      logger.Info("Rx %08X (%d): %02X %02X %02X %02X", msg.id, msg.len,
+                  msg.data[0], msg.data[1], msg.data[2], msg.data[3]);
+    }
+    //*/
+
+    //*
+    if (i % 50 == 0) {
+      can_.reset();
+      msg = CANMessage{0x200, (const char[]){1, 2, 3, 4}, 4};
+      auto ret = can_.write(msg);
+      if (ret != 1) {
+        logger.Error("Send failed [%d]", ret);
+      }
+    }
+    //*/
+
+    ThisThread::sleep_for(1ms);
+  }
+  return 0;
+}
+
+int main2() { return 0; }
+
+int main3() { return 0; }
+
+int mainpro() {
   /* App::Config config{        //
                      .com =  //
                      {
@@ -244,6 +356,6 @@ int main_switch() {
 
   robotics::logger::Init();
 
-  main_1();
+  main0_alt0();
   return 0;
 }

@@ -12,21 +12,32 @@ class Actuators {
     PinName can_1_td;
   };
 
- private:
+ public:
   ikarashiCAN_mk2 can;
+  Thread thread;
 
  public:
   common::CanServoBus can_servo;
   common::IkakoRobomasBus ikako_robomas;
 
   Actuators(Config config)
-      : can(config.can_1_rd, config.can_1_td, (int)1E6),
-        can_servo(can, 2),
-        ikako_robomas(can) {
-    printf("Actuators::Actuators\n");
-    uint8_t arr[] = {0, 1, 2, 3};
-    can.set(arr, 7);
-    can.write(0x3ff);
+      : can(config.can_1_rd, config.can_1_td, 0, (int)1E6),
+        can_servo(can, 1),
+        ikako_robomas(can) {}
+
+  void Init() {
+    can.read_start();
+    thread.start([&]() {
+      while (1) {
+        can.reset();
+        ThisThread::sleep_for(10ms);
+      }
+    });
+  }
+
+  int Read() {
+    ikako_robomas.Read();
+    return 0;
   }
 
   int Send() {

@@ -11,19 +11,19 @@ class CanServoBus {
   can_servo servo;
 
  public:
-  CanServoBus(ikarashiCAN_mk2 &can, size_t n) : can(can), servo(&can, n) {}
+  CanServoBus(ikarashiCAN_mk2 &can, int id) : can(can), servo(&can, id) {}
 
   int Send() { return servo.send(); }
 
-  CanServo *NewNode(size_t n);
+  CanServo *NewNode(int i);
 };
 
 class CanServo : public robotics::Node<float> {
  public:
-  CanServo(can_servo &servo, size_t n) {
-    SetChangeCallback([&servo, n](float value) { servo.set(n, value); });
+  CanServo(can_servo &servo, size_t i) {
+    SetChangeCallback([&servo, i](float value) { servo.set(i, value); });
   }
 };
 
-CanServo *CanServoBus::NewNode(size_t n) { return new CanServo(servo, n); }
+CanServo *CanServoBus::NewNode(int i) { return new CanServo(servo, i); }
 }  // namespace nhk2024b::common
