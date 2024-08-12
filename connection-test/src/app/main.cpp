@@ -233,15 +233,32 @@ class App {
   }
 };
 
+struct CanMessageData {
+  static int last_line;
+
+  bool is_invalidated;
+  uint8_t line;
+  uint8_t data[8] = {};
+  uint8_t length;
+
+  int rx_count = 0;
+
+  CanMessageData() : is_invalidated(true), line(last_line) {}
+
+  static void AddLine() { last_line++; }
+};
+
+int CanMessageData::last_line = 0;
+
 class CanDebug {
+  const int kHeaderLines = 3;
+
   robotics::network::SimpleCAN can_{PA_11, PA_12, (int)1E6};
-  std::unordered_map<uint32_t, uint8_t> id_to_line_y_;
-  std::unordered_map<uint32_t, uint16_t> count_per_id_;
+
+  std::unordered_map<uint32_t, CanMessageData> messages_;
   uint32_t messages_count_ = 0;
   int tick_ = 0;
   int last_failed_tick_ = 0;
-
-  const int kHeaderLines = 3;
 
   bool printf_lock_ = false;
 
@@ -250,18 +267,27 @@ class CanDebug {
     printf("\x1b[?25l");
   }
 
-  void DrawLine(uint8_t y, uint32_t id, uint8_t* data, size_t len) {
+  void UpdateScreen() {
     while (printf_lock_) {
       robotics::system::SleepFor(1ms);
     }
-
     printf_lock_ = true;
-    printf("\x1b[%d;1H", kHeaderLines + y);
-    printf("%08X (%5d):", id, count_per_id_[id]);
-    for (size_t i = 0; i < len; i++) {
-      printf(" %02X", data[i]);
+
+    for (auto&& [id, data] : messages_) {
+      if (!data.is_invalidated) {
+        continue;
+      }
+
+      printf("\x1b[%d;1H", kHeaderLines + 1 + data.line);
+      printf("%8d] %08X (%5d):", tick_, id, data.rx_count);
+      for (size_t i = 0; i < data.length; i++) {
+        printf(" %02X", data.data[i]);
+      }
+      printf("\x1b[0K\n");
+
+      data.is_invalidated = false;
     }
-    printf("\x1b[0K\n");
+
     printf_lock_ = false;
   }
 
@@ -282,17 +308,17 @@ class CanDebug {
   void Init() {
     InitScreen();
     can_.OnRx([this](uint32_t id, std::vector<uint8_t> data) {
-      if (id_to_line_y_.find(id) == id_to_line_y_.end()) {
-        id_to_line_y_[id] = id_to_line_y_.size() + 1;
-      }
-      if (count_per_id_.find(id) == count_per_id_.end()) {
-        count_per_id_[id] = 0;
+      if (messages_.find(id) == messages_.end()) {
+        messages_[id] = CanMessageData();
+        messages_count_++;
+        CanMessageData::AddLine();
       }
 
-      count_per_id_[id]++;
-      messages_count_++;
-
-      DrawLine(id_to_line_y_[id], id, data.data(), data.size());
+      auto&& msg = messages_[id];
+      msg.is_invalidated = true;
+      msg.rx_count++;
+      msg.length = data.size();
+      std::copy(data.begin(), data.end(), msg.data);
     });
   }
 
@@ -311,6 +337,7 @@ class CanDebug {
     can_.Init();
 
     while (1) {
+      UpdateScreen();
       ShowHeader();
       tick_++;
       robotics::system::SleepFor(100ms);

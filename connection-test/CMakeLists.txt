@@ -11,7 +11,7 @@ add_subdirectory(syoch-robotics)
 #
 # MotorController
 #
-add_library(MotorController STATIC)
+add_library(MotorController OBJECT)
 target_include_directories(MotorController PUBLIC
   ./MotorController
 )
@@ -33,7 +33,7 @@ target_link_libraries(MotorController PRIVATE
 #
 # IkakoRobomas
 #
-add_library(IkakoRobomas STATIC)
+add_library(IkakoRobomas OBJECT)
 target_include_directories(IkakoRobomas PUBLIC
   ./IkakoRobomas
 )
@@ -49,7 +49,7 @@ target_link_libraries(IkakoRobomas PRIVATE
 #
 # ikako_c620
 #
-add_library(ikako_c620 STATIC)
+add_library(ikako_c620 OBJECT)
 target_include_directories(ikako_c620 PUBLIC
   ./ikako_c620
 )
@@ -63,7 +63,7 @@ target_link_libraries(ikako_c620 PRIVATE
 #
 # bno055
 #
-add_library(bno055 STATIC)
+add_library(bno055 OBJECT)
 target_include_directories(bno055 PUBLIC
   ./bno055
 )
@@ -77,7 +77,7 @@ target_link_libraries(bno055 PRIVATE
 #
 # ikarashiCAN_mk2
 #
-add_library(ikarashiCAN_mk2 STATIC)
+add_library(ikarashiCAN_mk2 OBJECT)
 target_include_directories(ikarashiCAN_mk2 PUBLIC
   ./ikarashiCAN_mk2
   ./ikarashiCAN_mk2/NoMutexCAN-master
@@ -92,7 +92,7 @@ target_link_libraries(ikarashiCAN_mk2 PRIVATE
 #
 # can_servo
 #
-add_library(can_servo STATIC)
+add_library(can_servo OBJECT)
 target_include_directories(can_servo PUBLIC
   ./can_servo
 )
@@ -107,7 +107,7 @@ target_link_libraries(can_servo PRIVATE
 #
 # ikakoMDC
 #
-add_library(ikakoMDC STATIC)
+add_library(ikakoMDC OBJECT)
 target_include_directories(ikakoMDC PUBLIC
   ./ikakoMDC
   ./ikakoMDC/lpf
