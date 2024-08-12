@@ -4,7 +4,7 @@ target_sources(app PRIVATE
 )
 
 target_link_libraries(app PRIVATE
-  mbed-os NHK2024B
+  mbed-os NHK2024B PS4_RX
   syoch-robotics ikarashiCAN_mk2 MotorController IkakoRobomas ikarashiCAN_mk2 can_servo
 )
 

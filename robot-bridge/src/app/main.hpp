@@ -87,11 +87,15 @@ class App {
 
   DigitalOut emc{PA_15};
 
+  /*
   using PS4Con = PseudoController;
   PS4Con ps4;
+  //*/
 
-  // using PS4Con = nhk2024b::ps4_con::PS4Con;
-  // PS4Con ps4{PC_6, PC_7, 115200};
+  //*
+  using PS4Con = nhk2024b::ps4_con::PS4Con;
+  PS4Con ps4{PC_6, PC_7, 115200};
+  //*/
 
   robotics::logger::Logger logger{"Robot2App", "robot2.app"};
 
@@ -119,7 +123,7 @@ class App {
   void Init() {
     logger.Info("Init");
 
-    // InitFEP();
+    InitFEP();
 
     ps4.stick_right >> robot.ctrl_move;
     ps4.button_cross >> robot.ctrl_deploy;
