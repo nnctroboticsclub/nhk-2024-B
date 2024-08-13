@@ -16,7 +16,7 @@
 
 #include "app.hpp"
 
-robotics::logger::Logger logger{"   app   ", "app"};
+robotics::logger::Logger logger{"Robot2App", "robot2.app"};
 
 void InitFEP() {
   robotics::network::UARTStream uart{PC_6, PC_7, 115200};
@@ -90,16 +90,12 @@ class App {
   /*
   using PS4Con = PseudoController;
   PS4Con ps4;
-  //*/
-
-  //*
+  /*/
   using PS4Con = nhk2024b::ps4_con::PS4Con;
   PS4Con ps4{PC_6, PC_7, 115200};
   //*/
 
-  robotics::logger::Logger logger{"Robot2App", "robot2.app"};
-
-  Actuators actuators{(Actuators::Config){
+  Actuators *actuators = new Actuators{(Actuators::Config){
       .can_1_rd = PA_11,
       .can_1_td = PA_12,
   }};
@@ -115,15 +111,15 @@ class App {
 
  public:
   App()
-      : move_l(actuators.ikako_robomas.NewNode(0)),
-        move_r(actuators.ikako_robomas.NewNode(1)),
-        servo0(actuators.can_servo.NewNode(0)),
-        servo1(actuators.can_servo.NewNode(1)) {}
+      : move_l(actuators->ikako_robomas.NewNode(0)),
+        move_r(actuators->ikako_robomas.NewNode(1)),
+        servo0(actuators->can_servo.NewNode(0)),
+        servo1(actuators->can_servo.NewNode(1)) {}
 
   void Init() {
     logger.Info("Init");
 
-    InitFEP();
+    // InitFEP();
 
     ps4.stick_right >> robot.ctrl_move;
     ps4.button_cross >> robot.ctrl_deploy;
@@ -132,14 +128,14 @@ class App {
 
     robot.out_move_l >> move_l->velocity;
     robot.out_move_r >> move_r->velocity;
-    robot.out_deploy;
+    // robot.out_deploy >> actuators->rohm_md.in_velocity;
     robot.out_unlock_duty.SetChangeCallback([this](float duty) {
       servo0->SetValue(127 + duty);
       servo1->SetValue(127 - duty);
     });
 
     emc.write(1);
-    actuators.Init();
+    actuators->Init();
 
     logger.Info("Init - Done");
   }
@@ -148,13 +144,12 @@ class App {
     logger.Info("Main loop");
     int i = 0;
     while (1) {
-      if (i % 1000 == 0) logger.Info("Update");
       ps4.Update();
-      actuators.Read();
+      actuators->Read();
 
-      status_actuators_send_ = actuators.Send();
+      status_actuators_send_ = actuators->Send();
 
-      actuators.Tick();
+      actuators->Tick();
 
       if (i % 100 == 0) {
         auto stick = ps4.stick_right.GetValue();

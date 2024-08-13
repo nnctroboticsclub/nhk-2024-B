@@ -5,12 +5,11 @@
 
 namespace nhk2024b::common {
 class IkakoRobomasBus {
-  ikarashiCAN_mk2 &can;  // must be global lifetime
   IkakoRobomasSender sender;
   std::vector<IkakoRobomasNode *> nodes;
 
  public:
-  IkakoRobomasBus(ikarashiCAN_mk2 &can) : can(can), sender(&can) {}
+  IkakoRobomasBus(ikarashiCAN_mk2 &can) : sender(&can) {}
 
   int Write() { return sender.write(); }
 
@@ -31,7 +30,5 @@ class IkakoRobomasBus {
   }
 
   void Tick() { sender.read(); }
-
-  bool ReadSuccess() { return can.get_read_flag(); }
 };
 }  // namespace nhk2024b::common

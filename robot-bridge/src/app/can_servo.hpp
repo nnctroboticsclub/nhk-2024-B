@@ -7,11 +7,10 @@ namespace nhk2024b::common {
 class CanServo;
 
 class CanServoBus {
-  ikarashiCAN_mk2 &can;
   can_servo servo;
 
  public:
-  CanServoBus(ikarashiCAN_mk2 &can, int id) : can(can), servo(&can, id) {}
+  CanServoBus(ikarashiCAN_mk2 &can, int id) : servo(&can, id) {}
 
   int Send() { return servo.send(); }
 
