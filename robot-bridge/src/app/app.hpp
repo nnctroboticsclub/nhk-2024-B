@@ -19,10 +19,10 @@ class Actuators {
  public:
   common::CanServoBus can_servo;
   common::IkakoRobomasBus ikako_robomas;
-  common::RohmMD rohm_md;
+  common::Rohm1chMD rohm_md;
 
   Actuators(Config config)
-      : can(config.can_1_rd, config.can_1_td, 0, (int)1E6),
+      : can(config.can_1_rd, config.can_1_td, 5, (int)1E6),
         can_servo(can, 1),
         ikako_robomas(can),
         rohm_md(can, 2) {}
@@ -31,29 +31,36 @@ class Actuators {
 
   int Read() {
     ikako_robomas.Read();
-    // rohm_md.Read();
+    rohm_md.Read();
     return 0;
   }
 
   int Send() {
-    int ret = can_servo.Send();
-    if (ret == 0) {
+    int errors = 0;
+
+    int status = can_servo.Send();  // Sends 025H CAN message
+    if (status == 0) {
       // logger.Error("CanServoBus::Send failed");
-      return -1;
-    }
-    ret = ikako_robomas.Write();
-    if (ret != 1) {
-      // logger.Error("IkakoRobomasBus::Write failed");
-      return -2;
+      errors |= 1;
     }
 
-    ret = rohm_md.Send();
-    if (ret != 1) {
+    status = ikako_robomas.Write();  // Sends 1FF/200H CAN message
+    if (status != 1) {
       // logger.Error("IkakoRobomasBus::Write failed");
-      return -3;
+      errors |= 2;
     }
 
-    return 0;
+    // ikako_robomas's sender uses this_id to specify the message id
+    // for the next message to be sent, so we need to restore it.
+    can.set_this_id(0x05);
+
+    status = rohm_md.Send();
+    if (status != 1) {
+      // logger.Error("IkakoRobomasBus::Write failed");
+      errors |= 4;
+    }
+
+    return -errors;
   }
 
   void Tick() {

@@ -6,7 +6,7 @@
 #include <robotics/node/node.hpp>
 
 namespace nhk2024b::common {
-class RohmMD {
+class Rohm1chMD {
   ::RohmMD md;
 
  public:
@@ -15,14 +15,14 @@ class RohmMD {
   // robotics::Node<float> out_current;   // [A]
   // robotics::Node<float> out_radian;    // [rad]
 
-  RohmMD(ikarashiCAN_mk2 &can, int id) : md(&can, id) {
+  Rohm1chMD(ikarashiCAN_mk2 &can, int id) : md(&can, id) {
     in_velocity.SetChangeCallback([this](float v) { md.set(0, v); });
   }
 
-  bool Send() { md.send(); }
+  bool Send() { return md.send(); }
 
   bool Read() {
-    md.read();
+    return md.read();
     // out_velocity.SetValue(md.get_vel());
     // out_current.SetValue(md.get_cur());
     // out_radian.SetValue(md.get_rad());

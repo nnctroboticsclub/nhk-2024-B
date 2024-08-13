@@ -165,20 +165,19 @@ class App {
       ThisThread::sleep_for(1ms);
     }
   }
+
+  void Test() {
+    actuators->Init();
+
+    actuators->Read();
+  }
 };
 
 int main0_alt0() {
-  Thread thread{osPriorityNormal, 8192, nullptr, "Main"};
-  thread.start([]() {
-    auto test = new App();
+  auto test = new App();
 
-    test->Init();
-    test->Main();
-  });
-
-  while (1) {
-    ThisThread::sleep_for(100s);
-  }
+  test->Init();
+  test->Main();
 
   return 0;
 }
@@ -271,6 +270,7 @@ int main1_alt1() {
     i += 1;
     ThisThread::sleep_for(100ms);
   }
+
   return 0;
 }
 
@@ -308,7 +308,13 @@ int main1_alt2() {
   return 0;
 }
 
-int main2() { return 0; }
+int main2_alt0() {
+  ikarashiCAN_mk2 can{PA_11, PA_12, 0x01f, (int)1E6};
+  nhk2024b::common::Rohm1chMD md{can, 2};
+  md.Read();
+
+  return 0;
+}
 
 int main3() { return 0; }
 
@@ -347,14 +353,4 @@ App app(config);
   }
 
   return 0; */
-}
-
-int main_switch() {
-  printf("main() started\n");
-  printf("Build: " __DATE__ " - " __TIME__ "\n");
-
-  robotics::logger::Init();
-
-  main0_alt0();
-  return 0;
 }
