@@ -158,6 +158,272 @@ fn loop_mouse() -> Result<(), Box<dyn core::error::Error>> {
     }
 }
 
+fn cp210x() -> Result<(), Box<dyn core::error::Error>> {
+    let mut logger = Logger::new("cp210x.nw", "  CP210x ");
+
+    let ep0_hc = Box::new(BindedHC::new(
+        super::usb_core::hc::TransactionDestination { dev: 1, ep: 0 },
+        super::usb_core::hc::EPType::Control,
+        8,
+    ));
+
+    let mut ep0 = USBEP0::new(ep0_hc);
+
+    // Enable Interface
+    logger.info("Enable Inteface");
+
+    ep0.transaction(
+        Direction::HostToDevice,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xIfcEnable,
+        1,
+        0,
+        &mut [],
+    )?;
+
+    // Set baudrate to 9600
+    logger.info("Set baudrate to 9600");
+    ep0.transaction(
+        Direction::HostToDevice,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xSetBaudRate,
+        0,
+        0,
+        &mut [0x80, 0x25, 0x00, 0x00],
+    )?;
+
+    /*
+     * XXYZ
+     * X: Word Length (8)
+     * Y: Parity (None = 0)
+     * Z: Stop Bits (0f)
+     */
+    logger.info("Set Line ctrl 8N1");
+
+    ep0.transaction(
+        Direction::HostToDevice,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xSetLineCtrl,
+        0x0800,
+        0,
+        &mut [],
+    )?;
+
+    /*
+     * B5 B4 B3 B2 B1 B0
+     * B5: 00 (EOF)
+     * B4: 00 (Error)
+     * B3: 00 (Break)
+     * B2: 00 (Event)
+     * B1: 11 (XON)
+     * B0: 13 (XOFF)
+     */
+    logger.info("Set Special Characters");
+
+    ep0.transaction(
+        Direction::HostToDevice,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xSetChars,
+        0,
+        0,
+        &mut [0x00, 0x00, 0x00, 0x00, 0x11, 0x13],
+    )?;
+
+    /*
+    // AAAAAAAA BBBBBBBB CCCCCCCC DDDDDDDD
+    // AAAAAAAA: ControlHandshake
+    // BBBBBBBB: FlowReplace
+    // CCCCCCCC: XonLimit
+    // DDDDDDDD: XoffLimit
+
+    logger.info("Get Flow");
+
+    let mut buf = [0; 16];
+    ep0.transaction(
+        Direction::DeviceToHost,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xGetFlow,
+        0,
+        0,
+        &mut buf,
+    )?;
+
+    let control_handshake = ((buf[0] as u32) << 24)
+        | ((buf[1] as u32) << 16)
+        | ((buf[2] as u32) << 8)
+        | (buf[3] as u32);
+    let flow_replace = ((buf[4] as u32) << 24)
+        | ((buf[5] as u32) << 16)
+        | ((buf[6] as u32) << 8)
+        | (buf[7] as u32);
+    let xon_limit = ((buf[8] as u32) << 24)
+        | ((buf[9] as u32) << 16)
+        | ((buf[10] as u32) << 8)
+        | (buf[11] as u32);
+    let xoff_limit = ((buf[12] as u32) << 24)
+        | ((buf[13] as u32) << 16)
+        | ((buf[14] as u32) << 8)
+        | (buf[15] as u32);
+
+    logger.info(format!("  Control Handshake: {:08X}", control_handshake));
+    logger.info(format!("  Flow Replace: {:08X}", flow_replace));
+    logger.info(format!("  Xon Limit: {:08X}", xon_limit));
+    logger.info(format!("  Xoff Limit: {:08X}", xoff_limit));
+
+    let flow_replace = 1;
+    logger.info("  Flow Replace --> 1");
+
+    logger.info("Set Flow");
+    ep0.transaction(
+        Direction::HostToDevice,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xSetFlow,
+        0,
+        0,
+        &mut [
+            (control_handshake >> 24) as u8,
+            (control_handshake >> 16) as u8,
+            (control_handshake >> 8) as u8,
+            control_handshake as u8,
+            (flow_replace >> 24) as u8,
+            (flow_replace >> 16) as u8,
+            (flow_replace >> 8) as u8,
+            flow_replace as u8,
+            (xon_limit >> 24) as u8,
+            (xon_limit >> 16) as u8,
+            (xon_limit >> 8) as u8,
+            xon_limit as u8,
+            (xoff_limit >> 24) as u8,
+            (xoff_limit >> 16) as u8,
+            (xoff_limit >> 8) as u8,
+            xoff_limit as u8,
+        ],
+    )?; */
+
+    // 000000ab 000000AB
+    // a: DTR (mask)
+    // b: RTS (mask)
+    // A: DTR (state)
+    // B: RTS (state)
+    logger.info("Set MHS");
+    ep0.transaction(
+        Direction::HostToDevice,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xSetMHS,
+        0x0303,
+        0,
+        &mut [],
+    )?;
+
+    /* logger.info("Get Communication Status");
+    let mut buf = [0; 0x13];
+    ep0.transaction(
+        Direction::DeviceToHost,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xGetCommStatus,
+        0,
+        0,
+        &mut buf,
+    )?;
+    logger.hex(LoggerLevel::Info, &buf, 0x13); */
+
+    // Set baudrate to 19200
+    logger.info("Set baudrate to 19200");
+
+    ep0.transaction(
+        Direction::HostToDevice,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xSetBaudRate,
+        0,
+        0,
+        &mut [0x00, 0x4b, 0x00, 0x00],
+    )?;
+
+    // 000000ab 000000AB
+    // a: DTR (mask)
+    // b: RTS (mask)
+    // A: DTR (state)
+    // B: RTS (state)
+    logger.info("Set MHS");
+    ep0.transaction(
+        Direction::HostToDevice,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xSetMHS,
+        0x0300,
+        0,
+        &mut [],
+    )?;
+
+    // (00 0x)16
+    // x: (ABCD)2
+    // bit 0: Clear the transmit queue.
+    // bit 1: Clear the receive queue.
+    // bit 2: Clear the transmit queue.
+    // bit 3: Clear the receive queue.
+    logger.info("Purge");
+    ep0.transaction(
+        Direction::HostToDevice,
+        RequestKind::Vendor,
+        Recipient::Interface,
+        RequestByte::CP210xPurge,
+        0x0003,
+        0,
+        &mut [],
+    )?;
+
+    sleep_ms(100);
+
+    // Send 'RDID\r\n'
+    // Endpoint [0x02] OUT Bulk
+    logger.info("Send 'RDID\\r\\n'");
+    {
+        let ep2_hc = Box::new(BindedHC::new(
+            super::usb_core::hc::TransactionDestination { dev: 1, ep: 2 },
+            super::usb_core::hc::EPType::Bulk,
+            64,
+        ));
+
+        let mut ep2 = ControlEP::new(ep2_hc);
+
+        ep2.send_packets(&mut [0x52, 0x44, 0x49, 0x44, 0x0D, 0x0A])?;
+    }
+
+    // recv forever
+    logger.info("Recv forever");
+
+    let mut buf = [0; 64];
+    let ep82_hc = Box::new(BindedHC::new(
+        super::usb_core::hc::TransactionDestination { dev: 1, ep: 0x82 },
+        super::usb_core::hc::EPType::Bulk,
+        64,
+    ));
+
+    let mut ep82 = ControlEP::new(ep82_hc);
+
+    loop {
+        sleep_ms(1000);
+
+        buf.fill(0x5A);
+        let result = ep82.recv_packets(&mut buf);
+        log(format!("Result: {:?}", result));
+        if result.is_err() {
+            continue;
+        }
+
+        logger.hex(LoggerLevel::Info, &buf, 64);
+    }
+}
+
 fn run() -> Result<(), Box<dyn core::error::Error>> {
     let mut logger = Logger::new("usb.com", "RUST CODE");
 
@@ -207,47 +473,7 @@ fn run() -> Result<(), Box<dyn core::error::Error>> {
     ep0.recv_packets(&mut buf)?;
     ep0.send_packets(&mut [])?; */
 
-    let ep0_hc = Box::new(BindedHC::new(
-        super::usb_core::hc::TransactionDestination { dev: 1, ep: 0 },
-        super::usb_core::hc::EPType::Control,
-        8,
-    ));
-
-    let mut ep0 = ControlEP::new(ep0_hc);
-
-    let mut buf = [0; 16];
-
-    loop {
-        sleep_ms(50);
-
-        let result = ep0.send_setup(StdRequest {
-            request_type: RequestType {
-                direction: Direction::DeviceToHost,
-                req_type: RequestKind::Class,
-                recipient: Recipient::Interface,
-            },
-            request: RequestByte::HidGetReport,
-            value: 0x01_00, // report type: input, report id: 0
-            index: 0,       // interface index
-            length: 8,
-        });
-        if result.is_err() {
-            continue;
-        }
-
-        buf.fill(0x5A);
-        let result = ep0.recv_packets(&mut buf[0..8]);
-        if result.is_err() {
-            continue;
-        }
-
-        let result = ep0.send_packets(&mut []);
-        if result.is_err() {
-            continue;
-        }
-
-        logger.hex(LoggerLevel::Info, &buf, 16);
-    }
+    cp210x()?;
 
     Ok(())
 }

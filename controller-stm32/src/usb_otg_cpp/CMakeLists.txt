@@ -1,4 +1,4 @@
-add_library(usb_otg_cpp STATIC)
+add_library(usb_otg_cpp OBJECT)
 target_include_directories(usb_otg_cpp PUBLIC
   .
 )

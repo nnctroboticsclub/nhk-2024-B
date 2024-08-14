@@ -3,6 +3,7 @@ use super::{
     new_descriptor::NewDescriptor,
 };
 use super::{DescriptorError, DescriptorResult};
+use crate::common::{log, log_hex};
 use crate::usb::{ParsingContext, PhysicalEP0, UsbString, EP0};
 
 use alloc::format;
@@ -35,6 +36,7 @@ impl Descriptor for ConfigurationDescriptor {
     }
 
     fn parse<'a>(ctx: &mut ParsingContext<impl EP0>, input: &'a [u8]) -> IResult<&'a [u8], Self> {
+        log_hex("ConfigurationDescriptor", input);
         let (input, _length) = le_u8(input)?; // length
         let (input, _type) = le_u8(input)?; // type
         let (input, _total_length) = le_u16(input)?;

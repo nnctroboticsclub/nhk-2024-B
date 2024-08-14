@@ -2,7 +2,10 @@ use core::marker::PhantomData;
 
 use alloc::{boxed::Box, format};
 
-use crate::{common::log, logger::Logger};
+use crate::{
+    common::log,
+    logger::{Logger, LoggerLevel},
+};
 
 use super::{
     hc::{EPType, Transaction, TransactionDestination, TransactionResult, TransactionToken, HC},
@@ -61,6 +64,10 @@ impl<H: HC> ControlEP<H> {
             self.logger.info(format!("--> {transaction:?}"));
         }
         self.hc.submit_urb(&mut transaction)?;
+
+        if false {
+            self.logger.hex(LoggerLevel::Info, &buf, 8);
+        }
 
         self.toggle = 1; // first toggle of data stage is always 1
 

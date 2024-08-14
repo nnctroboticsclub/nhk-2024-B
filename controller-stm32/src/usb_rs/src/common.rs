@@ -1,4 +1,4 @@
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, format, string::String};
 
 #[cfg(target_os = "none")]
 use alloc::ffi::CString;
@@ -42,4 +42,20 @@ pub fn log<'a, S: Into<Cow<'a, str>>>(message: S) {
     let s: &str = &s;
 
     println!("{}", s);
+}
+
+pub fn log_hex<'a>(name: &str, data: &[u8]) {
+    log(format!("{} ({} bytes):", name, data.len()));
+
+    let mut line = String::new();
+    for i in 0..data.len() {
+        if i % 16 == 0 {
+            log(format!("  {}", line));
+            line.clear();
+        }
+
+        line.push_str(&format!(" {:02X}", data[i]));
+    }
+
+    log(format!("  {}", line));
 }
