@@ -24,9 +24,9 @@ void InitFEP() {
   robotics::driver::Dout ini{PC_8};
   robotics::network::fep::FEPDriver fep_drv{uart, rst, ini};
 
-  robotics::logger::SuppressLogger("rxp.fep.nw");
-  robotics::logger::SuppressLogger("st.fep.nw");
-  robotics::logger::SuppressLogger("sr.fep.nw");
+  // robotics::logger::SuppressLogger("rxp.fep.nw");
+  // robotics::logger::SuppressLogger("st.fep.nw");
+  // robotics::logger::SuppressLogger("sr.fep.nw");
 
   fep_drv.AddConfiguredRegister(0, 21);
   fep_drv.AddConfiguredRegister(1, 0xF0);
@@ -119,7 +119,7 @@ class App {
   void Init() {
     logger.Info("Init");
 
-    // InitFEP();
+    InitFEP();
 
     ps4.stick_right >> robot.ctrl_move;
     ps4.button_cross >> robot.ctrl_deploy;
