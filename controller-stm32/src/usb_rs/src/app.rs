@@ -10,7 +10,7 @@ use crate::usb_core::std_request::RequestByte;
 use crate::usb_core::std_request::RequestKind;
 use crate::usb_core::std_request::RequestType;
 use crate::usb_core::std_request::StdRequest;
-use crate::usb_core::ControlEP;
+use crate::usb_core::Endpoint;
 
 use super::alloc::format;
 use super::alloc::vec;
@@ -147,7 +147,7 @@ fn loop_mouse() -> Result<(), Box<dyn core::error::Error>> {
         7,
     ));
 
-    let mut ep2 = ControlEP::new(ep2_hc);
+    let mut ep2 = Endpoint::new(ep2_hc);
     let mut buf_ep2 = [0; 5];
 
     loop {
@@ -393,7 +393,7 @@ fn cp210x() -> Result<(), Box<dyn core::error::Error>> {
             64,
         ));
 
-        let mut ep2 = ControlEP::new(ep2_hc);
+        let mut ep2 = Endpoint::new(ep2_hc);
 
         ep2.send_packets(&mut [0x52, 0x44, 0x49, 0x44, 0x0D, 0x0A])?;
     }
@@ -408,7 +408,7 @@ fn cp210x() -> Result<(), Box<dyn core::error::Error>> {
         64,
     ));
 
-    let mut ep82 = ControlEP::new(ep82_hc);
+    let mut ep82 = Endpoint::new(ep82_hc);
 
     loop {
         sleep_ms(1000);
