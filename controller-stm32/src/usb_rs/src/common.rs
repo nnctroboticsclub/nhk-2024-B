@@ -15,7 +15,7 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
 #[cfg(target_os = "none")]
 pub fn sleep_ms(ms: i32) {
     unsafe {
-        binding_basic::sleep_ms(ms);
+        binding_basic::__syoch_sleep_ms(ms);
     }
 }
 
