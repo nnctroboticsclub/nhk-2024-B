@@ -5,14 +5,14 @@ use crate::{
     usb_core::{
         hc::{TransactionError, TransactionResult, HC},
         std_request::{Direction, Recipient, RequestByte, RequestKind, RequestType, StdRequest},
-        ControlEP,
+        Endpoint,
     },
 };
 
 use super::{PhysicalEP0, EP0};
 
 pub struct USBEP0<H: HC> {
-    ep: ControlEP<H>,
+    ep: Endpoint<H>,
     dev: u8,
 }
 
@@ -20,7 +20,7 @@ impl<H: HC> USBEP0<H> {
     pub fn new(hc: Box<H>) -> USBEP0<H> {
         USBEP0 {
             dev: hc.get_dest().dev,
-            ep: ControlEP::new(hc),
+            ep: Endpoint::new(hc),
         }
     }
 
@@ -105,7 +105,7 @@ impl<H: HC> USBEP0<H> {
         Ok(())
     }
 
-    pub fn get_ep(&mut self) -> &mut ControlEP<H> {
+    pub fn get_ep(&mut self) -> &mut Endpoint<H> {
         &mut self.ep
     }
 }
@@ -167,7 +167,7 @@ impl<H: HC> EP0 for USBEP0<H> {
 
         self.get_descriptor(3, index, buf.as_mut_slice())?;
 
-        let v = &buf[0..length];
+        let v = &buf[2..length];
         Ok(String::from_utf16le_lossy(v))
     }
 }
