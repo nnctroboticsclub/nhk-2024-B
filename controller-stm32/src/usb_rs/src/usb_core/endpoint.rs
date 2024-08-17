@@ -12,20 +12,19 @@ use super::{
     std_request::StdRequest,
 };
 
-pub struct ControlEP<H: HC> {
+pub struct Endpoint<H: HC> {
     logger: Logger,
     pub(super) hc: Box<H>,
 
-    dest: TransactionDestination,
     mps: u8,
     toggle: u8,
 }
 
-impl<H: HC> ControlEP<H> {
-    pub fn new(hc: Box<H>) -> ControlEP<H> {
+impl<H: HC> Endpoint<H> {
+    pub fn new(hc: Box<H>) -> Endpoint<H> {
         let dest = hc.get_dest();
 
-        ControlEP {
+        Endpoint {
             logger: Logger::new(
                 format!("dev{}-ep{}.usb.com", dest.dev, dest.ep),
                 format!(
@@ -35,7 +34,6 @@ impl<H: HC> ControlEP<H> {
             ),
             mps: 8,
             toggle: 0,
-            dest: dest.clone(),
 
             hc,
         }
@@ -60,14 +58,10 @@ impl<H: HC> ControlEP<H> {
             length: 8,
         };
 
-        if false {
+        if true {
             self.logger.info(format!("--> {transaction:?}"));
         }
         self.hc.submit_urb(&mut transaction)?;
-
-        if false {
-            self.logger.hex(LoggerLevel::Info, &buf, 8);
-        }
 
         self.toggle = 1; // first toggle of data stage is always 1
 
@@ -85,7 +79,7 @@ impl<H: HC> ControlEP<H> {
         };
 
         self.hc.submit_urb(&mut transaction)?;
-        if false {
+        if true {
             self.logger.info(format!("<-- {transaction:?}"));
         }
 
@@ -103,7 +97,7 @@ impl<H: HC> ControlEP<H> {
             length: length as u8,
         };
 
-        if false {
+        if true {
             self.logger.info(format!("--> {transaction:?}"));
         }
         self.hc.submit_urb(&mut transaction)?;
@@ -156,9 +150,8 @@ impl<H: HC> ControlEP<H> {
     }
 
     pub fn set_address(&mut self, new_address: u8) -> TransactionResult<()> {
-        self.dest.dev = new_address;
-
         self.hc.get_dest_mut().dev = new_address;
+        self.hc.reset();
 
         Ok(())
     }
@@ -177,7 +170,7 @@ mod tests {
             8,
         ));
 
-        let mut ep = ControlEP::new(hc);
+        let mut ep = Endpoint::new(hc);
 
         let mut buf = [0; 8];
         let length = 8;
