@@ -8,6 +8,8 @@ use alloc::format;
 pub trait HC {
     fn new(dest: TransactionDestination, ep_type: EPType, max_packet_size: u32) -> Self;
 
+    fn reset(&mut self);
+
     fn set_max_packet_size(&mut self, max_packet_size: u32);
 
     fn get_dest_mut(&mut self) -> &mut TransactionDestination;
@@ -23,7 +25,7 @@ pub trait HC {
         while self.get_urb_status() == URBStatus::Idle {
             sleep_ms(1);
 
-            if tick > 50 {
+            if tick > 500 {
                 return Err(TransactionError::Timeout);
             }
 
