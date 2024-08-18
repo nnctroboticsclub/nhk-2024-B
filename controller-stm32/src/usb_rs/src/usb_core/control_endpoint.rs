@@ -1,11 +1,14 @@
 use core::fmt::{self, Debug};
 
-use alloc::{vec, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 
-use crate::usb_core::std_request::{Direction, StdRequest};
+use crate::{
+    common::{log, sleep_ms},
+    usb_core::std_request::{Direction, StdRequest},
+};
 
 use super::{
-    hc::{TransactionResult, HC},
+    hc::{TransactionError, TransactionResult, HC},
     std_request::{Recipient, RequestByte, RequestKind, RequestType},
     Endpoint,
 };
@@ -67,12 +70,12 @@ impl<H: HC> ControlEndpoint<H> {
         ControlEndpoint { endpoint }
     }
 
-    fn control_transfer(
+    fn control_transfer_(
         &mut self,
-        length: u16,
+        buffer: &mut [u8],
         direction: Direction,
-        request: ControlRequest,
-    ) -> TransactionResult<Vec<u8>> {
+        request: &ControlRequest,
+    ) -> TransactionResult<()> {
         let direction = direction;
 
         let req = StdRequest {
@@ -84,13 +87,12 @@ impl<H: HC> ControlEndpoint<H> {
             request: request.request,
             value: request.value,
             index: request.index,
-            length,
+            length: buffer.len() as u16,
         };
 
-        let mut buf = vec![0; length as usize];
         let transfer = ControlTransfer {
             request: req,
-            data: &mut buf,
+            data: buffer,
         };
 
         self.endpoint.send_setup(transfer.request)?;
@@ -110,7 +112,41 @@ impl<H: HC> ControlEndpoint<H> {
             }
         }
 
-        Ok(buf)
+        Ok(())
+    }
+
+    fn control_transfer(
+        &mut self,
+        buffer: &mut [u8],
+        direction: Direction,
+        request: ControlRequest,
+    ) -> TransactionResult<()> {
+        let mut retries = 0;
+        let retry_limit = 50;
+
+        loop {
+            if retries >= retry_limit {
+                return Err(TransactionError::Timeout);
+            }
+            retries += 1;
+
+            match self.control_transfer_(buffer, direction, &request) {
+                Ok(_) => break,
+                Err(TransactionError::NotReady) => {
+                    log(format!("Retry: {:?} NRDY", retries));
+                    sleep_ms(50);
+                    continue;
+                }
+                Err(TransactionError::Error) => {
+                    log(format!("Retry: {:?} NERR", retries));
+                    sleep_ms(50);
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(())
     }
 
     pub fn control_read(
@@ -118,35 +154,18 @@ impl<H: HC> ControlEndpoint<H> {
         length: u16,
         request: ControlRequest,
     ) -> TransactionResult<Vec<u8>> {
-        self.control_transfer(length, Direction::HostToDevice, request)
+        let mut buffer = vec![0; length as usize];
+
+        self.control_transfer(buffer.as_mut_slice(), Direction::DeviceToHost, request)?;
+
+        Ok(buffer)
     }
 
     pub fn control_write(&mut self, request: ControlRequest, data: &[u8]) -> TransactionResult<()> {
-        let mut buf = vec![0; data.len()];
-        buf.copy_from_slice(data);
-
-        let transfer = ControlTransfer {
-            request: StdRequest {
-                request_type: RequestType {
-                    direction: Direction::DeviceToHost,
-                    req_type: request.req_type,
-                    recipient: request.recipient,
-                },
-                request: request.request,
-                value: request.value,
-                index: request.index,
-                length: data.len() as u16,
-            },
-            data: &mut buf,
-        };
-
-        self.endpoint.send_setup(transfer.request)?;
-
-        if transfer.data.len() != 0 {
-            self.endpoint.send_packets(transfer.data)?;
-        }
-        self.endpoint.recv_packets(&mut [])?;
-
-        Ok(())
+        self.control_transfer(
+            data.to_vec().as_mut_slice(),
+            Direction::HostToDevice,
+            request,
+        )
     }
 }
