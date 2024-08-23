@@ -5,61 +5,51 @@
 #include <robotics/controller/float.hpp>
 #include <robotics/controller/joystick.hpp>
 #include <robotics/filter/angled_motor.hpp>
+#include <nhk2024b/types.hpp>
 
 namespace nhk2024b {
 class RefrigeController {
  public:
-  struct Config {
-    // コントローラーの ID リスト
-    int move_id;
-    int corect_id;
-    int button_id;
-  };
-
   // どういうノードをコントローラーから生やすか
-  controller::Float collector;
-  controller::Action button;
-  controller::Float move;
+  // 四輪駆動
+  // ↑controller::の形にしない！！
+  class Refrige {
+    template <typename T>
+    using Node = robotics::Node<T>;
 
-  // const はコンストラクタないで変更がないことを明記/強制
-  RefrigeController(const Config &config)
-      : collector(config.corect_id),
-        button(config.button_id),
-        move(config.move_id) {}
+   public:
+    Node<bool> ctr_collector;       // 回収機構多分ボタン
+    Node<bool> ctr_locke;           // ロック解除の際のボタン
+    Node<bool> ctr_brake;  // ブレーキのボタン
+    Node<JoyStick2D> ctr_move;
+    //↑コントロール側のノード
 
-  bool Pass(const controller::RawPacket &packet) {
-    return collector.Pass(packet) || button.Pass(packet) || move.Pass(packet);
+
+    // 出力 Node (モーターなど)
+    Node<float> out_motor_1;
+    Node<float> out_motor_2;
+    Node<float> out_motor_3;
+    Node<float> out_motor_4;
+    Node<float> out_brake;      // ブレーキ
+    Node<float> out_lock;       // ロック解除->戻す必要あり
+    Node<float> out_collector;  // 回収機構ー＞戻さなくてもよさそう
+
+    void LinkController() {
+      ctr_move.SetChangeCallback([this](robotics::JoyStick2D stick) {
+
+      });
+
+      ctr_button.SetChangeCallback(
+          [this](bool btn) {  // ボタン押している間にロック解除と発射（motorが回りつ図ける）
+            if (btn == true) {
+              lock.SetValue(0.2);
+            } else {
+              lock.SetValue(0);
+            }
+          });
+
+      ctr_collector;
+    }
   }
-};
-
-class Refrige {
-  template <typename T>
-  using Node = robotics::Node<T>;
-
-  // コントローラー Node をまとめて持つ
-  RefrigeController ctrl;
-
- public:
-  // 出力 Node (モーターなど)
-  Node<float> motor_1;
-  Node<float> motor_2;
-  Node<float> motor_3;
-  Node<float> motor_4;
-  Node<float> lock;
-  Node<float> collector;
-
-  Refrige(RefrigeController::Config &ctrl_config) : ctrl(ctrl_config) {}
-
-  void LinkController() {
-    ctrl.button.SetChangeCallback([this](bool btn) {//ボタン押している間にロック解除と発射（motorが回りつ図ける）
-      if (btn == true) {
-        lock.SetValue(0.2);
-      } else {
-        lock.SetValue(0);
-      }
-    });
-  }
-
-
-
-};  // namespace nhk2024b
+  }; 
+  } // namespace nhk2024b
