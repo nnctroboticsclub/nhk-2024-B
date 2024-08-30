@@ -1,0 +1,15 @@
+[package]
+name = "connection-host"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# srobo_base = { git = "https://github.com/nnctroboticsclub/srobo_base.git" }
+# im920_rs = { git = "https://github.com/nnctroboticsclub/im920_rs.git" }
+srobo_base = { path = "/workspaces/srobo_base" }
+im920_rs = { path = "/workspaces/im920_rs" }
+
+serialport = "4.5.0"
+bbqueue = "0.5.1"
+nom = "7.1.3"
+heapless = "0.8.0"
