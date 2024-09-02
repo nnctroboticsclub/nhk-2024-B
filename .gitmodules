@@ -31,3 +31,9 @@ url = git@github.com:nnctroboticsclub/can_servo.git
 [submodule "common_libs/PS4_RX"]
 path = common_libs/PS4_RX
 url = git@github.com:nnctroboticsclub/PS4_RX.git
+[submodule "common_libs/srobo_base"]
+	path = common_libs/srobo_base
+	url = git@github.com:nnctroboticsclub/srobo_base
+[submodule "common_libs/im920_rs"]
+	path = common_libs/im920_rs
+	url = git@github.com:nnctroboticsclub/im920_rs
