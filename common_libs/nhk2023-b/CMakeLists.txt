@@ -25,6 +25,8 @@ target_include_directories(NHK2024BRuntime PRIVATE
   ./inc
 )
 
+target_link_libraries(NHK2024BRuntime PUBLIC syoch-robotics)
+
 add_library(NHK2024B STATIC)
 target_include_directories(NHK2024B PUBLIC
   ./inc
