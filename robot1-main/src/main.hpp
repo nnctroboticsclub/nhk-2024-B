@@ -27,7 +27,7 @@ void InitFEP() {
   // robotics::logger::SuppressLogger("st.fep.nw");
   // robotics::logger::SuppressLogger("sr.fep.nw");
 
-  fep_drv.AddConfiguredRegister(0, 21);
+  fep_drv.AddConfiguredRegister(0, 7);
   fep_drv.AddConfiguredRegister(1, 0xF0);
   fep_drv.AddConfiguredRegister(7, 0x22);
   fep_drv.AddConfiguredRegister(8, 0x2E);
@@ -104,7 +104,6 @@ class App {
   robotics::assembly::MotorPair<float> &lock_back;
   robotics::assembly::MotorPair<float> &brake;
 
-
  public:
   App()
       : mdc0(&ican, 0),
@@ -138,10 +137,10 @@ class App {
     robot.out_motor3 >> motor2.GetMotor();
     robot.out_motor4 >> motor3.GetMotor();
 
-    robot.out_brake >> lock.GetMotor(); 
-    robot.out_brake >> collector.GetMotor(); 
-    robot.out_brake >> lock_back.GetMotor(); 
-    robot.out_brake >> brake.GetMotor(); 
+    robot.out_brake >> lock.GetMotor();
+    robot.out_brake >> collector.GetMotor();
+    robot.out_brake >> lock_back.GetMotor();
+    robot.out_brake >> brake.GetMotor();
 
     emc.write(1);
 
@@ -154,9 +153,17 @@ class App {
     while (1) {
       ps4.Update();
 
-      if (i % 100 == 0) {
+      mdc0.Tick();
+      mdc1.Tick();
+
+      int actuator_errors = 0;
+      if (mdc0.Send() == 0) actuator_errors |= 1;
+      if (mdc1.Send() == 0) actuator_errors |= 2;
+
+      if (i % 100 == 
+      0) {
         logger.Info("Status");
-        logger.Info("  None");
+        logger.Info("  actuator_errors: %d", actuator_errors);
         logger.Info("Report");
         logger.Info("  None");
       }
@@ -175,4 +182,7 @@ int main0_alt0() {
   return 0;
 }
 
-int main_switch() {return main0_alt0();}
+int main_switch() {
+  
+  return main0_alt0();
+}
