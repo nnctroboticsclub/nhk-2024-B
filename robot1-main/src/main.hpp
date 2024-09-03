@@ -15,7 +15,7 @@
 
 #include "robot1-main.hpp"
 
-robotics::logger::Logger logger{"Robot2App", "robot2.app"};
+robotics::logger::Logger logger{"Robot1App", "robot1.app"};
 
 void InitFEP() {
   robotics::network::UARTStream uart{PC_6, PC_7, 115200};
@@ -92,7 +92,7 @@ class App {
   //*/
 
   nhk2024b::robot1::Refrige robot;
-  ikarashiCAN_mk2 ican{PB_5, PB_6, (int)1e6};  // TODO: Fix this
+  ikarashiCAN_mk2 ican{PB_5, PB_6, 0, (int)1e6};  // TODO: Fix this
   robotics::registry::ikakoMDC mdc0;
   robotics::assembly::MotorPair<float> &motor0;
   robotics::assembly::MotorPair<float> &motor1;
@@ -106,12 +106,12 @@ class App {
 
  public:
   App()
-      : mdc0(&ican, 0),
+      : mdc0(&ican, 9),
         motor0(this->mdc0.GetNode(0)),
         motor1(this->mdc0.GetNode(1)),
         motor2(this->mdc0.GetNode(2)),
         motor3(this->mdc0.GetNode(3)),
-        mdc1(&ican, 1),
+        mdc1(&ican, 6),
         collector(this->mdc1.GetNode(0)),
         lock(this->mdc1.GetNode(1)),
         lock_back(this->mdc1.GetNode(2)),
@@ -160,12 +160,12 @@ class App {
       if (mdc0.Send() == 0) actuator_errors |= 1;
       if (mdc1.Send() == 0) actuator_errors |= 2;
 
-      if (i % 100 == 
-      0) {
+      if (i % 100 == 0) {
+        auto stick = ps4.stick_left.GetValue();
         logger.Info("Status");
         logger.Info("  actuator_errors: %d", actuator_errors);
         logger.Info("Report");
-        logger.Info("  None");
+        logger.Info("  c %lf %lf", stick[0], stick[1]);
       }
       i += 1;
       ThisThread::sleep_for(1ms);
