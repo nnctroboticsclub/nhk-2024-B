@@ -6,11 +6,10 @@
 extern "C" {
 #endif
 
-void sleep_ms(int ms);
+void __syoch_sleep_ms(int ms);
 
-// re-export
-void* malloc(size_t size);
-void free(void* ptr);
+void* __syoch_malloc(size_t size, size_t align);
+void __syoch_free(void* ptr);
 
 void __syoch_put_log(const char*);
 

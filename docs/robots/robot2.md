@@ -55,3 +55,28 @@ graph TD
   Srv --> Srv1
   F4 -- ??? --> expand
 ```
+
+## CAN バス デバイス ID リスト
+
+| 名称 | ID | 使用メッセージマスク, ID |
+| :-: | --- | --- |
+| c620 A | --- | 0x7FF, 0x1FF |
+| c620 B | --- | 0x7FF, 0x200 |
+| F446RE | 0 | 0x7C0, 0x000 |
+| CAN Servo | 1 | 0x7C0, 0x020 |
+| Rohm MD | 2 | 0x7C0, 0x040 |
+
+## 状態値リスト
+
+### actuator_send
+
+種別: ビットマップ \\
+負の値: エラー \\
+
+
+#### エラー値のビットマップ
+|Bit|Description|
+|--:|:----------|
+|  0|Can Servo  |
+|  1|Robomas    |
+|  2|Rohm MD    |

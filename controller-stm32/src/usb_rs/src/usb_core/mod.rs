@@ -1,7 +1,7 @@
-mod control_ep;
+pub mod control_endpoint;
+mod endpoint;
 pub mod hc;
 pub mod hcd;
-
 pub mod std_request;
 
-pub use control_ep::ControlEP;
+pub use endpoint::Endpoint;

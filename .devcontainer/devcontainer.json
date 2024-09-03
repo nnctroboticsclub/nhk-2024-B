@@ -22,7 +22,9 @@
 				"ms-toolsai.jupyter",
 				"charliermarsh.ruff",
 				"mhutchie.git-graph",
-				"rust-lang.rust-analyzer"
+				"rust-lang.rust-analyzer",
+				"shd101wyy.markdown-preview-enhanced",
+				"yzhang.markdown-all-in-one"
 			]
 		}
 	}

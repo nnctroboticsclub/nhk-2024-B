@@ -1,4 +1,4 @@
-add_library(usb_otg_packets STATIC)
+add_library(usb_otg_packets OBJECT)
 target_include_directories(usb_otg_packets PUBLIC
   .
 )

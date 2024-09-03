@@ -1,0 +1,15 @@
+[package]
+name = "nhk2024b-rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib"]
+
+[build-dependencies]
+cbindgen = "0.27.0"
+bindgen = "0.65.1"
+
+[dependencies]
+srobo_base = { path = "../srobo_base"}
+im920_rs = { path = "../im920_rs" }

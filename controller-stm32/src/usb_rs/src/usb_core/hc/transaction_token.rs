@@ -25,4 +25,12 @@ impl TransactionToken {
             _ => false,
         }
     }
+
+    pub fn get_color(&self) -> &'static str {
+        match self {
+            TransactionToken::Setup => "\x1b[1;31m",
+            TransactionToken::In => "\x1b[1;33m",
+            TransactionToken::Out => "\x1b[1;34m",
+        }
+    }
 }
