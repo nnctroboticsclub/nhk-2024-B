@@ -2,4 +2,4 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-include!(concat!(env!("OUT_DIR"), "/bindings-basic.rs"));
+core::include!(core::concat!(core::env!("OUT_DIR"), "/ffi_logger.rs"));

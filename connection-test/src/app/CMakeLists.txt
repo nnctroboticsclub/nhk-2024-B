@@ -4,8 +4,7 @@ target_sources(app PRIVATE
 )
 
 target_link_libraries(app PRIVATE
-  app_rs
-  mbed-os syoch-robotics
+  mbed-os syoch-robotics NHK2024B srobo_base_hxx im920_rs_hxx
   ikarashiCAN_mk2 MotorController IkakoRobomas ikarashiCAN_mk2 can_servo
 )
 

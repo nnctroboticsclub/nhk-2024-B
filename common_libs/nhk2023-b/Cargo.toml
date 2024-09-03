@@ -1,5 +1,5 @@
 [package]
-name = "libnhk2024b"
+name = "nhk2024b-rs"
 version = "0.1.0"
 edition = "2021"
 

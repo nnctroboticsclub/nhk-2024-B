@@ -232,6 +232,7 @@ dependencies = [
 name = "im920_rs"
 version = "0.1.0"
 dependencies = [
+ "cbindgen",
  "srobo_base",
 ]
 
@@ -286,16 +287,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libnhk2024b"
-version = "0.1.0"
-dependencies = [
- "bindgen",
- "cbindgen",
- "im920_rs",
- "srobo_base",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -318,6 +309,16 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
+
+[[package]]
+name = "nhk2024b-rs"
+version = "0.1.0"
+dependencies = [
+ "bindgen",
+ "cbindgen",
+ "im920_rs",
+ "srobo_base",
+]
 
 [[package]]
 name = "nom"
@@ -473,6 +474,9 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "srobo_base"
 version = "0.1.0"
+dependencies = [
+ "cbindgen",
+]
 
 [[package]]
 name = "strsim"

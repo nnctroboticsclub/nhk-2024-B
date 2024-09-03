@@ -6,6 +6,7 @@ set(MBED_APP_JSON_PATH mbed_app.json)
 include(mbed-os/tools/cmake/app.cmake)
 add_subdirectory(mbed-os)
 
+add_subdirectory(nhk2023-b)
 add_subdirectory(syoch-robotics)
 
 #
@@ -121,6 +122,20 @@ target_sources(ikakoMDC PRIVATE
 target_link_libraries(ikakoMDC PRIVATE
   mbed-os
   ikarashiCAN_mk2
+)
+
+#
+# PS4_RX
+#
+add_library(PS4_RX STATIC)
+target_include_directories(PS4_RX PUBLIC
+  ./PS4_RX
+)
+target_sources(PS4_RX PRIVATE
+  PS4_RX/PS4.cpp
+)
+target_link_libraries(PS4_RX PRIVATE
+  mbed-os
 )
 
 project(ControllerSTM32)
