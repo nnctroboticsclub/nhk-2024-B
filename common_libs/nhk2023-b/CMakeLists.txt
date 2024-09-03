@@ -1,4 +1,4 @@
-add_library(NHK2024B STATIC)
+add_library(NHK2024B OBJECT)
 target_include_directories(NHK2024B PUBLIC
   .
 )
