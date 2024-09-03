@@ -59,17 +59,17 @@ impl Descriptor for DeviceDescriptor {
 
         let manufacturer = match UsbString::new(i_manufacturer).read(ctx) {
             Ok(s) => s,
-            Err(e) => format!("Error[{:?}]", e),
+            Err(e) => format!("Error[{:?}] ({})", e, i_manufacturer),
         };
 
         let product = match UsbString::new(i_product).read(ctx) {
             Ok(s) => s,
-            Err(e) => format!("Error[{:?}]", e),
+            Err(e) => format!("Error[{:?}] ({})", e, i_product),
         };
 
         let serial = match UsbString::new(i_serial).read(ctx) {
             Ok(s) => s,
-            Err(e) => format!("Error[{:?}]", e),
+            Err(e) => format!("Error[{:?}] ({})", e, i_serial),
         };
 
         Ok((

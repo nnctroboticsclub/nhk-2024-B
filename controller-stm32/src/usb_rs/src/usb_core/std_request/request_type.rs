@@ -1,6 +1,6 @@
 use super::{direction::Direction, recipient::Recipient, request_kind::RequestKind};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct RequestType {
     pub direction: Direction,
     pub req_type: RequestKind,

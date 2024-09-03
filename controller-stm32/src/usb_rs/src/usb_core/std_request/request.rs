@@ -1,6 +1,6 @@
 use super::{request_byte::RequestByte, request_type::RequestType};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct StdRequest {
     pub request_type: RequestType,
     pub request: RequestByte,

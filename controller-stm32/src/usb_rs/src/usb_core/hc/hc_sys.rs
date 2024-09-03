@@ -58,9 +58,15 @@ impl HC for BindedHC {
             mps: max_packet_size,
         };
 
-        hc.init();
-
         hc
+    }
+
+    fn reset(&mut self) {
+        self.logger.info("Resetting HC");
+        unsafe {
+            self.hc.destruct();
+            self.hc = stm32_usb_host_HC::new();
+        }
     }
 
     fn set_max_packet_size(&mut self, max_packet_size: u32) {
