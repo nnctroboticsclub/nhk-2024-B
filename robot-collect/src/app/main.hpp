@@ -105,8 +105,11 @@ class Test {
 
       if (i % 100 == 0) {
         logger.Info("Report");
-        logger.Info("  Stick: %f, %f", robot.ctrl_stick_rotate.GetValue()[0],
-                    robot.ctrl_stick_rotate.GetValue()[1]);
+        logger.Info("  Stick: %f, %f; %f, %f",
+                    robot.ctrl_stick_rotate.GetValue()[0],
+                    robot.ctrl_stick_rotate.GetValue()[1],
+                    robot.ctrl_stick_forward_back.GetValue()[0],
+                    robot.ctrl_stick_forward_back.GetValue()[1]);
         logger.Info("  output: %f %f %f %f", robot.out_move_left.GetValue(),
                     robot.out_move_right.GetValue(),
                     robot.out_arm_elevation.GetValue(),
