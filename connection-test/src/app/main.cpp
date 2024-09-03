@@ -512,6 +512,42 @@ class CIM920 {
 //! =============================================================
 //! =============================================================
 
+class IM920Test {
+  void Main() {
+    auto thread = new robotics::system::Thread;
+    thread->SetStackSize(8192);
+    thread->SetThreadName("App");
+    thread->Start([]() {
+      auto logger = robotics::logger::Logger("main", "Main");
+
+      auto uart = std::make_shared<mbed::UnbufferedSerial>(PA_9, PA_10, 19200);
+      auto tx = std::make_shared<srobo2::com::UARTCStreamTx>(uart);
+      auto rx = std::make_shared<srobo2::com::UARTCStreamRx>(uart);
+      auto timer = std::make_shared<srobo2::timer::MBedTimer>();
+
+      auto im920 = std::make_shared<srobo2::com::CIM920>(
+          tx->GetTx(), rx->GetRx(), timer->GetTime());
+
+      auto node_number = im920->GetNodeNumber(1.0);
+      logger.Info("Node Number: %d", node_number);
+
+      auto remote = 3 - node_number;
+
+      auto version = im920->GetVersion(1.0);
+      logger.Info("Version: %s\n", version.c_str());
+
+      im920->OnData([&logger](uint16_t from, uint8_t* data, size_t len) {
+        logger.Info("OnData: %d\n", from);
+      });
+
+      while (1) {
+        im920->Send(remote, (uint8_t*)"Hello", 5, 1.0);
+        robotics::system::SleepFor(1s);
+      }
+    });
+  }
+};
+
 int main() {
   using namespace std::chrono_literals;
 
@@ -522,40 +558,8 @@ int main() {
 
   robotics::logger::Init();
 
-  /* auto app = new CanDebug();
-  app->Main(); */
-
-  auto thread = new robotics::system::Thread;
-  thread->SetStackSize(8192);
-  thread->SetThreadName("App");
-  thread->Start([]() {
-    auto logger = robotics::logger::Logger("main", "Main");
-
-    auto uart = std::make_shared<mbed::UnbufferedSerial>(PA_9, PA_10, 19200);
-    auto tx = std::make_shared<srobo2::com::UARTCStreamTx>(uart);
-    auto rx = std::make_shared<srobo2::com::UARTCStreamRx>(uart);
-    auto timer = std::make_shared<srobo2::timer::MBedTimer>();
-
-    auto im920 = std::make_shared<srobo2::com::CIM920>(tx->GetTx(), rx->GetRx(),
-                                                       timer->GetTime());
-
-    auto node_number = im920->GetNodeNumber(1.0);
-    logger.Info("Node Number: %d", node_number);
-
-    auto remote = 3 - node_number;
-
-    auto version = im920->GetVersion(1.0);
-    logger.Info("Version: %s\n", version.c_str());
-
-    im920->OnData([&logger](uint16_t from, uint8_t* data, size_t len) {
-      logger.Info("OnData: %d\n", from);
-    });
-
-    while (1) {
-      im920->Send(remote, (uint8_t*)"Hello", 5, 1.0);
-      robotics::system::SleepFor(1s);
-    }
-  });
+  auto app = new CanDebug();
+  app->Main();
 
   return 0;
 }
