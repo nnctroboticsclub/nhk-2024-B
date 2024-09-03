@@ -92,12 +92,13 @@ class App {
   //*/
 
   nhk2024b::robot1::Refrige robot;
-  ikarashiCAN_mk2 ican{PA_0, PA_0, 1e6};  // TODO: Fix this
+  ikarashiCAN_mk2 ican{PB_5, PB_6, (int)1e6};  // TODO: Fix this
   robotics::registry::ikakoMDC mdc0;
   robotics::assembly::MotorPair<float> &motor0;
   robotics::assembly::MotorPair<float> &motor1;
   robotics::assembly::MotorPair<float> &motor2;
   robotics::assembly::MotorPair<float> &motor3;
+  robotics::registry::ikakoMDC mdc1;
   robotics::assembly::MotorPair<float> &collector;
   robotics::assembly::MotorPair<float> &lock;
   robotics::assembly::MotorPair<float> &lock_back;
@@ -110,7 +111,12 @@ class App {
         motor0(this->mdc0.GetNode(0)),
         motor1(this->mdc0.GetNode(1)),
         motor2(this->mdc0.GetNode(2)),
-        motor3(this->mdc0.GetNode(3)) {}
+        motor3(this->mdc0.GetNode(3)),
+        mdc1(&ican, 1),
+        collector(this->mdc1.GetNode(0)),
+        lock(this->mdc1.GetNode(1)),
+        lock_back(this->mdc1.GetNode(2)),
+        brake(this->mdc1.GetNode(3)) {}
 
   void Init() {
     using nhk2024b::ps4_con::DPad;
@@ -149,7 +155,6 @@ class App {
       ps4.Update();
 
       if (i % 100 == 0) {
-        auto stick = ps4.stick_right.GetValue();
         logger.Info("Status");
         logger.Info("  None");
         logger.Info("Report");
@@ -170,4 +175,4 @@ int main0_alt0() {
   return 0;
 }
 
-int main_switch() { main0_alt0(); }
+int main_switch() {return main0_alt0();}
