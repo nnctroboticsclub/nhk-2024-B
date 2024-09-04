@@ -12,37 +12,11 @@
 #include <robotics/logger/logger.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
 #include <robotics/platform/dout.hpp>
-
+#include <nhk2024b/fep.hpp>
 #include "robot1-main.hpp"
+#include <nhk2024b/test_ps4_fep.hpp>
 
 robotics::logger::Logger logger{"Robot1App", "robot1.app"};
-
-void InitFEP() {
-  robotics::network::UARTStream uart{PC_6, PC_7, 115200};
-  robotics::driver::Dout rst{PC_9};
-  robotics::driver::Dout ini{PC_8};
-  robotics::network::fep::FEPDriver fep_drv{uart, rst, ini};
-
-  // robotics::logger::SuppressLogger("rxp.fep.nw");
-  // robotics::logger::SuppressLogger("st.fep.nw");
-  // robotics::logger::SuppressLogger("sr.fep.nw");
-
-  fep_drv.AddConfiguredRegister(0, 7);
-  fep_drv.AddConfiguredRegister(1, 0xF0);
-  fep_drv.AddConfiguredRegister(7, 0x22);
-  fep_drv.AddConfiguredRegister(8, 0x2E);
-  fep_drv.AddConfiguredRegister(9, 0x3A);
-  fep_drv.ConfigureBaudrate(robotics::network::fep::FEPBaudrate(
-      robotics::network::fep::FEPBaudrateValue::k115200));
-
-  {
-    auto result = fep_drv.Init();
-    if (!result.IsOk()) {
-      logger.Error("Failed to init FEP Driver: %s",
-                   result.UnwrapError().c_str());
-    }
-  }
-}
 
 class PseudoController {
   robotics::system::Thread thread;
@@ -121,8 +95,6 @@ class App {
     using nhk2024b::ps4_con::DPad;
     logger.Info("Init");
 
-    InitFEP();
-
     ps4.dpad.SetChangeCallback([this](DPad dpad) {
       robot.ctrl_lock.SetValue(dpad & DPad::kUp);
       robot.ctrl_lock_back.SetValue(dpad & DPad::kDown);
@@ -132,17 +104,21 @@ class App {
 
     ps4.stick_left >> robot.ctrl_move;
 
+    robot.LinkController();
+
     robot.out_motor1 >> motor0.GetMotor();
     robot.out_motor2 >> motor1.GetMotor();
     robot.out_motor3 >> motor2.GetMotor();
     robot.out_motor4 >> motor3.GetMotor();
 
-    robot.out_brake >> lock.GetMotor();
-    robot.out_brake >> collector.GetMotor();
-    robot.out_brake >> lock_back.GetMotor();
+    robot.out_lock >> lock.GetMotor();
+    robot.out_collector >> collector.GetMotor();
+    robot.out_lock_back >> lock_back.GetMotor();
     robot.out_brake >> brake.GetMotor();
 
+    ps4.Init();
     emc.write(1);
+    ican.read_start();
 
     logger.Info("Init - Done");
   }
@@ -152,6 +128,8 @@ class App {
     int i = 0;
     while (1) {
       ps4.Update();
+
+      ican.reset();
 
       mdc0.Tick();
       mdc1.Tick();
@@ -183,6 +161,12 @@ int main0_alt0() {
 }
 
 int main_switch() {
-  
+  robotics::logger::SuppressLogger("rxp.fep.nw");
+  robotics::logger::SuppressLogger("st.fep.nw");
+  robotics::logger::SuppressLogger("sr.fep.nw");
+
+  nhk2024b::InitFEP();
+
+  // nhk2024b::test::test_ps4_fep();
   return main0_alt0();
 }
