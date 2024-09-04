@@ -6,9 +6,13 @@
 #include <PS4.h>
 #include <robotics/node/node.hpp>
 #include <robotics/types/joystick_2d.hpp>
+#include <robotics/logger/logger.hpp>
 
 namespace nhk2024b::ps4_con {
+
 class PS4Con {
+  static robotics::logger::Logger logger;
+
  public:
   PS4 ps4;
 
@@ -97,4 +101,7 @@ class PS4Con {
 
   void Update() { SyncPS4ToNode(); }
 };
+
+robotics::logger::Logger PS4Con::logger =
+    robotics::logger::Logger("PS4Con", "ps4bcon");
 }  // namespace nhk2024b::ps4_con

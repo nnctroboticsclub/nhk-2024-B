@@ -8,4 +8,5 @@ namespace nhk2024b {
 template <typename T>
 using Node = robotics::Node<T>;
 using JoyStick2D = robotics::JoyStick2D;
-}  // namespace nhk2024b
+extern robotics::logger::Logger logger;
+}  // namespace nhk2024b { "nhk2024b", "NHK2024-B" }
