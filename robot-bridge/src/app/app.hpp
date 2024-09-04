@@ -22,7 +22,7 @@ class Actuators {
   common::Rohm1chMD rohm_md;
 
   Actuators(Config config)
-      : can(config.can_1_rd, config.can_1_td, 5, (int)1E6),
+      : can(config.can_1_rd, config.can_1_td, 0, (int)1E6),
         can_servo(can, 1),
         ikako_robomas(can),
         rohm_md(can, 2) {}
@@ -38,7 +38,7 @@ class Actuators {
   int Send() {
     int errors = 0;
 
-    int status = can_servo.Send();  // Sends 025H CAN message
+    int status = can_servo.Send();  // Sends 020H CAN message
     if (status == 0) {
       // logger.Error("CanServoBus::Send failed");
       errors |= 1;
@@ -52,7 +52,7 @@ class Actuators {
 
     // ikako_robomas's sender uses this_id to specify the message id
     // for the next message to be sent, so we need to restore it.
-    can.set_this_id(0x05);
+    can.set_this_id(0);
 
     status = rohm_md.Send();
     if (status != 1) {

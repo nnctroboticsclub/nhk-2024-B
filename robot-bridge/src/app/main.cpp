@@ -16,7 +16,7 @@ int main() {
 
   robotics::logger::Init();
 
-  main0_alt0();
+  main_switch();
 
   printf("main() finished. Halting..");
 

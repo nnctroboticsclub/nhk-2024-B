@@ -96,8 +96,8 @@ class App {
   //*/
 
   Actuators *actuators = new Actuators{(Actuators::Config){
-      .can_1_rd = PA_11,
-      .can_1_td = PA_12,
+      .can_1_rd = PB_5 /* PA_11 */,
+      .can_1_td = PB_6 /* PA_12 */,
   }};
   IkakoRobomasNode *move_l;
   IkakoRobomasNode *move_r;
@@ -134,6 +134,8 @@ class App {
       servo1->SetValue(127 - duty);
     });
 
+    ps4.Propagate();
+
     emc.write(1);
     actuators->Init();
 
@@ -167,9 +169,31 @@ class App {
   }
 
   void Test() {
-    actuators->Init();
+    logger.Info("Main loop");
+    int i = 0;
+    while (1) {
+      actuators->Read();
 
-    actuators->Read();
+      servo0->SetValue(255 * 0.0);
+      servo1->SetValue(255 * 0.2);
+
+      status_actuators_send_ = actuators->Send();
+
+      actuators->Tick();
+
+      if (i % 100 == 0) {
+        auto stick = ps4.stick_right.GetValue();
+        logger.Info("Status");
+        logger.Info("  actuators_send %d", status_actuators_send_);
+        logger.Info("Report");
+        logger.Info("  s %f, %f", stick[0], stick[1]);
+        logger.Info("  o %f %f %f %f", robot.out_deploy.GetValue(),
+                    robot.out_unlock_duty.GetValue(),
+                    robot.out_move_l.GetValue(), robot.out_move_r.GetValue());
+      }
+      i += 1;
+      ThisThread::sleep_for(1ms);
+    }
   }
 };
 
@@ -178,6 +202,14 @@ int main0_alt0() {
 
   test->Init();
   test->Main();
+
+  return 0;
+}
+int can_servo_test() {
+  auto test = new App();
+
+  test->Init();
+  test->Test();
 
   return 0;
 }
@@ -354,3 +386,5 @@ App app(config);
 
   return 0; */
 }
+
+int main_switch() { return can_servo_test(); }
