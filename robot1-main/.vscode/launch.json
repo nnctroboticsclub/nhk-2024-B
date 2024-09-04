@@ -8,7 +8,7 @@
       "name": "(gdb) 接続",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/BUILD/robot1-main.elf",
+      "program": "${workspaceFolder}/BUILD/NUCLEO_F446RE/src/app.elf",
       "cwd": "${workspaceFolder}",
       "MIMode": "gdb",
       "miDebuggerServerAddress": "localhost:3333",
