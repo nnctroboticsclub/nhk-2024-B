@@ -52,4 +52,4 @@ class Robot {
     });
   }
 };
-}  // namespace nhk2024b
+}  // namespace nhk2024b::robot2
