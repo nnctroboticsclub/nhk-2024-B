@@ -466,13 +466,7 @@ class CIM920 {
   }
 
   std::string GetVersion(float duration_secs) {
-    robotics::system::SleepFor(1s);
-    logger.Info("GetVersion()");
-    robotics::system::SleepFor(1s);
     auto ptr = srobo2::ffi::__ffi_cim920_get_version(im920_, duration_secs);
-    robotics::system::SleepFor(1s);
-    logger.Info("GetVersion() - 0");
-    robotics::system::SleepFor(1s);
     if (ptr == nullptr) {
       return "";
     }
@@ -534,16 +528,17 @@ class IM920Test {
       auto remote = 3 - node_number;
 
       auto version = im920->GetVersion(1.0);
-      // logger.Info("Version: %s\n", version.c_str());
+      logger.Info("Version: %s", version.c_str());
 
-      /* im920->OnData([&logger](uint16_t from, uint8_t* data, size_t len) {
-        logger.Info("OnData: %d\n", from);
+      im920->OnData([&logger](uint16_t from, uint8_t* data, size_t len) {
+        logger.Info("OnData: from %d", from);
+        logger.Hex(robotics::logger::core::Level::kInfo, data, len);
       });
 
       while (1) {
         im920->Send(remote, (uint8_t*)"Hello", 5, 1.0);
         robotics::system::SleepFor(1s);
-      } */
+      }
     });
 
     while (1) {
@@ -562,7 +557,7 @@ int main() {
 
   robotics::logger::Init();
 
-  auto app = new CanDebug();
+  auto app = new IM920Test();
   app->Main();
 
   return 0;
