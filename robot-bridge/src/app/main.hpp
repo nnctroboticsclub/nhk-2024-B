@@ -5,16 +5,17 @@
 // #include "app.hpp"
 
 // #include <mbed-robotics/simple_can.hpp>
+#include <mbed-robotics/simple_can.hpp>
+#include <mbed-robotics/uart_stream.hpp>
+#include <nhk2024b/fep_ps4_con.hpp>
+#include <robotics/logger/logger.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
 #include <robotics/platform/dout.hpp>
-#include <mbed-robotics/uart_stream.hpp>
 
-#include <robotics/logger/logger.hpp>
-#include <mbed-robotics/simple_can.hpp>
-#include <nhk2024b/fep_ps4_con.hpp>
-#include "bridge.hpp"
+#include <nhk2024b/fep.hpp>
 
 #include "app.hpp"
+#include "bridge.hpp"
 
 robotics::logger::Logger logger{"robot2.app", "Robot2App"};
 
@@ -96,8 +97,9 @@ class App {
 
     ps4.stick_right >> robot.ctrl_move;
     ps4.button_cross >> robot.ctrl_deploy;
-    ps4.button_square >> robot.ctrl_test_unlock_dec;
-    ps4.button_circle >> robot.ctrl_test_unlock_inc;
+    
+    ps4.button_square >> robot.ctrl_bridge_toggle/* ctrl_test_unlock_dec */;
+    // ps4.button_circle >> robot.ctrl_bridge_lock/* ctrl_test_unlock_inc */;
 
     robot.LinkController();
 
@@ -105,12 +107,13 @@ class App {
     robot.out_move_r >> move_r->velocity;
     // robot.out_deploy >> actuators->rohm_md.in_velocity;
     robot.out_unlock_duty.SetChangeCallback([this](float duty) {
-      servo0->SetValue(127 + 127 * duty);
-      servo1->SetValue(127 - 127 * duty);
+      servo0->SetValue(102 + 85 * duty);
+      servo1->SetValue(177.8 - 85 * duty);
     });
 
-    servo0->SetValue(127);
-    servo1->SetValue(127);
+    servo0->SetValue(102);
+    servo1->SetValue(177.8);
+    robot.out_unlock_duty.SetValue(-0.05);
 
     move_l->velocity.SetValue(0);
     move_r->velocity.SetValue(0);
@@ -142,6 +145,7 @@ class App {
         logger.Info("Report");
         logger.Info("  s %f, %f", stick[0], stick[1]);
         logger.Info("  o %f %f", servo0->GetValue(), servo1->GetValue());
+        logger.Info("servo dgree/max %f", robot.out_unlock_duty.GetValue());
       }
       i += 1;
       ThisThread::sleep_for(1ms);
@@ -199,6 +203,8 @@ int main_switch() {
   robotics::logger::SuppressLogger("rxp.fep.nw");
   robotics::logger::SuppressLogger("st.fep.nw");
   robotics::logger::SuppressLogger("sr.fep.nw");
+
+  nhk2024b::InitFEP();
 
   return main_prod();
 }
