@@ -1,6 +1,6 @@
 #pragma once
 
-//#include <nhk2024b/types.hpp>
+// #include <nhk2024b/types.hpp>
 #include <robotics/node/node.hpp>
 #include <robotics/types/joystick_2d.hpp>
 #include <robotics/filter/angled_motor.hpp>
@@ -66,4 +66,4 @@ class Refrige {
         });
   }
 };
-}  // namespace nhk2024b
+}  // namespace nhk2024b::robot1
