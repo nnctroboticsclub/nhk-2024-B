@@ -9,16 +9,16 @@ use srobo_base::{
 };
 
 fn main() {
-    let (dev_rx, dev_tx) = SerialDevice::new(
+    let (mut dev_rx, mut dev_tx) = SerialDevice::new(
         std::env::var("DEV").expect("serial port device $DEV is not set"),
         19200,
     )
     .open()
     .unwrap();
 
-    let time = HostTime::new();
+    let mut time = HostTime::new();
 
-    let mut app = IM920::new(dev_tx, dev_rx, time);
+    let mut app = IM920::new(&mut dev_tx, &mut dev_rx, &mut time);
     let nn = app.get_node_number(Duration::from_secs(5)).unwrap();
     println!("Node Number: {}", nn);
 
@@ -45,6 +45,6 @@ fn main() {
             Err(e) => panic!("Error: {:?}", e),
         }
 
-        std::thread::sleep(Duration::from_millis(20));
+        std::thread::sleep(Duration::from_secs(1));
     }
 }
