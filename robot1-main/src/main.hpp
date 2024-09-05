@@ -96,8 +96,7 @@ class App {
     logger.Info("Init");
 
     ps4.dpad.SetChangeCallback([this](DPad dpad) {
-      robot.ctrl_lock.SetValue(dpad & DPad::kUp);
-      robot.ctrl_lock_back.SetValue(dpad & DPad::kDown);
+      robot.ctrl_unlock.SetValue(dpad & DPad::kUp);
       robot.ctrl_brake.SetValue(dpad & DPad::kLeft);
       robot.ctrl_collector.SetValue(dpad & DPad::kRight);
     });
@@ -111,9 +110,8 @@ class App {
     robot.out_motor3 >> motor2.GetMotor();
     robot.out_motor4 >> motor3.GetMotor();
 
-    robot.out_lock >> lock.GetMotor();
+    robot.out_unlock >> lock.GetMotor();
     robot.out_collector >> collector.GetMotor();
-    robot.out_lock_back >> lock_back.GetMotor();
     robot.out_brake >> brake.GetMotor();
 
     ps4.Init();
