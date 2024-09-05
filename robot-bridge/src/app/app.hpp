@@ -11,10 +11,14 @@ class Actuators {
   struct Config {
     PinName can_1_rd;
     PinName can_1_td;
+
+    PinName can_2_rd;
+    PinName can_2_td;
   };
 
  public:
-  ikarashiCAN_mk2 can;
+  ikarashiCAN_mk2 can1;
+  ikarashiCAN_mk2 can2;
 
  public:
   common::CanServoBus can_servo;
@@ -22,12 +26,16 @@ class Actuators {
   common::Rohm1chMD rohm_md;
 
   Actuators(Config config)
-      : can(config.can_1_rd, config.can_1_td, 0, (int)1E6),
-        can_servo(can, 1),
-        ikako_robomas(can),
-        rohm_md(can, 2) {}
+      : can1(config.can_1_rd, config.can_1_td, 0, (int)1E6),
+        can2(config.can_2_rd, config.can_2_td, 0, (int)1E6),
+        can_servo(can1, 1),
+        ikako_robomas(can2),
+        rohm_md(can2, 2) {}
 
-  void Init() { can.read_start(); }
+  void Init() {
+    can1.read_start();
+    can2.read_start();
+  }
 
   int Read() {
     ikako_robomas.Read();
@@ -52,7 +60,8 @@ class Actuators {
 
     // ikako_robomas's sender uses this_id to specify the message id
     // for the next message to be sent, so we need to restore it.
-    can.set_this_id(0);
+    can1.set_this_id(0);
+    can2.set_this_id(0);
 
     status = rohm_md.Send();
     if (status != 1) {
@@ -64,7 +73,8 @@ class Actuators {
   }
 
   void Tick() {
-    can.reset();
+    can1.reset();
+    can2.reset();
 
     ikako_robomas.Tick();
     ikako_robomas.Update();
