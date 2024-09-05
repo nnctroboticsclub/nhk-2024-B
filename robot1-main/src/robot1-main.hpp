@@ -25,10 +25,9 @@ class Refrige {
   Node<float> out_motor2;
   Node<float> out_motor3;
   Node<float> out_motor4;
+  
   Node<float> out_brake;       // ブレーキ
-  Node<float> out_brake_back; //ブレーキ逆向き
   Node<float> out_unlock;       // ロック解除->戻す必要あり
-  Node<float> out_unlock_back; //ロック解除を戻す
   Node<float> out_collector;  // 回収機構ー＞戻さなくてもよさそう
 
   void LinkController() {
@@ -61,9 +60,9 @@ class Refrige {
           out_brake.SetValue(btn ? -0.4 : 0);
         });
     
-    ctrl_unlock.SetChangeCallback(//ブレーキ逆向き
+    ctrl_brake_back.SetChangeCallback(//ブレーキ逆向き
         [this](bool btn) {
-          out_unlock.SetValue(btn ?   0.4 : 0);
+          out_brake.SetValue(btn ?   0.4 : 0);
         });
   }
 };
