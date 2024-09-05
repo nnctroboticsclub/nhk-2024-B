@@ -40,3 +40,6 @@ url = git@github.com:nnctroboticsclub/PS4_RX.git
 [submodule "common_libs/im920_rs"]
 	path = common_libs/im920_rs
 	url = git@github.com:nnctroboticsclub/im920_rs
+[submodule "common_libs/Futaba_Puropo"]
+	path = common_libs/Futaba_Puropo
+	url = git@github.com:nnctroboticsclub/Futaba_Puropo.git
