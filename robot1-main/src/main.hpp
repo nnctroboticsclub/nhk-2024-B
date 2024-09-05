@@ -74,9 +74,10 @@ class App {
   robotics::assembly::MotorPair<float> &motor3;
   robotics::registry::ikakoMDC mdc1;
   robotics::assembly::MotorPair<float> &collector;
-  robotics::assembly::MotorPair<float> &lock;
-  robotics::assembly::MotorPair<float> &lock_back;
+  robotics::assembly::MotorPair<float> &unlock;
+  robotics::assembly::MotorPair<float> &unlock_back;
   robotics::assembly::MotorPair<float> &brake;
+  robotics::assembly::MotorPair<float> &brake_back;
 
  public:
   App()
@@ -87,9 +88,10 @@ class App {
         motor3(this->mdc0.GetNode(3)),
         mdc1(&ican, 6),
         collector(this->mdc1.GetNode(0)),
-        lock(this->mdc1.GetNode(1)),
-        lock_back(this->mdc1.GetNode(2)),
-        brake(this->mdc1.GetNode(3)) {}
+        unlock(this->mdc1.GetNode(1)),
+        unlock_back(this->mdc1.GetNode(1)),
+        brake(this->mdc1.GetNode(2)),
+        brake_back(this->mdc1.GetNode(2)) {}
 
   void Init() {
     using nhk2024b::ps4_con::DPad;
@@ -97,6 +99,7 @@ class App {
 
     ps4.dpad.SetChangeCallback([this](DPad dpad) {
       robot.ctrl_unlock.SetValue(dpad & DPad::kUp);
+      robot.ctrl_unlock_back.SetValue(dpad & DPad::kDown);
       robot.ctrl_brake.SetValue(dpad & DPad::kLeft);
       robot.ctrl_collector.SetValue(dpad & DPad::kRight);
     });
@@ -110,9 +113,11 @@ class App {
     robot.out_motor3 >> motor2.GetMotor();
     robot.out_motor4 >> motor3.GetMotor();
 
-    robot.out_unlock >> lock.GetMotor();
+    robot.out_unlock >> unlock.GetMotor();
+    robot.out_unlock_back >> unlock_back.GetMotor();
     robot.out_collector >> collector.GetMotor();
     robot.out_brake >> brake.GetMotor();
+    robot.out_brake_back >> brake_back.GetMotor();
 
     ps4.Init();
     emc.write(1);

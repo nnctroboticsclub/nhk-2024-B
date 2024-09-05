@@ -63,7 +63,7 @@ class Refrige {
     
     ctrl_unlock.SetChangeCallback(//ブレーキ逆向き
         [this](bool btn) {
-          out_unlock.SetValue(btn ? 0.4 : 0);
+          out_unlock.SetValue(btn ?   0.4 : 0);
         });
   }
 };
