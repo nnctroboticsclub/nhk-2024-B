@@ -346,164 +346,26 @@ class CanDebug {
   }
 };
 
-//! =============================================================
-//! =============================================================
-//! =============================================================
-//! =============================================================
-//! =============================================================
+#include <srobo2/com/im920.hpp>
+#include <srobo2/com/mbed_cstream.hpp>
+#include <srobo2/timer/mbed_timer.hpp>
 
-// #pragma once
+#include <robotics/network/stream.hpp>
 
-#include <srobo2/ffi/base.hpp>
-#include <mbed.h>
-
-#include <memory>
-
-namespace srobo2::com {
-
-class UARTCStreamTx {
-  srobo2::ffi::CStreamTx tx_;
-  std::shared_ptr<mbed::UnbufferedSerial> stream;
-
-  static void Write(const void* instance, const void* context,
-                    const uint8_t* data, size_t len) {
-    auto stream = static_cast<const UARTCStreamTx*>(instance);
-    stream->stream->write(const_cast<void*>(static_cast<const void*>(data)),
-                          len);
-  }
+class IM920Stream : public robotics::network::Stream<uint8_t, uint16_t> {
+  std::shared_ptr<srobo2::com::CIM920> im920;
 
  public:
-  UARTCStreamTx(std::shared_ptr<mbed::UnbufferedSerial> stream)
-      : stream(stream) {
-    srobo2::ffi::__ffi_cstream_associate_tx(&tx_, this, &UARTCStreamTx::Write);
-  }
-
-  srobo2::ffi::CStreamTx* GetTx() { return &tx_; }
-};
-
-class UARTCStreamRx {
-  srobo2::ffi::CStreamRx* rx_;
-  std::shared_ptr<mbed::UnbufferedSerial> stream;
-
- public:
-  UARTCStreamRx(std::shared_ptr<mbed::UnbufferedSerial> stream)
-      : stream(stream) {
-    rx_ = srobo2::ffi::__ffi_cstream_new_rx();
-    stream->attach([this]() {
-      char buf;
-      auto len = this->stream->read(&buf, 1);
-
-      if (len == 1) {
-        srobo2::ffi::__ffi_cstream_feed_rx(rx_, (uint8_t*)&buf, 1);
-      }
+  IM920Stream(std::shared_ptr<srobo2::com::CIM920> im920) : im920(im920) {
+    im920->OnData([this](uint16_t from, uint8_t* data, size_t len) {
+      this->DispatchOnReceive(from, data, len);
     });
   }
 
-  srobo2::ffi::CStreamRx* GetRx() { return rx_; }
+  void Send(uint16_t remote_node, uint8_t* data, uint32_t length) {
+    im920->Send(remote_node, data, length, 1.0);
+  }
 };
-
-}  // namespace srobo2::com
-
-namespace srobo2::timer {
-class MBedTimer {
-  mbed::Timer timer;
-  srobo2::ffi::CTime ctime;
-
-  static float now(const void* timer) {
-    auto t = static_cast<const mbed::Timer*>(timer);
-
-    return t->read_us() / 1.0E6;
-  }
-
-  static void sleep(const void* timer, float duration) {
-    auto t = static_cast<const mbed::Timer*>(timer);
-
-    auto start = t->read_us();
-    auto end = start + duration * 1.0E6;
-
-    while (t->read_us() < end);
-  }
-
- public:
-  MBedTimer() {
-    timer.reset();
-    timer.start();
-
-    srobo2::ffi::__ffi_ctime_set_context(&ctime, &timer);
-
-    srobo2::ffi::__ffi_ctime_set_now(&ctime, &MBedTimer::now);
-    srobo2::ffi::__ffi_ctime_set_sleep(&ctime, &MBedTimer::sleep);
-  }
-
-  srobo2::ffi::CTime* GetTime() { return &ctime; }
-};
-}  // namespace srobo2::timer
-
-//! =============================================================
-//! =============================================================
-//! =============================================================
-//! =============================================================
-//! =============================================================
-
-// #pragma once
-#include <srobo2/ffi/base.hpp>
-#include <srobo2/ffi/im920.hpp>
-
-robotics::logger::Logger logger{"connectTs", "connectTs"};
-
-namespace srobo2::com {
-class CIM920 {
-  srobo2::ffi::CIM920* im920_;
-
- public:
-  CIM920(srobo2::ffi::CStreamTx* tx, srobo2::ffi::CStreamRx* rx,
-         srobo2::ffi::CTime* time) {
-    im920_ = srobo2::ffi::__ffi_cim920_new(tx, rx, time);
-  }
-
-  uint16_t GetNodeNumber(float duration_secs) {
-    return srobo2::ffi::__ffi_cim920_get_node_number(im920_, duration_secs);
-  }
-
-  std::string GetVersion(float duration_secs) {
-    auto ptr = srobo2::ffi::__ffi_cim920_get_version(im920_, duration_secs);
-    if (ptr == nullptr) {
-      return "";
-    }
-
-    auto len = std::strlen((const char*)ptr);
-
-    return std::string((const char*)ptr, len);
-  }
-
-  struct Context {
-    std::function<void(uint16_t, uint8_t*, size_t)> cb;
-  };
-
-  static void HandleOnData(const void* ctx, uint16_t from, const uint8_t* data,
-                           size_t len) {
-    auto context = static_cast<const Context*>(ctx);
-    context->cb(from, const_cast<uint8_t*>(data), len);
-  }
-
-  void OnData(std::function<void(uint16_t, uint8_t*, size_t)> cb) {
-    Context context = {cb};
-    srobo2::ffi::__ffi_cim920_on_data(im920_, &HandleOnData, &context);
-  }
-
-  void Send(uint16_t dest, const uint8_t* data, size_t len,
-            float duration_secs) {
-    srobo2::ffi::__ffi_cim920_transmit_delegate(im920_, dest, data, len,
-                                                duration_secs);
-  };
-};
-}  // namespace srobo2::com
-
-//! =============================================================
-//! =============================================================
-//! =============================================================
-//! =============================================================
-//! =============================================================
 
 class IM920Test {
  public:
