@@ -15,6 +15,7 @@
 #include "collect.hpp"
 
 #include "app.hpp"
+#include <puropo.h>
 
 robotics::logger::Logger logger{"   app   ", "app"};
 
