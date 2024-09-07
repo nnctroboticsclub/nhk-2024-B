@@ -43,3 +43,6 @@ url = git@github.com:nnctroboticsclub/PS4_RX.git
 [submodule "common_libs/ArduinoUsbHostShield"]
 	path = common_libs/ArduinoUsbHostShield
 	url = https://github.com/nnctroboticsclub/ArduinoUsbHostShield.git
+[submodule "common_libs/stm32_mw_usb_host"]
+	path = common_libs/stm32_mw_usb_host
+	url = git@github.com:STMicroelectronics/stm32_mw_usb_host.git
