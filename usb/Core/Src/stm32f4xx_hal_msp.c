@@ -79,57 +79,67 @@ void HAL_MspInit(void)
 }
 
 /**
-* @brief RTC MSP Initialization
+* @brief UART MSP Initialization
 * This function configures the hardware resources used in this example
-* @param hrtc: RTC handle pointer
+* @param huart: UART handle pointer
 * @retval None
 */
-void HAL_RTC_MspInit(RTC_HandleTypeDef* hrtc)
+void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 {
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-  if(hrtc->Instance==RTC)
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  if(huart->Instance==USART2)
   {
-  /* USER CODE BEGIN RTC_MspInit 0 */
+  /* USER CODE BEGIN USART2_MspInit 0 */
 
-  /* USER CODE END RTC_MspInit 0 */
-
-  /** Initializes the peripherals clock
-  */
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-    PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
+  /* USER CODE END USART2_MspInit 0 */
     /* Peripheral clock enable */
-    __HAL_RCC_RTC_ENABLE();
-  /* USER CODE BEGIN RTC_MspInit 1 */
+    __HAL_RCC_USART2_CLK_ENABLE();
 
-  /* USER CODE END RTC_MspInit 1 */
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /**USART2 GPIO Configuration
+    PA2     ------> USART2_TX
+    PA3     ------> USART2_RX
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN USART2_MspInit 1 */
+
+  /* USER CODE END USART2_MspInit 1 */
 
   }
 
 }
 
 /**
-* @brief RTC MSP De-Initialization
+* @brief UART MSP De-Initialization
 * This function freeze the hardware resources used in this example
-* @param hrtc: RTC handle pointer
+* @param huart: UART handle pointer
 * @retval None
 */
-void HAL_RTC_MspDeInit(RTC_HandleTypeDef* hrtc)
+void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
 {
-  if(hrtc->Instance==RTC)
+  if(huart->Instance==USART2)
   {
-  /* USER CODE BEGIN RTC_MspDeInit 0 */
+  /* USER CODE BEGIN USART2_MspDeInit 0 */
 
-  /* USER CODE END RTC_MspDeInit 0 */
+  /* USER CODE END USART2_MspDeInit 0 */
     /* Peripheral clock disable */
-    __HAL_RCC_RTC_DISABLE();
-  /* USER CODE BEGIN RTC_MspDeInit 1 */
+    __HAL_RCC_USART2_CLK_DISABLE();
 
-  /* USER CODE END RTC_MspDeInit 1 */
+    /**USART2 GPIO Configuration
+    PA2     ------> USART2_TX
+    PA3     ------> USART2_RX
+    */
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2|GPIO_PIN_3);
+
+  /* USER CODE BEGIN USART2_MspDeInit 1 */
+
+  /* USER CODE END USART2_MspDeInit 1 */
   }
 
 }
