@@ -281,19 +281,14 @@ USBH_StatusTypeDef USBH_SelectInterface(USBH_HandleTypeDef *phost,
                                         uint8_t interface) {
   USBH_StatusTypeDef status = USBH_OK;
 
-  if (interface < phost->device.CfgDesc.bNumInterfaces) {
-    phost->device.current_interface = interface;
-    USBH_UsrLog("Switching to Interface (#%d)", interface);
-    USBH_UsrLog("Class    : %xh",
-                phost->device.CfgDesc.Itf_Desc[interface].bInterfaceClass);
-    USBH_UsrLog("SubClass : %xh",
-                phost->device.CfgDesc.Itf_Desc[interface].bInterfaceSubClass);
-    USBH_UsrLog("Protocol : %xh",
-                phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol);
-  } else {
-    USBH_ErrLog("Cannot Select This Interface.");
-    status = USBH_FAIL;
-  }
+  phost->device.current_interface = interface;
+  USBH_UsrLog("Switching to Interface (#%d)", interface);
+  USBH_UsrLog("Class    : %xh",
+              phost->device.CfgDesc.Itf_Desc[interface].bInterfaceClass);
+  USBH_UsrLog("SubClass : %xh",
+              phost->device.CfgDesc.Itf_Desc[interface].bInterfaceSubClass);
+  USBH_UsrLog("Protocol : %xh",
+              phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol);
 
   return status;
 }
@@ -642,26 +637,22 @@ USBH_StatusTypeDef USBH_Process(USBH_HandleTypeDef *phost) {
         phost->pActiveClass = NULL;
 
         for (idx = 0U; idx < USBH_MAX_NUM_SUPPORTED_CLASS; idx++) {
-          if (phost->pClass[idx]->ClassCode ==
-              phost->device.CfgDesc.Itf_Desc[0].bInterfaceClass) {
-            phost->pActiveClass = phost->pClass[idx];
-            break;
-          }
-        }
-
-        if (phost->pActiveClass != NULL) {
+          phost->pActiveClass = phost->pClass[idx];
           if (phost->pActiveClass->Init(phost) == USBH_OK) {
             phost->gState = HOST_CLASS_REQUEST;
             USBH_UsrLog("%s class started.", phost->pActiveClass->Name);
 
             /* Inform user that a class has been activated */
             phost->pUser(phost, HOST_USER_CLASS_SELECTED);
+            break;
           } else {
             phost->gState = HOST_ABORT_STATE;
-            USBH_UsrLog("Device not supporting %s class.",
+            USBH_UsrLog("Device not supporting %s class. Finding new one...",
                         phost->pActiveClass->Name);
           }
-        } else {
+        }
+
+        if (phost->pActiveClass == NULL) {
           phost->gState = HOST_ABORT_STATE;
           USBH_UsrLog("No registered class for this device.");
         }
