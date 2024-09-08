@@ -8,7 +8,7 @@
       "name": "(gdb) 接続",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/out.elf",
+      "program": "${workspaceFolder}/build/app",
       "cwd": "${workspaceFolder}",
       "MIMode": "gdb",
       "miDebuggerServerAddress": "localhost:3333",

@@ -48,6 +48,7 @@ add_subdirectory(nhk2023-b)
 project(app)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
+  "Core/*.cpp"
   "Core/*.c"
   "Drivers/*.c"
   "Middlewares/*.c"
