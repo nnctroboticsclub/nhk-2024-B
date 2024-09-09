@@ -165,7 +165,7 @@ int main_switch() {
   robotics::logger::SuppressLogger("st.fep.nw");
   robotics::logger::SuppressLogger("sr.fep.nw");
 
-  nhk2024b::InitFEP();
+  // nhk2024b::InitFEP();
 
   // nhk2024b::test::test_ps4_fep();
   return main0_alt0();
