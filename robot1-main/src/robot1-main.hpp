@@ -71,5 +71,5 @@ class Refrige {
       out_motor4.SetValue(0.7);
     });
   }
-}
+};
 }  // namespace nhk2024b::robot1
