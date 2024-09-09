@@ -23,7 +23,6 @@
     "IkakoRobomas": true,
     "ikarashiCAN_mk2": true,
     "MotorController": true,
-    "mbed-os": true,
     "ikako_c620": true,
     "can_servo": true,
   }

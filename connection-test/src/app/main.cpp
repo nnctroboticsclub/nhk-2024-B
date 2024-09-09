@@ -187,15 +187,16 @@ class Network {
 
     auto device_name = platform::GetDeviceName();
 
-    svc = {
-        .relay = ssp_.RegisterService<robotics::network::ssp::RelayService>(),
-        .ident = ssp_.RegisterService<robotics::network::ssp::IdentitiyService>(
-            device_name),
-        .test = ssp_.RegisterService<TestService>(),
-        .value_store =
-            ssp_.RegisterService<robotics::network::ssp::ValueStoreService>(),
-        .node_inspector = ssp_.RegisterService<NodeInspectorService>(),
-    };
+    printf("AAA\n");
+    auto tx_p = tx_.GetTx();
+    auto rx_p = rx_.GetRx();
+    auto timer_p = timer_.GetTime();
+    printf("AA1\n");
+
+    srobo2::com::CIM920 cim920_{tx_p, rx_p, timer_p};
+    printf("BBB\n");
+    srobo2::com::IM910_SRobo1 im920_{&cim920_};
+    robotics::network::SerialServiceProtocol<uint16_t> ssp_{im920_};
 
     auto dest_address = platform::GetRemoteTestAddress();
     logger.Info("Dest Address: %d", dest_address);
