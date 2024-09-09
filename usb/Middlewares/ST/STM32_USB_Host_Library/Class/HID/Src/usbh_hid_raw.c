@@ -40,17 +40,16 @@ static USBH_StatusTypeDef USBH_HID_RawDecode(USBH_HandleTypeDef *phost) {
   if ((HID_Handle->length == 0U) || (HID_Handle->fifo.buf == NULL)) {
     return USBH_FAIL;
   }
+
   if (USBH_HID_FifoRead(&HID_Handle->fifo, &data_buffer, HID_Handle->length) !=
       HID_Handle->length) {
     return USBH_FAIL;
   }
 
-  for (size_t i = 0; i < 0x40; i++) {
-    printf("%02x ", data_buffer[i]);
-  }
-  printf("\n");
-
   return USBH_OK;
 }
 
-void Test_syoch_01(USBH_HandleTypeDef *phost) { USBH_HID_RawDecode(phost); }
+uint8_t *USBH_HID_RawGetReport(USBH_HandleTypeDef *phost) {
+  USBH_HID_RawDecode(phost);
+  return data_buffer;
+}

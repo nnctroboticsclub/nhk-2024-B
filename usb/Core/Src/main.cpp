@@ -415,7 +415,12 @@ extern "C" void USBH_HID_EventCallback(USBH_HandleTypeDef *phost) {
     printf("HID Device Type: %d\n", hidType);
   }
 
-  Test_syoch_01(phost);
+  auto ptr = USBH_HID_RawGetReport(phost);
+  if (ptr[0] != 0x01) {
+    return;
+  }
+
+  printf("L2: %lf %lf\n", (ptr[1] - 128) / 128.0, (ptr[2] - 128) / 128.0);
 }
 
 extern "C" int _write(int file, char *ptr, int len) {
