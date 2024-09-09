@@ -21,8 +21,8 @@ fn get_logger() -> &'static mut Logger {
 
 #[cfg(not(test))]
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    get_logger().error("Panic");
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    // get_logger().error("Panic");
 
     loop {}
 }

@@ -16,34 +16,7 @@
 
 #include "app.hpp"
 
-robotics::logger::Logger logger{"Robot2App", "robot2.app"};
-
-void InitFEP() {
-  robotics::network::UARTStream uart{PC_6, PC_7, 115200};
-  robotics::driver::Dout rst{PC_9};
-  robotics::driver::Dout ini{PC_8};
-  robotics::network::fep::FEPDriver fep_drv{uart, rst, ini};
-
-  // robotics::logger::SuppressLogger("rxp.fep.nw");
-  // robotics::logger::SuppressLogger("st.fep.nw");
-  // robotics::logger::SuppressLogger("sr.fep.nw");
-
-  fep_drv.AddConfiguredRegister(0, 21);
-  fep_drv.AddConfiguredRegister(1, 0xF0);
-  fep_drv.AddConfiguredRegister(7, 0x22);
-  fep_drv.AddConfiguredRegister(8, 0x2E);
-  fep_drv.AddConfiguredRegister(9, 0x3A);
-  fep_drv.ConfigureBaudrate(robotics::network::fep::FEPBaudrate(
-      robotics::network::fep::FEPBaudrateValue::k115200));
-
-  {
-    auto result = fep_drv.Init();
-    if (!result.IsOk()) {
-      logger.Error("Failed to init FEP Driver: %s",
-                   result.UnwrapError().c_str());
-    }
-  }
-}
+robotics::logger::Logger logger{"robot2.app", "Robot2App"};
 
 class PseudoController {
   robotics::system::Thread thread;
@@ -111,30 +84,37 @@ class App {
 
  public:
   App()
-      : move_l(actuators->ikako_robomas.NewNode(0)),
-        move_r(actuators->ikako_robomas.NewNode(1)),
+      : move_l(actuators->ikako_robomas.NewNode(1)),
+        move_r(actuators->ikako_robomas.NewNode(2)),
         servo0(actuators->can_servo.NewNode(0)),
         servo1(actuators->can_servo.NewNode(1)) {}
 
   void Init() {
     logger.Info("Init");
 
-    InitFEP();
-
     ps4.stick_right >> robot.ctrl_move;
     ps4.button_cross >> robot.ctrl_deploy;
     ps4.button_square >> robot.ctrl_test_unlock_dec;
     ps4.button_circle >> robot.ctrl_test_unlock_inc;
 
+    robot.LinkController();
+
     robot.out_move_l >> move_l->velocity;
     robot.out_move_r >> move_r->velocity;
     // robot.out_deploy >> actuators->rohm_md.in_velocity;
     robot.out_unlock_duty.SetChangeCallback([this](float duty) {
-      servo0->SetValue(127 + duty);
-      servo1->SetValue(127 - duty);
+      servo0->SetValue(127 + 127 * duty);
+      servo1->SetValue(127 - 127 * duty);
     });
 
-    ps4.Propagate();
+    servo0->SetValue(127);
+    servo1->SetValue(127);
+
+    move_l->velocity.SetValue(0);
+    move_r->velocity.SetValue(0);
+
+    ps4.Init();
+    // ps4.Propagate();
 
     emc.write(1);
     actuators->Init();
@@ -159,9 +139,7 @@ class App {
         logger.Info("  actuators_send %d", status_actuators_send_);
         logger.Info("Report");
         logger.Info("  s %f, %f", stick[0], stick[1]);
-        logger.Info("  o %f %f %f %f", robot.out_deploy.GetValue(),
-                    robot.out_unlock_duty.GetValue(),
-                    robot.out_move_l.GetValue(), robot.out_move_r.GetValue());
+        logger.Info("  o %f %f", servo0->GetValue(), servo1->GetValue());
       }
       i += 1;
       ThisThread::sleep_for(1ms);
@@ -197,7 +175,7 @@ class App {
   }
 };
 
-int main0_alt0() {
+int main_prod() {
   auto test = new App();
 
   test->Init();
@@ -205,6 +183,7 @@ int main0_alt0() {
 
   return 0;
 }
+
 int can_servo_test() {
   auto test = new App();
 
@@ -214,177 +193,10 @@ int can_servo_test() {
   return 0;
 }
 
-int main0_alt1() {
-  nhk2024b::robot2::Actuators actuators{(nhk2024b::robot2::Actuators::Config){
-      .can_1_rd = PA_11,
-      .can_1_td = PA_12,
-  }};
-  auto &can = actuators.can;
+int main_switch() {
+  robotics::logger::SuppressLogger("rxp.fep.nw");
+  robotics::logger::SuppressLogger("st.fep.nw");
+  robotics::logger::SuppressLogger("sr.fep.nw");
 
-  logger.Info("Init");
-  union {
-    uint32_t i;
-    uint8_t data[4];
-  };
-  can.read_start();
-  ThisThread::sleep_for(200ms);
-
-  Thread thread{};
-  thread.start([&]() {
-    while (1) {
-      can.reset();
-      ThisThread::sleep_for(10ms);
-    }
-  });
-
-  while (1) {
-    can.set(data, 4);
-
-    auto ret = can.write(2);
-    if (ret != 1) {
-      logger.Error("Send failed [%d]", ret);
-    }
-
-    i += 1;
-    ThisThread::sleep_for(100ms);
-  }
-  return 0;
-};
-
-int main1_alt0() {
-  robotics::network::SimpleCAN can_{PA_11, PA_12, (int)1E6};
-
-  logger.Info("Init");
-  can_.Init();
-
-  can_.OnRx([](uint32_t id, std::vector<uint8_t> data) {
-    logger.Info("Rx %08X (%d): %02X %02X %02X %02X", id, data.size(), data[0],
-                data[1], data[2], data[3]);
-  });
-
-  while (1) {
-    ThisThread::sleep_for(50ms);
-    auto ret = can_.Send(0x200, {1, 2, 3, 4});
-    if (ret != 1) {
-      logger.Error("Send failed [%d]", ret);
-    }
-  }
-  return 0;
+  return main_prod();
 }
-
-int main1_alt1() {
-  ikarashiCAN_mk2 can{PA_11, PA_12, 0x01f, (int)1E6};
-
-  logger.Info("Init");
-  union {
-    uint32_t i;
-    uint8_t data[4];
-  };
-  can.read_start();
-  ThisThread::sleep_for(200ms);
-
-  Thread thread{};
-  thread.start([&]() {
-    while (1) {
-      can.reset();
-      ThisThread::sleep_for(10ms);
-    }
-  });
-
-  while (1) {
-    can.set(data, 4);
-
-    auto ret = can.write(2);
-    if (ret != 1) {
-      logger.Error("Send failed [%d]", ret);
-    }
-
-    i += 1;
-    ThisThread::sleep_for(100ms);
-  }
-
-  return 0;
-}
-
-int main1_alt2() {
-  CAN can_{PA_11, PA_12, (int)1E6};
-  CANMessage msg;
-  logger.Info("Init");
-  int i = 0;
-
-  while (1) {
-    i += 1;
-
-    /*
-    can_.reset();
-    auto ret = can_.read(msg);
-    if (ret == 1) {
-      logger.Info("Rx %08X (%d): %02X %02X %02X %02X", msg.id, msg.len,
-                  msg.data[0], msg.data[1], msg.data[2], msg.data[3]);
-    }
-    //*/
-
-    //*
-    if (i % 50 == 0) {
-      can_.reset();
-      msg = CANMessage{0x200, (const char[]){1, 2, 3, 4}, 4};
-      auto ret = can_.write(msg);
-      if (ret != 1) {
-        logger.Error("Send failed [%d]", ret);
-      }
-    }
-    //*/
-
-    ThisThread::sleep_for(1ms);
-  }
-  return 0;
-}
-
-int main2_alt0() {
-  ikarashiCAN_mk2 can{PA_11, PA_12, 0x01f, (int)1E6};
-  nhk2024b::common::Rohm1chMD md{can, 2};
-  md.Read();
-
-  return 0;
-}
-
-int main3() { return 0; }
-
-int mainpro() {
-  /* App::Config config{        //
-                     .com =  //
-                     {
-                         .can =
-                             {
-                                 .id = CAN_ID,
-                                 .freqency = (int)1E6,
-                                 .rx = PB_8,
-                                 .tx = PB_9,
-                             },
-                         .driving_can =
-                             {
-                                 .rx = PB_5, // PB_5,
-                                 .tx = PB_6, // PB_6,
-                             },
-                         .i2c =
-                             {
-                                 .sda = PC_9,
-                                 .scl = PA_8,
-                             },
-
-                         .value_store_config = {},
-                     },
-                     .can1_debug = false};
-
-
-App app(config);
-  app.Init();
-
-  while (1) {
-    ThisThread::sleep_for(100s);
-  }
-
-  return 0; */
-}
-
-int main_switch() { return can_servo_test(); }

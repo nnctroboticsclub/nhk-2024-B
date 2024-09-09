@@ -255,7 +255,7 @@ class CanDebug {
 
   void TestSend() {
     std::vector<uint8_t> data = {0x01, 0x02, 0x03, 0x04};
-    auto ret = can_.Send(0x3f0, data);
+    auto ret = can_.Send(0x400, data);
 
     if (ret != 1) {
       last_failed_tick_ = tick_;
@@ -279,6 +279,7 @@ class CanDebug {
 };
 
 class IM920Test {
+ public:
   void Main() {
     auto thread = new robotics::system::Thread;
     thread->SetStackSize(8192);
@@ -300,10 +301,11 @@ class IM920Test {
       auto remote = 3 - node_number;
 
       auto version = im920->GetVersion(1.0);
-      logger.Info("Version: %s\n", version.c_str());
+      logger.Info("Version: %s", version.c_str());
 
       im920->OnData([&logger](uint16_t from, uint8_t* data, size_t len) {
-        logger.Info("OnData: %d\n", from);
+        logger.Info("OnData: from %d", from);
+        logger.Hex(robotics::logger::core::Level::kInfo, data, len);
       });
 
       while (1) {
@@ -311,6 +313,10 @@ class IM920Test {
         robotics::system::SleepFor(1s);
       }
     });
+
+    while (1) {
+      robotics::system::SleepFor(100s);
+    }
   }
 };
 
