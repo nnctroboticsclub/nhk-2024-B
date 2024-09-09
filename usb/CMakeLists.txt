@@ -78,7 +78,11 @@ target_compile_definitions(app PRIVATE
   -DSTM32F446xx
 )
 target_link_libraries(app PRIVATE
-srobo_base_hxx im920_rs_hxx NHK2024BRsLib NHK2024BRuntime
+  srobo_base_hxx
+  im920_rs_hxx
+  NHK2024BRsLib
+  NHK2024BRuntime
+  syoch-robotics
 )
 
 add_custom_target(app.hex DEPENDS app COMMAND ${CMAKE_OBJCOPY} -O ihex app app.hex)

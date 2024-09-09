@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
  ******************************************************************************
  * @file           : main.c
@@ -15,56 +14,30 @@
  *
  ******************************************************************************
  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+#include <stdio.h>
+
 #include "main.h"
 #include "usb_host.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 #include "usbh_hid.h"
-#include <stdio.h>
+
+#include <chrono>
+
 #include <srobo2/ffi/base.hpp>
 #include <srobo2/com/im920.hpp>
-#include <chrono>
-/* USER CODE END Includes */
+#include <srobo2/com/im920_srobo1.hpp>
+#include <srobo2/timer/hal_timer.hpp>
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
+#include <robotics/network/ssp/ssp.hpp>
+#include <robotics/network/ssp/value_store.hpp>
 
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart1;
 
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 extern "C" void MX_USB_HOST_Process(void);
-
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
 
 namespace robotics::system {
 void SleepFor(std::chrono::milliseconds duration) {
@@ -74,9 +47,9 @@ void SleepFor(std::chrono::milliseconds duration) {
 
 namespace nhk2024b::controller {
 
-namespace im920 {
-robotics::logger::Logger im920_logger("im920.app", "Com:IM920");
+robotics::logger::Logger app_logger{"app", "   App   "};
 
+namespace im920 {
 class IM920TxCStream {
   srobo2::ffi::CStreamTx tx;
   bool is_sending = false;
@@ -89,9 +62,6 @@ class IM920TxCStream {
   }
 
   void DoWrite(const uint8_t *data, size_t len) {
-    im920_logger.Info("IM920 <-- ");
-    im920_logger.Hex(robotics::logger::core::Level::kInfo, data, len);
-
     HAL_UART_Transmit(&huart1, const_cast<uint8_t *>(data), len, 1000);
   }
 
@@ -104,7 +74,6 @@ class IM920TxCStream {
 
   srobo2::ffi::CStreamTx *GetTx() { return &tx; }
 };
-
 IM920TxCStream IM920TxCStream::instance;
 
 class IM920RxCStream {
@@ -132,37 +101,13 @@ class IM920RxCStream {
 
 IM920RxCStream IM920RxCStream::instance;
 
-class HALCTime {
-  srobo2::ffi::CTime time;
-
-  static float Now(const void *context) { return HAL_GetTick() / 1000.0f; }
-
-  static void Sleep(const void *context, float duration) {
-    HAL_Delay(duration * 1000);
-  }
-
-  static HALCTime instance;
-
- public:
-  static HALCTime *GetInstance() { return &instance; }
-
-  void Init() {
-    srobo2::ffi::__ffi_ctime_set_context(&time, this);
-    srobo2::ffi::__ffi_ctime_set_now(&time, &Now);
-    srobo2::ffi::__ffi_ctime_set_sleep(&time, &Sleep);
-  }
-
-  srobo2::ffi::CTime *GetTime() { return &time; }
-};
-
-HALCTime HALCTime::instance;
-
 srobo2::com::CIM920 *GetIM920() {
   static srobo2::com::CIM920 *im920 = nullptr;
   if (im920 == nullptr) {
-    im920 = new srobo2::com::CIM920(IM920TxCStream::GetInstance()->GetTx(),
-                                    IM920RxCStream::GetInstance()->GetRx(),
-                                    HALCTime::GetInstance()->GetTime());
+    im920 = new srobo2::com::CIM920(
+        IM920TxCStream::GetInstance()->GetTx(),
+        IM920RxCStream::GetInstance()->GetRx(),
+        srobo2::timer::HALCTime::GetInstance()->GetTime());
   }
 
   return im920;
@@ -175,85 +120,59 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     IM920RxCStream::GetInstance()->RxIRQ();
   }
 }
+
 }  // namespace im920
 
-robotics::logger::Logger app_logger{"app", "   App   "};
-
-void OnIM920Packet(uint16_t from, uint8_t *data, size_t len) {
-  app_logger.Info("Received from %d: ", from);
-  app_logger.Hex(robotics::logger::core::Level::kInfo, data, len);
-}
-
-void Init() {
-  auto im920_ = im920::GetIM920();
-
-  auto node_id = im920_->GetNodeNumber(1.0f);
-  app_logger.Info("Node ID: %d", node_id);
-
-  auto version = im920_->GetVersion(1.0f);
-  app_logger.Info("Version: %s", version.c_str());
-
-  im920_->OnData(&OnIM920Packet);
-
-  im920_->Send(3 - node_id, (const uint8_t *)"Hello, world!", 13, 1.0f);
-
-  app_logger.Info("Start!");
-}
+void Init() { app_logger.Info("Start!"); }
 
 }  // namespace nhk2024b::controller
-/* USER CODE END 0 */
 
 /**
  * @brief  The application entry point.
  * @retval int
  */
 extern "C" int main(void) {
-  /* USER CODE BEGIN 1 */
   setbuf(stdout, NULL);
-  /* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick.
-   */
   HAL_Init();
 
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
-  robotics::logger::core::Init();
+
+  printf("\n\n\nProgram started\n");
 
   MX_USB_HOST_Init();
   MX_USART1_UART_Init();
 
-  /* USER CODE BEGIN 2 */
-  printf("\n\n\nProgram started\n");
-
+  robotics::logger::core::Init();
   nhk2024b::controller::Init();
 
-  /* USER CODE END 2 */
+  using robotics::network::ssp::SerialServiceProtocol;
+  using robotics::network::ssp::ValueStoreService;
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+  auto im920 = nhk2024b::controller::im920::RoboticsIM920(
+      nhk2024b::controller::im920::GetIM920());
+
+  SerialServiceProtocol<uint16_t> ssp(im920);
+  auto vs = ssp.RegisterService<ValueStoreService<uint16_t>>();
+
+  robotics::Node<float> test_node;
+  vs->AddController(0, 2, test_node);
+
+  int i = 0;
+
   while (1) {
     robotics::logger::core::LoggerProcess();
-    /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 
-    /* USER CODE BEGIN 3 */
+    if (i % 10000 == 0) {
+      test_node.SetValue(i);
+    }
+
+    i++;
   }
-  /* USER CODE END 3 */
 }
 
 /**
@@ -305,13 +224,6 @@ static void SystemClock_Config(void) {
  * @retval None
  */
 static void MX_USART2_UART_Init(void) {
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
   huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
@@ -323,9 +235,6 @@ static void MX_USART2_UART_Init(void) {
   if (HAL_UART_Init(&huart2) != HAL_OK) {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
 }
 
 /**
@@ -334,16 +243,9 @@ static void MX_USART2_UART_Init(void) {
  * @retval None
  */
 static void MX_USART1_UART_Init(void) {
-  /* USER CODE BEGIN USART1_Init 0 */
-  // nothing
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-  printf("HAL_UART_MspInit (UART1)\n");
-  /* Peripheral clock enable */
   __HAL_RCC_USART1_CLK_ENABLE();
-
   __HAL_RCC_GPIOA_CLK_ENABLE();
+
   /**USART1 GPIO Configuration
   PA9     ------> USART1_TX
   PA10     ------> USART1_RX
@@ -355,7 +257,6 @@ static void MX_USART1_UART_Init(void) {
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-  /* USER CODE END USART1_Init 1 */
 
   huart1.Instance = USART1;
   huart1.Init.BaudRate = 19200;
@@ -368,15 +269,12 @@ static void MX_USART1_UART_Init(void) {
   if (HAL_UART_Init(&huart1) != HAL_OK) {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART1_Init 2 */
 
   HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(USART1_IRQn);
 
   nhk2024b::controller::im920::IM920RxCStream::GetInstance()->Init();
   nhk2024b::controller::im920::IM920TxCStream::GetInstance()->Init();
-
-  /* USER CODE END USART1_Init 2 */
 }
 
 /**
@@ -385,21 +283,12 @@ static void MX_USART1_UART_Init(void) {
  * @retval None
  */
 static void MX_GPIO_Init(void) {
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-  /* USER CODE END MX_GPIO_Init_1 */
-
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
-
-extern "C" void Test_syoch_01(USBH_HandleTypeDef *phost);
-
 /**
  * @brief  The function is a callback about HID Data events
  *  @param  phost: Selected device
