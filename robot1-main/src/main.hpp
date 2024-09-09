@@ -124,8 +124,6 @@ class App {
     InitFEP();
 
     ps4.dpad.SetChangeCallback([this](DPad dpad) {
-      robot.ctrl_lock.SetValue(dpad & DPad::kUp);
-      robot.ctrl_lock_back.SetValue(dpad & DPad::kDown);
       robot.ctrl_brake.SetValue(dpad & DPad::kLeft);
       robot.ctrl_collector.SetValue(dpad & DPad::kRight);
     });
@@ -151,6 +149,8 @@ class App {
     logger.Info("Main loop");
     int i = 0;
     while (1) {
+      robot.Update(0.001);
+
       ps4.Update();
 
       mdc0.Tick();

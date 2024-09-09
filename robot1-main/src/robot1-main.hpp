@@ -10,11 +10,11 @@ namespace nhk2024b::robot1 {
 class Refrige {
   template <typename T>
   using Node = robotics::Node<T>;
+  using AngledMotor = robotics::filter::AngledMotor<float>;
 
  public:
   Node<bool> ctrl_collector;   // 回収機構ボタン
-  Node<bool> ctrl_lock;       // ロック解除の際のボタン
-  Node<bool> ctrl_lock_back;  // ロック解除の際のボタン
+  Node<bool> ctrl_unlock;        // ロック解除の際のボタン
   Node<bool> ctrl_brake;       // ブレーキのボタン
   Node<JoyStick2D> ctrl_move;
   // ↑コントロール側のノード
@@ -25,9 +25,23 @@ class Refrige {
   Node<float> out_motor3;
   Node<float> out_motor4;
   Node<float> out_brake;       // ブレーキ
-  Node<float> out_lock;       // ロック解除->戻す必要あり
-  Node<float> out_lock_back;  // ロック解除->戻す必要あり
   Node<float> out_collector;  // 回収機構ー＞戻さなくてもよさそう
+
+  bool unlock_state = false;
+
+  AngledMotor unlock;
+  float max_unlock_angle=60.0;
+
+   void Update(float dt) {
+    unlock.Update(dt);
+  }
+
+  // unlocke (angledmotor ver.)
+  void SetElevationAngle(float angle) {
+    unlock.goal.SetValue(angle > max_unlock_angle ? max_unlock_angle : angle);
+  } 
+
+  
 
   void LinkController() {
     ctrl_move.SetChangeCallback([this](robotics::JoyStick2D stick) {
@@ -39,16 +53,6 @@ class Refrige {
 
     });
     // ↓ボタンの作動
-    ctrl_lock.SetChangeCallback(
-        [this](bool btn) {  // ボタン押している間にロック解除と発射（motorが回りつ図ける）
-          out_lock.SetValue(btn ? 0.2 : 0);
-        });
-
-    ctrl_lock_back.SetChangeCallback(
-        [this](bool btn) {  // 定位置に戻すためのボタン
-          out_lock_back.SetValue(btn ? -0.2 : 0);
-        });
-
     ctrl_collector.SetChangeCallback(
         [this](bool btn) {  // 回収機構押しているときだけ正転
           out_collector.SetValue(btn ? 0.2 : 0);
@@ -58,6 +62,11 @@ class Refrige {
         [this](bool btn) {  // ブレーキ　ボタン押しているときだけ逆回転
           out_brake.SetValue(btn ? -0.2 : 0);
         });
+
+    ctrl_unlock.SetChangeCallback([this](bool value) {
+       unlock_state = unlock_state ^ value;
+      unlock.goal.SetValue(unlock_state ? 0.60 : -0.05);
+    });
   }
 };
 }  // namespace nhk2024b
