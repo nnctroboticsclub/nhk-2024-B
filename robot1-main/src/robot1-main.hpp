@@ -19,8 +19,8 @@ class Refrige {
   Node<bool> ctrl_brake;        // ブレーキのボタン逆向きが必要
   Node<bool> ctrl_brake_back;     // ブレーキのボタン逆向きが必要
   Node<bool> ctrl_brake_back;     // ブレーキのボタン逆向きが必要
-  Node<bool> ctrl_turning_right;  // 右側に旋回
-  Node<bool> ctrl_turning_left;   // 左側に旋回
+  Node<float> ctrl_turning_right;  // 右側に旋回
+  Node<float> ctrl_turning_left;   // 左側に旋回
 
   Node<JoyStick2D> ctrl_move;
   // ↑コントロール側のノード
@@ -57,18 +57,18 @@ class Refrige {
 
     ctrl_brake_back.SetChangeCallback([this](bool btn) { out_brake.SetValue(btn ? 0.9 : 0); }); // ブレーキ逆向き
 
-    ctrl_turning_right.SetChangeCallback([this](bool btn) { 
-      out_motor1.SetValue(-0.7);
-      out_motor2.SetValue(0.7);
-      out_motor3.SetValue(-0.7);
-      out_motor4.SetValue(0.7);
+    ctrl_turning_right.SetChangeCallback([this](float trigger) { 
+      out_motor1.SetValue(-trigger);
+      out_motor2.SetValue(trigger);
+      out_motor3.SetValue(-trigger);
+      out_motor4.SetValue(trigger);
     });
 
-    ctrl_turning_left.SetChangeCallback([this](bool btn) {
-      out_motor1.SetValue(-0.7);
-      out_motor2.SetValue(0.7);
-      out_motor3.SetValue(-0.7);
-      out_motor4.SetValue(0.7);
+    ctrl_turning_left.SetChangeCallback([this](float trigger) {
+      out_motor1.SetValue(-trigger);
+      out_motor2.SetValue(trigger);
+      out_motor3.SetValue(-trigger);
+      out_motor4.SetValue(trigger);
     });
   }
 };
