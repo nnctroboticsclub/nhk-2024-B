@@ -62,6 +62,20 @@ target_link_libraries(ikako_c620 PRIVATE
 )
 
 #
+# Futaba_Puropo
+#
+add_library(Futaba_Puropo STATIC)
+target_include_directories(Futaba_Puropo PUBLIC
+  ./Futaba_Puropo
+)
+target_sources(Futaba_Puropo PRIVATE
+  Futaba_Puropo/puropo.cpp
+)
+target_link_libraries(Futaba_Puropo PRIVATE
+  mbed-os
+)
+
+#
 # bno055
 #
 add_library(bno055 STATIC)

@@ -5,16 +5,16 @@
 // #include "app.hpp"
 
 // #include <mbed-robotics/simple_can.hpp>
+#include <puropo.h>
+
+#include <mbed-robotics/uart_stream.hpp>
+#include <nhk2024b/fep_ps4_con.hpp>
+#include <robotics/logger/logger.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
 #include <robotics/platform/dout.hpp>
-#include <mbed-robotics/uart_stream.hpp>
-
-#include <robotics/logger/logger.hpp>
-
-#include <nhk2024b/fep_ps4_con.hpp>
-#include "collect.hpp"
 
 #include "app.hpp"
+#include "collect.hpp"
 
 robotics::logger::Logger logger{"   app   ", "app"};
 
@@ -190,4 +190,46 @@ int main_switch() {
 
   main_0();
   return 0;
+}
+
+class PuropoController {
+  Puropo puropo;
+
+ public:
+  Node<JoyStick2D> stick1;
+  Node<JoyStick2D> stick2;
+  Node<bool> button1;
+  Node<bool> button2;
+  Node<bool> button3;
+  Node<bool> button4;
+
+  // コンストラクタ→初期化
+  PuropoController(PinName tx, PinName rx) : puropo(tx, rx) { puropo.start(); }
+
+  // 毎ティック実行される関数
+  void Tick() {
+    // プロポの値を Node に格納
+    // <xxx>.SetValue(<value>);
+    auto stick1 = JoyStick2D{puropo.get(channel1), -1 * puropo.get(channel2)};
+    auto stick2 = JoyStick2D{puropo.get(channel1), -1 * puropo.get(channel2)};
+    button1.SetValue(puropo.get(channel5));  // valueはダミー
+    button2.SetValue(puropo.get(channel6));  // valueはダミー
+    button3.SetValue(puropo.get(channel7));  // valueはダミー
+    button4.SetValue(puropo.get(channel8));  // valueはダミー
+  }
+};
+
+void main_puropo_test() {//プロポ実験
+  button1.SetValue(puropo.get(channel5));  
+  button2.SetValue(puropo.get(channel6));  
+  button3.SetValue(puropo.get(channel7));  
+  button4.SetValue(puropo.get(channel8));
+  button4.SetValue(puropo.get(channel9));
+  button4.SetValue(puropo.get(channel10));
+  button4.SetValue(puropo.get(channel11));
+  button4.SetValue(puropo.get(channel12));
+  button4.SetValue(puropo.get(channel13));
+  button4.SetValue(puropo.get(channel14));
+  button4.SetValue(puropo.get(channel15));
+  button4.SetValue(puropo.get(channel16));
 }
