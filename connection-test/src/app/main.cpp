@@ -129,16 +129,18 @@ class Network {
     robotics::logger::SuppressLogger("tx.rep.nw");
     robotics::logger::SuppressLogger("rx.rep.nw");
 
+    printf("AA4\n");
     std::shared_ptr<mbed::UnbufferedSerial> im920_uart_ =
         std::make_shared<mbed::UnbufferedSerial>(PA_9, PA_10, 19200);
 
+    printf("AA5\n");
     srobo2::com::UARTCStreamRx rx_{im920_uart_};
     srobo2::com::UARTCStreamTx tx_{im920_uart_};
     srobo2::timer::MBedTimer timer_;
 
-    printf("AAA");
+    printf("AA6\n");
     srobo2::com::CIM920 cim920_{tx_.GetTx(), rx_.GetRx(), timer_.GetTime()};
-    printf("BBB");
+    printf("AA7\n");
     srobo2::com::IM910_SRobo1 im920_{&cim920_};
     robotics::network::SerialServiceProtocol<uint16_t> ssp_{im920_};
 
@@ -156,7 +158,7 @@ class Network {
 };
 
 class App {
-  robotics::logger::Logger logger{"app", "\x1b[3;32m   App   \x1b[m"};
+  // robotics::logger::Logger logger{"app", "\x1b[3;32m   App   \x1b[m"};
   Network<uint16_t> network;
 
  public:

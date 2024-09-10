@@ -66,6 +66,14 @@ class IM920TxCStream {
 
     // app_logger.Info("IM920: Sent %d bytes", len);
     // app_logger.Hex(robotics::logger::core::Level::kInfo, data, len);
+
+    // static char buffer[0x100];
+    // for (size_t i = 0; i < len; i++) {
+    //   buffer[i] = isprint(data[i]) ? data[i] : '.';
+    // }
+    // buffer[len] = '\0';
+    //
+    // app_logger.Info("IM920: Sent: %s", buffer);
   }
 
   static IM920TxCStream instance;
@@ -98,7 +106,7 @@ class IM920RxCStream {
     srobo2::ffi::__ffi_cstream_feed_rx(rx, data, 1);
     HAL_UART_Receive_IT(&huart1, data, 1);
 
-    // app_logger.Info("IM920: Rx: %02x", data[0]);
+    app_logger.Info("IM920: Rx: %02x", data[0]);
   }
 
   srobo2::ffi::CStreamRx *GetRx() { return rx; }
@@ -161,10 +169,11 @@ extern "C" int main(void) {
       srobo2::com::IM910_SRobo1(nhk2024b::controller::im920::GetIM920());
 
   auto nn = im920.GetNodeNumber();
-  printf("nn: %04x\n", nn);
+  printf("NN: 0x%04x (Node Number)\n", nn);
+  printf("GN: 0x%08x (Group Number)\n", im920.GetGroupNumber());
 
-  auto remote = nn == 1 ? 0xb732 : 1;
-  printf("remote: %04x\n", remote);
+  auto remote = nn == 0x0001 ? 0xb732 : 0x0001;
+  printf("remote: 0x%04x\n", remote);
 
   SerialServiceProtocol<uint16_t> ssp(im920);
   auto vs = ssp.RegisterService<ValueStoreService<uint16_t>>();
@@ -172,14 +181,24 @@ extern "C" int main(void) {
   robotics::Node<float> test_node;
   vs->AddController(0, remote, test_node);
 
+  robotics::Node<float> test_node_0002;
+  vs->AddController(0, 0x0002, test_node_0002);
+
+  if (nn != 0x0001)
+    test_node.SetChangeCallback([](float v) {
+      nhk2024b::controller::app_logger.Info("TestNode: %f", v);
+    });
+
   int i = 1;
 
   while (1) {
     robotics::logger::core::LoggerProcess();
     MX_USB_HOST_Process();
 
-    if (i % 500 == 0) {
+    if (i % 50000 == 0 && nn == 1) {
+      // printf("Set %d\n", i);
       test_node.SetValue(i);
+      test_node_0002.SetValue(i);
     }
 
     i += 1;
