@@ -68,12 +68,13 @@ class PuropoController {
   void Tick() {
     // プロポの値を Node に格納
     // <xxx>.SetValue(<value>);
-    auto stick1 = JoyStick2D{-1*puropo.get(1),  puropo.get(2)};
-    auto stick2 = JoyStick2D{-1*puropo.get(1),  puropo.get(2)};
-    button1.SetValue((puropo.get(5)+1)/2);
-    button2.SetValue((puropo.get(6)+1)/2);
-    button3.SetValue((puropo.get(7)+1)/2);  //Cボタンだけ真ん中に立てられるがそれはしないこと
-    button4.SetValue((puropo.get(8)+1)/2);
+    auto stick1 = JoyStick2D{-1 * puropo.get(1), puropo.get(2)};
+    auto stick2 = JoyStick2D{-1 * puropo.get(1), puropo.get(2)};
+    button1.SetValue((puropo.get(5) + 1) / 2);
+    button2.SetValue((puropo.get(6) + 1) / 2);
+    button3.SetValue((puropo.get(7) + 1) /
+                     2);  // Cボタンだけ真ん中に立てられるがそれはしないこと
+    button4.SetValue((puropo.get(8) + 1) / 2);
   }
 };
 
@@ -215,8 +216,6 @@ App app(config);
   return 0; */
 }
 
-
-
 void main_puropo_test() {  // プロポ実験
   auto puropo = Puropo{PA_0, PA_1};
   puropo.start();
@@ -232,7 +231,7 @@ void main_puropo_test() {  // プロポ実験
            puropo.get(9), puropo.get(10), puropo.get(11), puropo.get(12));
     printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
            puropo.get(13), puropo.get(14), puropo.get(15), puropo.get(16));
-  printf("\n");
+    printf("\n");
     ThisThread::sleep_for(10ms);
   }
 }
