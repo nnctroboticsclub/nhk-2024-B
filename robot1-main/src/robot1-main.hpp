@@ -14,11 +14,9 @@ class Refrige {
   using AngledMotor = robotics::filter::AngledMotor<float>;
 
  public:
-  Node<bool> ctrl_collector;  // 回収機構ボタン（逆向きがもしかしたら必要かも）
-  Node<bool> ctrl_unlock;  // ロック解除の際のボタン　逆向き必要
-  Node<bool> ctrl_unlock_back;  // ロック解除の際のボタン　逆向き必要
-  Node<bool> ctrl_brake;        // ブレーキのボタン逆向きが必要
-  Node<bool> ctrl_brake_back;  // ブレーキのボタン逆向きが必要
+  Node<bool> ctrl_collector;  //３状態間を遷移させる 回収機構
+  Node<bool> ctrl_unlock; //toggleに変更する アンロック
+  Node<bool> ctrl_brake;  //toggleに変更する　ブレーキ
 
   Node<float> ctrl_turning_right;  // 右側に旋回
   Node<float> ctrl_turning_left;   // 左側に旋回
@@ -37,16 +35,13 @@ class Refrige {
   Node<float> out_turning_left;
 
   bool unlock_state = false;
+  bool brake_state = false;
+  int collecter_state = 0;
 
   AngledMotor unlock;
-  float max_unlock_angle = 60.0;
+  float max_unlock_angle = 15.0;
 
   void Update(float dt) { unlock.Update(dt); }
-
-  // unlocke (angledmotor ver.)
-  void SetElevationAngle(float angle) {
-    unlock.goal.SetValue(angle > max_unlock_angle ? max_unlock_angle : angle);
-  }
 
   void LinkController() {
     ctrl_move.SetChangeCallback([this](robotics::JoyStick2D stick) {
@@ -70,34 +65,37 @@ class Refrige {
     ctrl_turning_right.SetChangeCallback([this](float trigger) {
       out_motor1.SetValue(-trigger);
       out_motor2.SetValue(trigger);
-      out_motor3.SetValue(-trigger);
-      out_motor4.SetValue(trigger);
+      out_motor3.SetValue(trigger);
+      out_motor4.SetValue(-trigger);
     });
 
     ctrl_turning_left.SetChangeCallback([this](float trigger) {
-      out_motor1.SetValue(-trigger);
-      out_motor2.SetValue(trigger);
+      out_motor1.SetValue(trigger);
+      out_motor2.SetValue(-trigger);
       out_motor3.SetValue(-trigger);
       out_motor4.SetValue(trigger);
     });
 
-    ctrl_unlock.SetChangeCallback([this](bool btn) {
-      out_unlock.SetValue(btn ? -0.4 : 0);
-    });  // ロック解除
+    ctrl_unlock.SetChangeCallback([this](bool btn) {//アンロックトグル
+      unlock_state = unlock_state ^ btn;
+      unlock.goal.SetValue(unlock_state ? max_unlock_angle : 0);
+    });
 
-    ctrl_unlock_back.SetChangeCallback(
-        [this](bool btn) { out_unlock.SetValue(btn ? 0.4 : 0); });
+    ctrl_collector.SetChangeCallback([this](bool btn) {//コレクタトグル 
+      collecter_state = (collecter_state + btn) %3;
+      if(collecter_state==0){
+        out_collector.SetValue(0);
+      }else if(collecter_state==1){
+        out_collector.SetValue(0.5);
+      }else{
+        out_collector.SetValue(-0.5);
+      }
+    });
 
-    ctrl_collector.SetChangeCallback(
-        [this](bool btn) { out_collector.SetValue(btn ? 0.5 : 0); });
-
-    ctrl_brake.SetChangeCallback([this](bool btn) {
-      out_brake.SetValue(btn ? -0.9 : 0);
-    });  // ブレーキ　ボタン押しているときだけ逆回転
-
-    ctrl_brake_back.SetChangeCallback([this](bool btn) {
-      out_brake.SetValue(btn ? 0.9 : 0);
-    });  // ブレーキ逆向き
+    ctrl_brake.SetChangeCallback([this](bool btn) {//ブレーキトグル
+      brake_state = brake_state ^ btn;
+      out_brake.SetValue(brake_state ? 0.40 : -0.40);
+    });
   }
 };
 }  // namespace nhk2024b::robot1
