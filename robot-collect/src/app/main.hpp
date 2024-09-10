@@ -182,15 +182,10 @@ App app(config);
   return 0; */
 }
 
-int main_switch() {
-  printf("main() started\n");
-  printf("Build: " __DATE__ " - " __TIME__ "\n");
+template <typename T>
+using Node = robotics::node::Node<T>;
 
-  robotics::logger::Init();
-
-  main_0();
-  return 0;
-}
+using robotics::types::JoyStick2D;
 
 class PuropoController {
   Puropo puropo;
@@ -210,26 +205,41 @@ class PuropoController {
   void Tick() {
     // プロポの値を Node に格納
     // <xxx>.SetValue(<value>);
-    auto stick1 = JoyStick2D{puropo.get(channel1), -1 * puropo.get(channel2)};
-    auto stick2 = JoyStick2D{puropo.get(channel1), -1 * puropo.get(channel2)};
-    button1.SetValue(puropo.get(channel5));  // valueはダミー
-    button2.SetValue(puropo.get(channel6));  // valueはダミー
-    button3.SetValue(puropo.get(channel7));  // valueはダミー
-    button4.SetValue(puropo.get(channel8));  // valueはダミー
+    auto stick1 = JoyStick2D{-1*puropo.get(1),  puropo.get(2)};
+    auto stick2 = JoyStick2D{-1*puropo.get(1),  puropo.get(2)};
+    button1.SetValue((puropo.get(5)+1)/2);
+    button2.SetValue((puropo.get(6)+1)/2);
+    button3.SetValue((puropo.get(7)+1)/2);  //Cボタンだけ真ん中に立てられるがそれはしないこと
+    button4.SetValue((puropo.get(8)+1)/2);
   }
 };
 
-void main_puropo_test() {//プロポ実験
-  button1.SetValue(puropo.get(channel5));  
-  button2.SetValue(puropo.get(channel6));  
-  button3.SetValue(puropo.get(channel7));  
-  button4.SetValue(puropo.get(channel8));
-  button4.SetValue(puropo.get(channel9));
-  button4.SetValue(puropo.get(channel10));
-  button4.SetValue(puropo.get(channel11));
-  button4.SetValue(puropo.get(channel12));
-  button4.SetValue(puropo.get(channel13));
-  button4.SetValue(puropo.get(channel14));
-  button4.SetValue(puropo.get(channel15));
-  button4.SetValue(puropo.get(channel16));
+void main_puropo_test() {  // プロポ実験
+  auto puropo = Puropo{PA_0, PA_1};
+  puropo.start();
+  printf("\x1b[2J");
+  while (1) {
+    printf("\x1b[0;0H");
+    printf("is_ok: %s\n", puropo.is_ok() ? "OK" : "NG");
+    printf("ch1: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(1), puropo.get(2), puropo.get(3), puropo.get(4));
+    printf("ch5: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(5), puropo.get(6), puropo.get(7), puropo.get(8));
+    printf("ch9: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(9), puropo.get(10), puropo.get(11), puropo.get(12));
+    printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(13), puropo.get(14), puropo.get(15), puropo.get(16));
+  printf("\n");
+    ThisThread::sleep_for(10ms);
+  }
+}
+
+int main_switch() {
+  printf("main() started\n");
+  printf("Build: " __DATE__ " - " __TIME__ "\n");
+
+  robotics::logger::Init();
+
+  main_puropo_test();
+  return 0;
 }
