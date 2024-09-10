@@ -69,8 +69,10 @@ class App {
   //*/
 
   Actuators *actuators = new Actuators{(Actuators::Config){
-      .can_1_rd = PB_5 /* PA_11 */,
-      .can_1_td = PB_6 /* PA_12 */,
+      .can_1_rd = PB_5,
+      .can_1_td = PB_6,
+      .can_2_rd = PA_11,
+      .can_2_td = PA_12,
   }};
   IkakoRobomasNode *move_l;
   IkakoRobomasNode *move_r;
