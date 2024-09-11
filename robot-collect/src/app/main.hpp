@@ -5,16 +5,16 @@
 // #include "app.hpp"
 
 // #include <mbed-robotics/simple_can.hpp>
+#include <puropo.h>
+
+#include <mbed-robotics/uart_stream.hpp>
+#include <nhk2024b/fep_ps4_con.hpp>
+#include <robotics/logger/logger.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
 #include <robotics/platform/dout.hpp>
-#include <mbed-robotics/uart_stream.hpp>
-
-#include <robotics/logger/logger.hpp>
-
-#include <nhk2024b/fep_ps4_con.hpp>
-#include "collect.hpp"
 
 #include "app.hpp"
+#include "collect.hpp"
 
 robotics::logger::Logger logger{"   app   ", "app"};
 
@@ -190,4 +190,53 @@ int main_switch() {
 
   main_0();
   return 0;
+}
+
+template <typename T>
+using Node = robotics::node::Node<T>;
+
+using robotics::types::JoyStick2D;
+
+class PuropoController {
+  Puropo puropo;
+
+ public:
+  Node<JoyStick2D> stick1;
+  Node<JoyStick2D> stick2;
+  Node<bool> button1;
+  Node<bool> button2;
+  Node<bool> button3;
+  Node<bool> button4;
+
+  // コンストラクタ→初期化
+  PuropoController(PinName tx, PinName rx) : puropo(tx, rx) { puropo.start(); }
+
+  // 毎ティック実行される関数
+  void Tick() {
+    // プロポの値を Node に格納
+    // <xxx>.SetValue(<value>);
+    auto stick1 = JoyStick2D{puropo.get(1), -1 * puropo.get(2)};
+    auto stick2 = JoyStick2D{puropo.get(1), -1 * puropo.get(2)};
+    button1.SetValue(puropo.get(5));  // valueはダミー
+    button2.SetValue(puropo.get(6));  // valueはダミー
+    button3.SetValue(puropo.get(7));  // valueはダミー
+    button4.SetValue(puropo.get(8));  // valueはダミー
+  }
+};
+
+void main_puropo_test() {  // プロポ実験
+  auto puropo = Puropo{PC_6, PC_7};
+
+  while (1) {
+    printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(1), puropo.get(2), puropo.get(3), puropo.get(4));
+    printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(5), puropo.get(6), puropo.get(7), puropo.get(8));
+    printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(9), puropo.get(10), puropo.get(11), puropo.get(12));
+    printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(13), puropo.get(14), puropo.get(15), puropo.get(16));
+
+    ThisThread::sleep_for(500ms);
+  }
 }

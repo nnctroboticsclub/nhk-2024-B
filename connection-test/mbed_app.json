@@ -6,7 +6,8 @@
         "*": {
             "target.c_lib": "std",
             "platform.minimal-printf-enable-floating-point": true,
-            "platform.minimal-printf-set-floating-point-max-decimals": 6
+            "platform.minimal-printf-set-floating-point-max-decimals": 6,
+            "target.lse_available":  0
         }
     },
     "macros": ["MBED_ALL_STATS_ENABLED", "MBED_CONF_PLATFORM_ERROR_FILENAME_CAPTURE_ENABLED=1"]

@@ -37,37 +37,3 @@ struct Buttons {
   uint8_t r3 : 1;
 } __attribute__((packed));
 }  // namespace nhk2024b::ps4_con
-
-namespace robotics::node {
-template <>
-class NodeEncoder<nhk2024b::ps4_con::DPad> : public NodeEncoder<void> {
- public:
-  NodeEncoder() : NodeEncoder<void>() {}
-  void Update(nhk2024b::ps4_con::DPad value) {
-    std::array<uint8_t, 4> data;
-    data[0] = value;
-    data[1] = 0;
-    data[2] = 0;
-    data[3] = 0;
-
-    inspector.Update(data);
-  }
-};
-
-template <>
-class NodeEncoder<nhk2024b::ps4_con::Buttons> : public NodeEncoder<void> {
- public:
-  NodeEncoder() : NodeEncoder<void>() {}
-  void Update(nhk2024b::ps4_con::Buttons value) {
-    std::array<uint8_t, 4> data;
-    data[0] = value.square << 3 | value.cross << 2 | value.circle << 1 |
-              value.triangle;
-    data[1] =
-        value.share << 3 | value.options << 2 | value.ps << 1 | value.touchPad;
-    data[2] = value.l1 << 3 | value.r1 << 2 | value.l3 << 1 | value.r3;
-    data[3] = 0;
-
-    inspector.Update(data);
-  }
-};
-}  // namespace robotics::node

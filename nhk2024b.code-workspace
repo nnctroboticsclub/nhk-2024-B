@@ -24,6 +24,10 @@
 			"name": "[Mbed] Connection Test"
 		},
 		{
+			"path": "usb",
+			"name": "[Mbed] USB"
+		},
+		{
 			"path": "esp32",
 			"name": "[ESP-IDF] ESP32"
 		},
@@ -34,6 +38,18 @@
 		{
 			"path": "controller-stm32/src/usb_rs",
 			"name": "[Rust] USB"
+		},
+		{
+			"path": "common_libs/srobo_base",
+			"name": "[Rust] srobo_base"
+		},
+		{
+			"path": "common_libs/im920_rs",
+			"name": "[Rust] im920_rs"
+		},
+		{
+			"path": "common_libs/nhk2023-b",
+			"name": "[Rust] NHK2024B"
 		}
 	],
 	"settings": {
@@ -109,7 +125,18 @@
 			"mstd_iterator": "cpp",
 			"bitset": "cpp",
 			"set": "cpp",
-			"ranges": "cpp"
+			"ranges": "cpp",
+			"cmsis_os.h": "c",
+			"stm32f4xx.h": "c",
+			"stm32f446xx.h": "c",
+			"stm32f4xx_ll_usb.h": "c",
+			"stm32f4xx_hal_hcd.h": "c",
+			"usb_host.h": "c",
+			"main.h": "c",
+			"stm32f4xx_hal.h": "c",
+			"usbh_hid.h": "c",
+			"usbh_hid_raw.h": "c",
+			"unordered_set": "cpp"
 		}
 	}
 }

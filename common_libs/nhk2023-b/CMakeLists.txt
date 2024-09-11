@@ -18,7 +18,9 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../common_libs/srobo_base $(CMAK
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../common_libs/im920_rs $(CMAKE_CURRENT_BINARY_DIR)/im920_rs)
 
 add_library(NHK2024BRuntime STATIC
-  cxx/mem.cpp cxx/logger.cpp
+  cxx/mem.cpp
+  cxx/logger.cpp
+  cxx/ps4_con.cpp
 )
 
 target_include_directories(NHK2024BRuntime PRIVATE
