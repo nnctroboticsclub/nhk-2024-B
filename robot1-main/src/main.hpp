@@ -102,7 +102,8 @@ class App {
 
     ps4.dpad.SetChangeCallback([this](DPad dpad) {
       robot.ctrl_brake.SetValue(dpad & DPad::kLeft);
-      robot.ctrl_collector.SetValue(dpad & DPad::kRight);
+      robot.ctrl_brake_back.SetValue(dpad & DPad::kRight);
+      robot.ctrl_collector.SetValue(dpad & DPad::kDown);
       robot.ctrl_unlock.SetValue(dpad & DPad::kUp);
     });
 
@@ -132,9 +133,8 @@ class App {
     robot.out_motor3 >> motor2.GetMotor();
     robot.out_motor4 >> motor3.GetMotor();
 
-    robot.unlock.output >> unlock.GetMotor();
-    unlock.GetEncoder() >> robot.unlock.feedback;
-
+    robot.out_unlock >> unlock.GetMotor();
+    
     robot.out_collector >> collector.GetMotor();
     robot.out_brake >> brake.GetMotor();
 
@@ -148,8 +148,15 @@ class App {
   void Main() {
     logger.Info("Main loop");
     int i = 0;
+
+    Timer timer;
+    timer.reset();
+    timer.start();
+
+    
     while (1) {
-      robot.Update(0.001);
+      robot.Update(timer.read_ms() / 1000.0);
+      timer.reset();
 
       ps4.Update();
 
@@ -164,10 +171,10 @@ class App {
 
       if (i % 100 == 0) {
         auto stick = ps4.stick_left.GetValue();
-        logger.Info("Status");
+        /* logger.Info("Status");
         logger.Info("  actuator_errors: %d", actuator_errors);
         logger.Info("Report");
-        logger.Info("  c %lf %lf", stick[0], stick[1]);
+        logger.Info("  c %lf %lf", stick[0], stick[1]); */
       }
       i += 1;
       ThisThread::sleep_for(1ms);
