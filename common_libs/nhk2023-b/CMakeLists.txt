@@ -23,16 +23,13 @@ add_library(NHK2024BRuntime STATIC
   cxx/ps4_con.cpp
 )
 
-target_include_directories(NHK2024BRuntime PRIVATE
+target_include_directories(NHK2024BRuntime PUBLIC
   ./inc
 )
 
 target_link_libraries(NHK2024BRuntime PUBLIC syoch-robotics)
 
 add_library(NHK2024B STATIC)
-target_include_directories(NHK2024B PUBLIC
-  ./inc
-)
 target_sources(NHK2024B PRIVATE)
 target_link_libraries(NHK2024B PUBLIC
   srobo_base_hxx im920_rs_hxx NHK2024BRsLib NHK2024BRuntime
