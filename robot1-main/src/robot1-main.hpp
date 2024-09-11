@@ -14,9 +14,9 @@ class Refrige {
   using AngledMotor = robotics::filter::AngledMotor<float>;
 
  public:
-  Node<bool> ctrl_collector;  //３状態間を遷移させる 回収機構
-  Node<bool> ctrl_unlock; //toggleに変更する アンロック
-  Node<bool> ctrl_brake;  //toggleに変更する　ブレーキ
+  Node<bool> ctrl_collector;  // ３状態間を遷移させる 回収機構
+  Node<bool> ctrl_unlock;     // toggleに変更する アンロック
+  Node<bool> ctrl_brake;      // toggleに変更する　ブレーキ
 
   Node<float> ctrl_turning_right;  // 右側に旋回
   Node<float> ctrl_turning_left;   // 左側に旋回
@@ -29,11 +29,10 @@ class Refrige {
   Node<float> out_motor3;
   Node<float> out_motor4;
   Node<float> out_brake;      // ブレーキ
-  Node<float> out_unlock;     // アンロック
   Node<float> out_collector;  // 回収機構ー＞戻さなくてもよさそう
-  
+
   bool unlock_state = false;
-  bool brake_state = false;
+  int brake_state = false;
   int collecter_state = 0;
 
   AngledMotor unlock;
@@ -74,25 +73,31 @@ class Refrige {
       out_motor4.SetValue(trigger);
     });
 
-    ctrl_unlock.SetChangeCallback([this](bool btn) {//アンロックトグル
+    ctrl_unlock.SetChangeCallback([this](bool btn) {  // アンロックトグル
       unlock_state = unlock_state ^ btn;
       unlock.goal.SetValue(unlock_state ? max_unlock_angle : 0);
     });
 
-    ctrl_collector.SetChangeCallback([this](bool btn) {//コレクタトグル 
-      collecter_state = (collecter_state + btn) %3;
-      if(collecter_state==0){
+    ctrl_collector.SetChangeCallback([this](bool btn) {  // コレクタトグル
+      collecter_state = (collecter_state + btn) % 3;
+      if (collecter_state == 0) {
         out_collector.SetValue(0);
-      }else if(collecter_state==1){
+      } else if (collecter_state == 1) {
         out_collector.SetValue(0.5);
-      }else{
+      } else {
         out_collector.SetValue(-0.5);
       }
     });
 
-    ctrl_brake.SetChangeCallback([this](bool btn) {//ブレーキトグル
-      brake_state = brake_state ^ btn;
-      out_brake.SetValue(brake_state ? 0.40 : -0.40);
+    ctrl_brake.SetChangeCallback([this](bool btn) {  // ブレーキトグル
+      brake_state = (brake_state + btn) % 3;
+      if (brake_state == 0) {
+        out_brake.SetValue(0);
+      } else if (brake_state == 1) {
+        out_brake.SetValue(0.40);
+      } else {
+        out_brake.SetValue(-0.40);
+      }
     });
   }
 };

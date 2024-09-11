@@ -88,16 +88,15 @@ class App {
         motor1(this->mdc0.GetNode(1)),
         motor2(this->mdc0.GetNode(2)),
         motor3(this->mdc0.GetNode(3)),
-        
+
         mdc1(&ican, 6),
         collector(this->mdc1.GetNode(0)),
         unlock(this->mdc1.GetNode(1)),
-        brake(this->mdc1.GetNode(2))
-        {}
+        brake(this->mdc1.GetNode(2)) {}
 
   void Init() {
-    using nhk2024b::ps4_con::DPad;
     using nhk2024b::ps4_con::Buttons;
+    using nhk2024b::ps4_con::DPad;
 
     logger.Info("Init");
 
@@ -107,20 +106,22 @@ class App {
       robot.ctrl_unlock.SetValue(dpad & DPad::kUp);
     });
 
-    // ps4.button_share.SetChangeCallback([this](bool btn){
-    //   // emc_state = emc_state ^ btn;
-    //   // emc.write(emc_state ? 1:0);
-    // });
+    ps4.button_share.SetChangeCallback([this](bool btn) {
+      emc_state = emc_state ^ btn;
+      emc.write(emc_state ? 1 : 0);
+    });
 
-    ps4.trigger_r >> robot.ctrl_turning_right;//同じ方なら値渡しはこっちのほうがシンプルにできる
-    ps4.trigger_l >> robot.ctrl_turning_left;//同じ方なら値渡しはこっちのほうがシンプルにできる
+    ps4.trigger_r >>
+        robot
+            .ctrl_turning_right;  // 同じ方なら値渡しはこっちのほうがシンプルにできる
+    ps4.trigger_l >>
+        robot
+            .ctrl_turning_left;  // 同じ方なら値渡しはこっちのほうがシンプルにできる
 
-ps4.trigger_r.SetChangeCallback([this](float v) {
-  logger.Info("trigger_r: %6.4f", v);
-});
-ps4.trigger_l.SetChangeCallback([this](float v) {
-  logger.Info("trigger_l: %6.4f", v);
-});
+    ps4.trigger_r.SetChangeCallback(
+        [this](float v) { logger.Info("trigger_r: %6.4f", v); });
+    ps4.trigger_l.SetChangeCallback(
+        [this](float v) { logger.Info("trigger_l: %6.4f", v); });
 
     ps4.stick_left >> robot.ctrl_move;
 
@@ -131,10 +132,12 @@ ps4.trigger_l.SetChangeCallback([this](float v) {
     robot.out_motor3 >> motor2.GetMotor();
     robot.out_motor4 >> motor3.GetMotor();
 
-    robot.out_unlock >> unlock.GetMotor();
+    robot.unlock.output >> unlock.GetMotor();
+    unlock.GetEncoder() >> robot.unlock.feedback;
+
     robot.out_collector >> collector.GetMotor();
     robot.out_brake >> brake.GetMotor();
-    
+
     ps4.Init();
     emc.write(1);
     ican.read_start();
