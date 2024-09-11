@@ -30,6 +30,9 @@
 #include <robotics/network/ssp/ssp.hpp>
 #include <robotics/network/ssp/value_store.hpp>
 
+#include <nhk2024b/ps4_con.hpp>
+#include <robotics/types/joystick_2d.hpp>
+
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart1;
 
@@ -69,10 +72,9 @@ class IM920TxCStream {
 
     // static char buffer[0x100];
     // for (size_t i = 0; i < len; i++) {
-    //   buffer[i] = isprint(data[i]) ? data[i] : '.';
+    // buffer[i] = isprint(data[i]) ? data[i] : '.';
     // }
     // buffer[len] = '\0';
-    //
     // app_logger.Info("IM920: Sent: %s", buffer);
   }
 
@@ -106,7 +108,7 @@ class IM920RxCStream {
     srobo2::ffi::__ffi_cstream_feed_rx(rx, data, 1);
     HAL_UART_Receive_IT(&huart1, data, 1);
 
-    app_logger.Info("IM920: Rx: %02x", data[0]);
+    // app_logger.Info("IM920: Rx: %02x", data[0]);
   }
 
   srobo2::ffi::CStreamRx *GetRx() { return rx; }
@@ -154,6 +156,142 @@ void ResetIM920() {
   HAL_Delay(100);
 }
 
+namespace vs_ps4 {
+robotics::logger::Logger logger{"vs_ps4", "   PS4   "};
+
+bool initialized = false;
+robotics::Node<robotics::types::JoyStick2D> *stick_left = nullptr;
+robotics::Node<robotics::types::JoyStick2D> *stick_right = nullptr;
+robotics::Node<nhk2024b::ps4_con::DPad> *dpad = nullptr;
+robotics::Node<bool> *button_square = nullptr;
+robotics::Node<bool> *button_cross = nullptr;
+robotics::Node<bool> *button_circle = nullptr;
+robotics::Node<bool> *button_triangle = nullptr;
+robotics::Node<bool> *button_share = nullptr;
+robotics::Node<bool> *button_options = nullptr;
+robotics::Node<bool> *button_ps = nullptr;
+robotics::Node<bool> *button_touchPad = nullptr;
+robotics::Node<bool> *button_l1 = nullptr;
+robotics::Node<bool> *button_r1 = nullptr;
+robotics::Node<bool> *button_l3 = nullptr;
+robotics::Node<bool> *button_r3 = nullptr;
+robotics::Node<float> *trigger_l = nullptr;
+robotics::Node<float> *trigger_r = nullptr;
+robotics::Node<float> *battery_level = nullptr;
+
+namespace state {
+float stick_left_x = 0;
+float stick_left_y = 0;
+float stick_right_x = 0;
+float stick_right_y = 0;
+nhk2024b::ps4_con::DPad dpad_value = nhk2024b::ps4_con::DPad::kNone;
+bool button_square_value = false;
+bool button_cross_value = false;
+bool button_circle_value = false;
+bool button_triangle_value = false;
+bool button_share_value = false;
+bool button_options_value = false;
+bool button_ps_value = false;
+bool button_touchPad_value = false;
+bool button_l1_value = false;
+bool button_r1_value = false;
+bool button_l3_value = false;
+bool button_r3_value = false;
+float trigger_l_value = 0;
+float trigger_r_value = 0;
+float battery_level_value = 0;
+
+void Update() {
+  stick_left->SetValue(robotics::types::JoyStick2D{stick_left_x, stick_left_y});
+  stick_right->SetValue(
+      robotics::types::JoyStick2D{stick_right_x, stick_right_y});
+  dpad->SetValue(dpad_value);
+
+  button_square->SetValue(button_square_value);
+  button_cross->SetValue(button_cross_value);
+  button_circle->SetValue(button_circle_value);
+  button_triangle->SetValue(button_triangle_value);
+  button_share->SetValue(button_share_value);
+  button_options->SetValue(button_options_value);
+  button_ps->SetValue(button_ps_value);
+  button_touchPad->SetValue(button_touchPad_value);
+  button_l1->SetValue(button_l1_value);
+  button_r1->SetValue(button_r1_value);
+  button_l3->SetValue(button_l3_value);
+  button_r3->SetValue(button_r3_value);
+  trigger_l->SetValue(trigger_l_value);
+  trigger_r->SetValue(trigger_r_value);
+  battery_level->SetValue(battery_level_value);
+}
+}  // namespace state
+
+void RegisterWatcher() {
+  stick_left->SetChangeCallback([](robotics::types::JoyStick2D v) {
+    logger.Info("[Local] stick_left: %lf %lf", v[0], v[1]);
+  });
+  stick_right->SetChangeCallback([](robotics::types::JoyStick2D v) {
+    logger.Info("[Local] stick_right: %lf %lf", v[0], v[1]);
+  });
+  dpad->SetChangeCallback(
+      [](nhk2024b::ps4_con::DPad v) { logger.Info("[Local] dpad: %d", v); });
+  button_square->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_square: %d", v); });
+  button_cross->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_cross: %d", v); });
+  button_circle->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_circle: %d", v); });
+  button_triangle->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_triangle: %d", v); });
+  button_share->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_share: %d", v); });
+  button_options->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_options: %d", v); });
+  button_ps->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_ps: %d", v); });
+  button_touchPad->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_touchPad: %d", v); });
+  button_l1->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_l1: %d", v); });
+  button_r1->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_r1: %d", v); });
+  button_l3->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_l3: %d", v); });
+  button_r3->SetChangeCallback(
+      [](bool v) { logger.Info("[Local] button_r3: %d", v); });
+  trigger_l->SetChangeCallback(
+      [](float v) { logger.Info("[Local] trigger_l: %lf", v); });
+  trigger_r->SetChangeCallback(
+      [](float v) { logger.Info("[Local] trigger_r: %lf", v); });
+  battery_level->SetChangeCallback(
+      [](float v) { logger.Info("[Local] battery_level: %lf", v); });
+}
+
+void Init() {
+  initialized = true;
+  stick_left = new robotics::node::Node<robotics::types::JoyStick2D>();
+  stick_right = new robotics::node::Node<robotics::types::JoyStick2D>();
+  dpad = new robotics::node::Node<nhk2024b::ps4_con::DPad>();
+
+  button_square = new robotics::node::Node<bool>();
+  button_cross = new robotics::node::Node<bool>();
+  button_circle = new robotics::node::Node<bool>();
+  button_triangle = new robotics::node::Node<bool>();
+  button_share = new robotics::node::Node<bool>();
+  button_options = new robotics::node::Node<bool>();
+  button_ps = new robotics::node::Node<bool>();
+  button_touchPad = new robotics::node::Node<bool>();
+  button_l1 = new robotics::node::Node<bool>();
+  button_r1 = new robotics::node::Node<bool>();
+  button_l3 = new robotics::node::Node<bool>();
+  button_r3 = new robotics::node::Node<bool>();
+
+  trigger_l = new robotics::node::Node<float>();
+  trigger_r = new robotics::node::Node<float>();
+  battery_level = new robotics::node::Node<float>();
+}
+
+};  // namespace vs_ps4
+
 /**
  * @brief  The application entry point.
  * @retval int
@@ -191,19 +329,81 @@ extern "C" int main(void) {
   auto remote = nn == 0x0001 ? 0xb732 : 0x0001;
   printf("remote: 0x%04x\n", remote);
 
+  vs_ps4::Init();
+  // vs_ps4::RegisterWatcher();
+
   SerialServiceProtocol<uint16_t> ssp(im920);
   auto vs = ssp.RegisterService<ValueStoreService<uint16_t>>();
 
-  robotics::Node<float> test_node;
-  vs->AddController(0, remote, test_node);
+  vs->AddController(0, remote, *vs_ps4::stick_left);
+  vs->AddController(1, remote, *vs_ps4::stick_right);
+  vs->AddController(2, remote, *vs_ps4::dpad);
+  vs->AddController(3, remote, *vs_ps4::button_square);
+  vs->AddController(4, remote, *vs_ps4::button_cross);
+  vs->AddController(5, remote, *vs_ps4::button_circle);
+  vs->AddController(6, remote, *vs_ps4::button_triangle);
+  vs->AddController(7, remote, *vs_ps4::button_share);
+  vs->AddController(8, remote, *vs_ps4::button_options);
+  vs->AddController(9, remote, *vs_ps4::button_ps);
+  vs->AddController(10, remote, *vs_ps4::button_touchPad);
+  vs->AddController(11, remote, *vs_ps4::button_l1);
+  vs->AddController(12, remote, *vs_ps4::button_r1);
+  vs->AddController(13, remote, *vs_ps4::button_l3);
+  vs->AddController(14, remote, *vs_ps4::button_r3);
+  vs->AddController(15, remote, *vs_ps4::trigger_l);
+  vs->AddController(16, remote, *vs_ps4::trigger_r);
+  vs->AddController(17, remote, *vs_ps4::battery_level);
 
-  robotics::Node<float> test_node_0002;
-  vs->AddController(0, 0x0002, test_node_0002);
-
-  if (nn != 0x0001)
-    test_node.SetChangeCallback([](float v) {
-      nhk2024b::controller::app_logger.Info("TestNode: %f", v);
+  if (nn != 1) {
+    // vs_ps4::stick_left->SetChangeCallback([](robotics::types::JoyStick2D v) {
+    //   nhk2024b::controller::app_logger.Info("StickLeft: %f %f", v[0], v[1]);
+    // });
+    // vs_ps4::stick_right->SetChangeCallback([](robotics::types::JoyStick2D v)
+    // {
+    //   nhk2024b::controller::app_logger.Info("StickRight: %f %f", v[0], v[1]);
+    // });
+    vs_ps4::dpad->SetChangeCallback([](nhk2024b::ps4_con::DPad v) {
+      nhk2024b::controller::app_logger.Info("DPad: %d", static_cast<int>(v));
     });
+
+    vs_ps4::button_square->SetChangeCallback(
+        [](bool v) { nhk2024b::controller::app_logger.Info("Square: %d", v); });
+    vs_ps4::button_cross->SetChangeCallback(
+        [](bool v) { nhk2024b::controller::app_logger.Info("Cross: %d", v); });
+    vs_ps4::button_circle->SetChangeCallback(
+        [](bool v) { nhk2024b::controller::app_logger.Info("Circle: %d", v); });
+    vs_ps4::button_triangle->SetChangeCallback([](bool v) {
+      nhk2024b::controller::app_logger.Info("Triangle: %d", v);
+    });
+    vs_ps4::button_share->SetChangeCallback(
+        [](bool v) { nhk2024b::controller::app_logger.Info("Share: %d", v); });
+    vs_ps4::button_options->SetChangeCallback([](bool v) {
+      nhk2024b::controller::app_logger.Info("Options: %d", v);
+    });
+    vs_ps4::button_ps->SetChangeCallback(
+        [](bool v) { nhk2024b::controller::app_logger.Info("PS: %d", v); });
+    vs_ps4::button_touchPad->SetChangeCallback([](bool v) {
+      nhk2024b::controller::app_logger.Info("TouchPad: %d", v);
+    });
+    vs_ps4::button_l1->SetChangeCallback(
+        [](bool v) { nhk2024b::controller::app_logger.Info("L1: %d", v); });
+    vs_ps4::button_r1->SetChangeCallback(
+        [](bool v) { nhk2024b::controller::app_logger.Info("R1: %d", v); });
+    vs_ps4::button_l3->SetChangeCallback(
+        [](bool v) { nhk2024b::controller::app_logger.Info("L3: %d", v); });
+    vs_ps4::button_r3->SetChangeCallback(
+        [](bool v) { nhk2024b::controller::app_logger.Info("R3: %d", v); });
+
+    vs_ps4::trigger_l->SetChangeCallback([](float v) {
+      nhk2024b::controller::app_logger.Info("TriggerL: %f", v);
+    });
+    vs_ps4::trigger_r->SetChangeCallback([](float v) {
+      nhk2024b::controller::app_logger.Info("TriggerR: %f", v);
+    });
+    // vs_ps4::battery_level->SetChangeCallback([](float v) {
+    //   nhk2024b::controller::app_logger.Info("Battery: %f", v);
+    // });
+  }
 
   int i = 1;
 
@@ -213,12 +413,7 @@ extern "C" int main(void) {
   while (1) {
     robotics::logger::core::LoggerProcess();
     MX_USB_HOST_Process();
-
-    if (i % 100 == 0 && nn == 1) {
-      printf("Set %d\n", i);
-      test_node.SetValue(i);
-      test_node_0002.SetValue(i);
-    }
+    if (nn == 1) vs_ps4::state::Update();
 
     i += 1;
   }
@@ -324,6 +519,7 @@ static void MX_USART1_UART_Init(void) {
 
   nhk2024b::controller::im920::IM920RxCStream::GetInstance()->Init();
   nhk2024b::controller::im920::IM920TxCStream::GetInstance()->Init();
+  srobo2::timer::HALCTime::GetInstance()->Init();
 }
 
 /**
@@ -355,10 +551,76 @@ extern "C" void USBH_HID_EventCallback(USBH_HandleTypeDef *phost) {
 
   auto ptr = USBH_HID_RawGetReport(phost);
   if (ptr[0] != 0x01) {
+    printf("ReportID: %08x\n", ptr[0]);
     return;
   }
 
-  printf("L2: %lf %lf\n", (ptr[1] - 128) / 128.0, (ptr[2] - 128) / 128.0);
+  if (!vs_ps4::initialized) return;
+
+  vs_ps4::state::stick_left_x = (ptr[1] - 128) / 128.0;
+  vs_ps4::state::stick_left_y = (ptr[2] - 128) / 128.0;
+  vs_ps4::state::stick_right_x = (ptr[3] - 128) / 128.0;
+  vs_ps4::state::stick_right_y = (ptr[4] - 128) / 128.0;
+
+  // 0: up |       |      |
+  // 1: up | right |      |
+  // 2:    | right |      |
+  // 3:    | right | down |
+  // 4:    |       | down |
+  // 5:    |       | down | left
+  // 6:    |       |      | left
+  // 7: up |       |      | left
+  // 8:    |       |      |
+
+  // set
+  switch (ptr[5] & 0x0F) {
+    case 0:
+      vs_ps4::state::dpad_value = nhk2024b::ps4_con::DPad::kUp;
+      break;
+    case 1:
+      vs_ps4::state::dpad_value = nhk2024b::ps4_con::DPad::kUpRight;
+      break;
+    case 2:
+      vs_ps4::state::dpad_value = nhk2024b::ps4_con::DPad::kRight;
+      break;
+    case 3:
+      vs_ps4::state::dpad_value = nhk2024b::ps4_con::DPad::kDownRight;
+      break;
+    case 4:
+      vs_ps4::state::dpad_value = nhk2024b::ps4_con::DPad::kDown;
+      break;
+    case 5:
+      vs_ps4::state::dpad_value = nhk2024b::ps4_con::DPad::kDownLeft;
+      break;
+    case 6:
+      vs_ps4::state::dpad_value = nhk2024b::ps4_con::DPad::kLeft;
+      break;
+    case 7:
+      vs_ps4::state::dpad_value = nhk2024b::ps4_con::DPad::kUpLeft;
+      break;
+    default:
+      vs_ps4::state::dpad_value = nhk2024b::ps4_con::DPad::kNone;
+      break;
+  }
+
+  vs_ps4::state::button_square_value = ptr[5] & 0x10;
+  vs_ps4::state::button_cross_value = ptr[5] & 0x20;
+  vs_ps4::state::button_circle_value = ptr[5] & 0x40;
+  vs_ps4::state::button_triangle_value = ptr[5] & 0x80;
+
+  vs_ps4::state::button_l1_value = ptr[6] & 0x01;
+  vs_ps4::state::button_r1_value = ptr[6] & 0x02;
+  vs_ps4::state::button_share_value = ptr[6] & 0x10;
+  vs_ps4::state::button_options_value = ptr[6] & 0x20;
+  vs_ps4::state::button_l3_value = ptr[6] & 0x40;
+  vs_ps4::state::button_r3_value = ptr[6] & 0x80;
+
+  vs_ps4::state::button_ps_value = ptr[7] & 0x01;
+  vs_ps4::state::button_touchPad_value = ptr[7] & 0x02;
+
+  vs_ps4::state::trigger_l_value = ptr[8] / 255.0f;
+  vs_ps4::state::trigger_r_value = ptr[9] / 255.0f;
+  vs_ps4::state::battery_level_value = ptr[12] / 255.0f;
 }
 
 extern "C" int _write(int file, char *ptr, int len) {
