@@ -140,6 +140,20 @@ void Init() { app_logger.Info("Start!"); }
 
 }  // namespace nhk2024b::controller
 
+void ResetIM920() {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);  // causes im920's reset
+  HAL_Delay(100);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);  // up again
+  HAL_Delay(100);
+}
+
 /**
  * @brief  The application entry point.
  * @retval int
@@ -164,6 +178,8 @@ extern "C" int main(void) {
 
   using robotics::network::ssp::SerialServiceProtocol;
   using robotics::network::ssp::ValueStoreService;
+
+  ResetIM920();
 
   auto im920 =
       srobo2::com::IM910_SRobo1(nhk2024b::controller::im920::GetIM920());
@@ -191,12 +207,15 @@ extern "C" int main(void) {
 
   int i = 1;
 
+  HAL_Delay(1000);
+  printf("Entering Main loop\n");
+
   while (1) {
     robotics::logger::core::LoggerProcess();
     MX_USB_HOST_Process();
 
-    if (i % 50000 == 0 && nn == 1) {
-      // printf("Set %d\n", i);
+    if (i % 100 == 0 && nn == 1) {
+      printf("Set %d\n", i);
       test_node.SetValue(i);
       test_node_0002.SetValue(i);
     }
