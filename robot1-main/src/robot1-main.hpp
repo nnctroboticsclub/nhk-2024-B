@@ -31,9 +31,7 @@ class Refrige {
   Node<float> out_brake;      // ブレーキ
   Node<float> out_unlock;     // アンロック
   Node<float> out_collector;  // 回収機構ー＞戻さなくてもよさそう
-  Node<float> out_turning_right;
-  Node<float> out_turning_left;
-
+  
   bool unlock_state = false;
   bool brake_state = false;
   int collecter_state = 0;
