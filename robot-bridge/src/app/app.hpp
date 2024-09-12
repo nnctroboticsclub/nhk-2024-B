@@ -47,11 +47,11 @@ class Actuators {
     int errors = 0;
     int status;
 
-    // status = can_servo.Send();  // Sends 020H CAN message
-    // if (status == 0) {
-    //   // logger.Error("CanServoBus::Send failed");
-    //   errors |= 1;
-    // }
+    status = can_servo.Send();  // Sends 020H CAN message
+    if (status == 0) {
+      // logger.Error("CanServoBus::Send failed");
+      errors |= 1;
+    }
 
     status = ikako_robomas.Write();  // Sends 1FF/200H CAN message
     if (status != 1) {
@@ -64,11 +64,11 @@ class Actuators {
     can1.set_this_id(0);
     can2.set_this_id(0);
 
-    // status = rohm_md.Send();
-    // if (status != 1) {
-    //   // logger.Error("IkakoRobomasBus::Write failed");
-    //   errors |= 4;
-    // }
+    status = rohm_md.Send();
+    if (status != 1) {
+      // logger.Error("IkakoRobomasBus::Write failed");
+      errors |= 4;
+    }
 
     return -errors;
   }
