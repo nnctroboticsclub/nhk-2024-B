@@ -72,6 +72,7 @@ extern "C" int main(void) {
   robotics::logger::core::Init();
 
   nhk2024b::controller::im920::Init();
+  vs_ps4::state::Init();
 
   using robotics::network::ssp::SerialServiceProtocol;
   using robotics::network::ssp::ValueStoreService;
@@ -111,18 +112,61 @@ extern "C" int main(void) {
   HAL_Delay(1000);
   printf("Entering Main loop\n");
 
-  auto previous = HAL_GetTick();
-  while (1) {
-    auto elapsed_tick = HAL_GetTick() - previous;
-    previous = HAL_GetTick();
+  const float kValueStoreInterval = 0.01;  // 10ms
+  const float kKeepAliveInterval = 0.05;   // 10ms
 
-    auto elapsed_time_s = elapsed_tick / 1000.0;
+  //* [Priority] KeepAlive > ValueStore
+
+  float value_store_timer = kValueStoreInterval;
+  float keep_alive_timer = kKeepAliveInterval;
+
+  enum class Action { kNone, kSendKeepAlive, kUpdateValueStore };
+
+  auto previous_tick = HAL_GetTick();
+  while (1) {
+    auto current_tick = HAL_GetTick();
+
+    auto delta_tick = current_tick - previous_tick;
+    previous_tick = current_tick;
+
+    auto delta_s = delta_tick / 1000.0;
 
     robotics::logger::core::LoggerProcess();
     MX_USB_HOST_Process();
 
     if (nn == 1) vs_ps4::state::Update();
-    keep_alive->Update(elapsed_time_s);
+
+    keep_alive->Update(delta_s);
+    vs_ps4::state::Update();
+
+    Action action = Action::kNone;
+
+    value_store_timer -= delta_s;
+    keep_alive_timer -= delta_s;
+
+    if (value_store_timer < 0) {
+      value_store_timer = kValueStoreInterval;
+      action = Action::kUpdateValueStore;
+    }
+    if (keep_alive_timer < 0) {
+      keep_alive_timer = kKeepAliveInterval;
+      action = Action::kSendKeepAlive;
+    }
+
+    switch (action) {
+      case Action::kNone: {
+        // noop
+        break;
+      }
+      case Action::kUpdateValueStore: {
+        vs_ps4::state::Send();
+        break;
+      }
+      case Action::kSendKeepAlive: {
+        keep_alive->SendKeepAliveToAll();
+        break;
+      }
+    }
 
     i += 1;
   }
@@ -223,10 +267,15 @@ extern "C" void USBH_HID_EventCallback(USBH_HandleTypeDef *phost) {
     return;
   }
 
-  vs_ps4::state::stick_left_x = (ptr[1] - 128) / 128.0;
-  vs_ps4::state::stick_left_y = (ptr[2] - 128) / 128.0;
-  vs_ps4::state::stick_right_x = (ptr[3] - 128) / 128.0;
-  vs_ps4::state::stick_right_y = (ptr[4] - 128) / 128.0;
+  auto stick_left_x = (ptr[1] - 128) / 128.0;
+  auto stick_left_y = (ptr[2] - 128) / 128.0;
+  auto stick_left = robotics::types::JoyStick2D(stick_left_x, stick_left_y);
+  vs_ps4::state::stick_left_value = stick_left;
+
+  auto stick_right_x = (ptr[3] - 128) / 128.0;
+  auto stick_right_y = (ptr[4] - 128) / 128.0;
+  auto stick_right = robotics::types::JoyStick2D(stick_right_x, stick_right_y);
+  vs_ps4::state::stick_right_value = stick_right;
 
   // 0: up |       |      |
   // 1: up | right |      |
