@@ -169,11 +169,11 @@ class App {
         logger.Info("Status");
         logger.Info("  actuator_errors: %d", actuator_errors);
         logger.Info("Report");
-        logger.Info("  c %6.4lf %6.4lf", stick[0], stick[1]);
-        logger.Info("  o: m:   %+6.4lf   %+6.4lf   %+6.4lf   %+6.4lf",
+        logger.Info("  c %+6.3lf %+6.3lf", stick[0], stick[1]);
+        logger.Info("  o: m:   %+6.3lf   %+6.3lf   %+6.3lf   %+6.3lf",
                     motor0.GetMotor().GetValue(), motor1.GetMotor().GetValue(),
                     motor2.GetMotor().GetValue(), motor3.GetMotor().GetValue());
-        logger.Info("     u: c;%+6.4lf u;%+6.4lf b;%+6.4lf",
+        logger.Info("     u: c;%+6.3lf u;%+6.3lf b;%+6.3lf",
                     collector.GetMotor().GetValue(),
                     unlock.GetMotor().GetValue(), brake.GetMotor().GetValue());
       }
