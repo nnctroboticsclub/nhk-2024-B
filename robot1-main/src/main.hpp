@@ -16,7 +16,9 @@
 #include "robot1-main.hpp"
 #include <nhk2024b/test_ps4_fep.hpp>
 
-robotics::logger::Logger logger{"Robot1App", "robot1.app"};
+#include <nhk2024b/controller_network.hpp>
+
+robotics::logger::Logger logger{"robot1.app", "Robot1App"};
 
 class PseudoController {
   robotics::system::Thread thread;
@@ -57,13 +59,8 @@ class PseudoController {
 class App {
   DigitalOut emc{PA_15};
 
-  /*
-  using PS4Con = PseudoController;
-  PS4Con ps4;
-  /*/
-  using PS4Con = nhk2024b::ps4_con::PS4Con;
-  PS4Con ps4{PC_6, PC_7, 115200};
-  //*/
+  nhk2024b::ControllerNetwork ctrl_net;
+  nhk2024b::robot1::Controller *ctrl;
 
   bool emc_state = true;
 
@@ -100,31 +97,29 @@ class App {
 
     logger.Info("Init");
 
-    ps4.dpad.SetChangeCallback([this](DPad dpad) {
+    ctrl_net.Init();
+    ctrl = ctrl_net.ConnectToPipe1();
+
+    ctrl->buttons.SetChangeCallback([this](DPad dpad) {
       robot.ctrl_brake.SetValue(dpad & DPad::kLeft);
       robot.ctrl_brake_back.SetValue(dpad & DPad::kRight);
       robot.ctrl_collector.SetValue(dpad & DPad::kDown);
       robot.ctrl_unlock.SetValue(dpad & DPad::kUp);
     });
 
-    ps4.button_share.SetChangeCallback([this](bool btn) {
+    ctrl->emc.SetChangeCallback([this](bool btn) {
       emc_state = emc_state ^ btn;
       emc.write(emc_state ? 1 : 0);
     });
 
-    ps4.trigger_r >>
+    ctrl->rotation_cw >>
         robot
             .ctrl_turning_right;  // 同じ方なら値渡しはこっちのほうがシンプルにできる
-    ps4.trigger_l >>
+    ctrl->rotation_ccw >>
         robot
             .ctrl_turning_left;  // 同じ方なら値渡しはこっちのほうがシンプルにできる
 
-    ps4.trigger_r.SetChangeCallback(
-        [this](float v) { logger.Info("trigger_r: %6.4f", v); });
-    ps4.trigger_l.SetChangeCallback(
-        [this](float v) { logger.Info("trigger_l: %6.4f", v); });
-
-    ps4.stick_left >> robot.ctrl_move;
+    ctrl->move >> robot.ctrl_move;
 
     robot.LinkController();
 
@@ -134,11 +129,11 @@ class App {
     robot.out_motor4 >> motor3.GetMotor();
 
     robot.out_unlock >> unlock.GetMotor();
-    
+
     robot.out_collector >> collector.GetMotor();
     robot.out_brake >> brake.GetMotor();
 
-    ps4.Init();
+    // ps4.Init();
     emc.write(1);
     ican.read_start();
 
@@ -153,12 +148,12 @@ class App {
     timer.reset();
     timer.start();
 
-    
     while (1) {
-      robot.Update(timer.read_ms() / 1000.0);
+      float delta_s = timer.read_ms() / 1000.0;
       timer.reset();
 
-      ps4.Update();
+      robot.Update(delta_s);
+      ctrl_net.keep_alive->Update(delta_s);
 
       ican.reset();
 
@@ -169,12 +164,18 @@ class App {
       if (mdc0.Send() == 0) actuator_errors |= 1;
       if (mdc1.Send() == 0) actuator_errors |= 2;
 
-      if (i % 100 == 0) {
-        auto stick = ps4.stick_left.GetValue();
-        /* logger.Info("Status");
+      if (i % 200 == 0) {
+        auto stick = ctrl->move.GetValue();
+        logger.Info("Status");
         logger.Info("  actuator_errors: %d", actuator_errors);
         logger.Info("Report");
-        logger.Info("  c %lf %lf", stick[0], stick[1]); */
+        logger.Info("  c %6.4lf %6.4lf", stick[0], stick[1]);
+        logger.Info("  o: m:   %+6.4lf   %+6.4lf   %+6.4lf   %+6.4lf",
+                    motor0.GetMotor().GetValue(), motor1.GetMotor().GetValue(),
+                    motor2.GetMotor().GetValue(), motor3.GetMotor().GetValue());
+        logger.Info("     u: c;%+6.4lf u;%+6.4lf b;%+6.4lf",
+                    collector.GetMotor().GetValue(),
+                    unlock.GetMotor().GetValue(), brake.GetMotor().GetValue());
       }
       i += 1;
       ThisThread::sleep_for(1ms);
@@ -183,10 +184,16 @@ class App {
 };
 
 int main0_alt0() {
-  auto test = new App();
+  auto thread = robotics::system::Thread();
+  thread.SetThreadName("App");
+  thread.SetStackSize(8192);
 
-  test->Init();
-  test->Main();
+  thread.Start([]() {
+    auto test = new App();
+
+    test->Init();
+    test->Main();
+  });
 
   return 0;
 }
