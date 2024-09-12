@@ -13,6 +13,7 @@
 #include <robotics/platform/dout.hpp>
 
 #include <nhk2024b/fep.hpp>
+#include <nhk2024b/controller_network.hpp>
 
 #include "app.hpp"
 #include "bridge.hpp"
@@ -61,14 +62,6 @@ class App {
 
   DigitalOut emc{PA_15};
 
-  /*
-  using PS4Con = PseudoController;
-  PS4Con ps4;
-  /*/
-  using PS4Con = nhk2024b::ps4_con::PS4Con;
-  PS4Con ps4{PC_6, PC_7, 115200};
-  //*/
-
   Actuators *actuators = new Actuators{(Actuators::Config){
       .can_1_rd = PB_5,
       .can_1_td = PB_6,
@@ -82,6 +75,9 @@ class App {
 
   nhk2024b::common::CanServo *servo0;
   nhk2024b::common::CanServo *servo1;
+
+  nhk2024b::ControllerNetwork ctrl_net;
+  nhk2024b::robot2::Controller *ctrl;
 
   Robot robot;
 
@@ -100,9 +96,21 @@ class App {
   void Init() {
     logger.Info("Init");
 
-    ps4.stick_right >> robot.ctrl_move;
-    ps4.button_cross >> robot.ctrl_deploy;
-    ps4.button_square >> robot.ctrl_bridge_toggle;
+    ctrl_net.Init();
+    ctrl = ctrl_net.ConnectToPipe2();
+
+    ctrl_net.keep_alive->connection_available.SetChangeCallback(
+        [this](bool available) {
+          if (available) {
+            logger.Info("Connection available");
+          } else {
+            logger.Info("Connection lost");
+          }
+        });
+
+    ctrl->move >> robot.ctrl_move;
+    ctrl->button_deploy >> robot.ctrl_deploy;
+    ctrl->button_bridge_toggle >> robot.ctrl_bridge_toggle;
 
     robot.LinkController();
 
@@ -117,7 +125,6 @@ class App {
     servo0->SetValue(102);
     servo1->SetValue(177.8);
 
-    ps4.Init();
     // ps4.Propagate();
 
     emc.write(1);
@@ -129,15 +136,23 @@ class App {
   void Main() {
     logger.Info("Main loop");
     int i = 0;
+    Timer timer;
+    timer.reset();
+    timer.start();
+
     while (1) {
-      ps4.Update();
       actuators->Read();
+
+      float delta_s = timer.read_ms() / 1000.0;
+      timer.reset();
+
+      ctrl_net.keep_alive->Update(delta_s);
 
       status_actuators_send_ = actuators->Send();
       actuators->Tick();
 
-      if (i % 50 == 0) {
-        auto stick = ps4.stick_right.GetValue();
+      if (i % 100 == 0) {
+        auto stick = ctrl->move.GetValue();
         logger.Info("Status");
         logger.Info("  actuators_send %d", status_actuators_send_);
         logger.Info("Report");
@@ -151,10 +166,16 @@ class App {
 };
 
 int main_prod() {
-  auto test = new App();
+  auto thread = robotics::system::Thread();
+  thread.SetThreadName("App");
+  thread.SetStackSize(8192);
 
-  test->Init();
-  test->Main();
+  thread.Start([]() {
+    auto test = new App();
+
+    test->Init();
+    test->Main();
+  });
 
   return 0;
 }
@@ -164,7 +185,7 @@ int main_switch() {
   robotics::logger::SuppressLogger("st.fep.nw");
   robotics::logger::SuppressLogger("sr.fep.nw");
 
-  nhk2024b::InitFEP();
+  // nhk2024b::InitFEP();
 
   return main_prod();
 }
