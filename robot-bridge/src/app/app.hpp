@@ -28,8 +28,8 @@ class Actuators {
   Actuators(Config config)
       : can1(config.can_1_rd, config.can_1_td, 0, (int)1E6),
         can2(config.can_2_rd, config.can_2_td, 0, (int)1E6),
-        can_servo(can1, 1),
-        ikako_robomas(can2),
+        can_servo(can2, 1),
+        ikako_robomas(can1),
         rohm_md(can2, 2) {}
 
   void Init() {
@@ -45,12 +45,13 @@ class Actuators {
 
   int Send() {
     int errors = 0;
+    int status;
 
-    int status = can_servo.Send();  // Sends 020H CAN message
-    if (status == 0) {
-      // logger.Error("CanServoBus::Send failed");
-      errors |= 1;
-    }
+    // status = can_servo.Send();  // Sends 020H CAN message
+    // if (status == 0) {
+    //   // logger.Error("CanServoBus::Send failed");
+    //   errors |= 1;
+    // }
 
     status = ikako_robomas.Write();  // Sends 1FF/200H CAN message
     if (status != 1) {
@@ -63,11 +64,11 @@ class Actuators {
     can1.set_this_id(0);
     can2.set_this_id(0);
 
-    status = rohm_md.Send();
-    if (status != 1) {
-      // logger.Error("IkakoRobomasBus::Write failed");
-      errors |= 4;
-    }
+    // status = rohm_md.Send();
+    // if (status != 1) {
+    //   // logger.Error("IkakoRobomasBus::Write failed");
+    //   errors |= 4;
+    // }
 
     return -errors;
   }

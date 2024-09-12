@@ -15,9 +15,12 @@ class IkakoRobomasBus {
 
   void Read() { sender.read(); }
 
-  IkakoRobomasNode *NewNode(int index) {
-    auto node = new IkakoRobomasNode(index);
-    sender.set_motors(node->GetIkakoM3508().get_motor());
+  template <
+      typename Motor,
+      std::enable_if_t<std::is_base_of<IkakoMotor, Motor>::value, bool> = true>
+  IkakoRobomasNode *NewNode(int index, Motor *motor) {
+    auto node = new IkakoRobomasNode(index, motor);
+    sender.set_motors(node->GetMotor()->get_motor());
     nodes.push_back(node);
     return node;
   }

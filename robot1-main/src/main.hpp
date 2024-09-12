@@ -65,6 +65,8 @@ class App {
   PS4Con ps4{PC_6, PC_7, 115200};
   //*/
 
+  bool emc_state = true;
+
   nhk2024b::robot1::Refrige robot;
   ikarashiCAN_mk2 ican{PB_5, PB_6, 0, (int)1e6};  // TODO: Fix this
   robotics::registry::ikakoMDC mdc0;
@@ -101,11 +103,13 @@ class App {
 
     ps4.dpad.SetChangeCallback([this](DPad dpad) {
       robot.ctrl_brake.SetValue(dpad & DPad::kLeft);
-      robot.ctrl_brake_back.SetValue(dpad & DPad::kRight);
+      robot.ctrl_collector.SetValue(dpad & DPad::kRight);
+      robot.ctrl_unlock.SetValue(dpad & DPad::kUp);
     });
 
-    ps4.button_share.SetChangeCallback([this](float trigger){
-      robot.ctrl_collector.SetValue(trigger);
+    ps4.button_share.SetChangeCallback([this](bool btn){
+      emc_state = emc_state ^ btn;
+      emc.write(emc_state ? 1:0);
     });
 
     ps4.trigger_r >> robot.ctrl_turning_right;//同じ方なら値渡しはこっちのほうがシンプルにできる

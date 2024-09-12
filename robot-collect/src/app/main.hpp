@@ -45,6 +45,39 @@ void InitFEP() {
   }
 }
 
+template <typename T>
+using Node = robotics::node::Node<T>;
+
+using robotics::types::JoyStick2D;
+
+class PuropoController {
+  Puropo puropo;
+
+ public:
+  Node<JoyStick2D> stick1;
+  Node<JoyStick2D> stick2;
+  Node<bool> button1;
+  Node<bool> button2;
+  Node<bool> button3;
+  Node<bool> button4;
+
+  // コンストラクタ→初期化
+  PuropoController(PinName tx, PinName rx) : puropo(tx, rx) { puropo.start(); }
+
+  // 毎ティック実行される関数
+  void Tick() {
+    // プロポの値を Node に格納
+    // <xxx>.SetValue(<value>);
+    auto stick1 = JoyStick2D{-1 * puropo.get(1), puropo.get(2)};
+    auto stick2 = JoyStick2D{-1 * puropo.get(1), puropo.get(2)};
+    button1.SetValue((puropo.get(5) + 1) / 2);
+    button2.SetValue((puropo.get(6) + 1) / 2);
+    button3.SetValue((puropo.get(7) + 1) /
+                     2);  // Cボタンだけ真ん中に立てられるがそれはしないこと
+    button4.SetValue((puropo.get(8) + 1) / 2);
+  }
+};
+
 class Test {
   using PS4Con = nhk2024b::ps4_con::PS4Con;
   using Actuators = nhk2024b::robot3::Actuators;
@@ -68,19 +101,20 @@ class Test {
       .arm_extension_motor_fin = PA_9,
       .arm_extension_motor_rin = PA_8,
   }};
-  PS4Con ps4{PC_6, PC_7, 115200};
+  // PS4Con ps4{PC_6, PC_7, 115200};
+  PuropoController puropo{PA_0, PA_1};
 
   nhk2024b::robot3::Robot robot{};
 
  public:
   void Init() {
     logger.Info("Init");
-    ps4.stick_left >> robot.ctrl_stick_rotate;
-    ps4.stick_right >> robot.ctrl_stick_forward_back;
-    ps4.button_circle >> robot.ctrl_button_arm_open;
-    ps4.button_square >> robot.ctrl_button_arm_close;
-    ps4.button_triangle >> robot.ctrl_button_arm_up;
-    ps4.button_cross >> robot.ctrl_button_arm_down;
+    puropo.stick1 >> robot.ctrl_stick_rotate;
+    puropo.stick2 >> robot.ctrl_stick_forward_back;
+    puropo.button1 >> robot.ctrl_button_arm_open;
+    puropo.button2 >> robot.ctrl_button_arm_close;
+    puropo.button3 >> robot.ctrl_button_arm_up;
+    puropo.button4 >> robot.ctrl_button_arm_down;
 
     robot.out_move_left >> actuators.move_motor_l;
     robot.out_move_right >> actuators.move_motor_r;
@@ -89,7 +123,7 @@ class Test {
 
     robot.LinkController();
 
-    ps4.Init();
+    // ps4.Init();
 
     emc.write(1);
 
@@ -101,7 +135,7 @@ class Test {
     int i = 0;
     while (1) {
       if (i % 1000 == 0) logger.Info("Update");
-      ps4.Update();
+      puropo.Tick();
 
       if (i % 100 == 0) {
         logger.Info("Report");
@@ -182,61 +216,32 @@ App app(config);
   return 0; */
 }
 
+void main_puropo_test() {  // プロポ実験
+  auto puropo = Puropo{PA_0, PA_1};
+  puropo.start();
+  printf("\x1b[2J");
+  while (1) {
+    printf("\x1b[0;0H");
+    printf("is_ok: %s\n", puropo.is_ok() ? "OK" : "NG");
+    printf("ch1: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(1), puropo.get(2), puropo.get(3), puropo.get(4));
+    printf("ch5: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(5), puropo.get(6), puropo.get(7), puropo.get(8));
+    printf("ch9: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(9), puropo.get(10), puropo.get(11), puropo.get(12));
+    printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
+           puropo.get(13), puropo.get(14), puropo.get(15), puropo.get(16));
+    printf("\n");
+    ThisThread::sleep_for(10ms);
+  }
+}
+
 int main_switch() {
   printf("main() started\n");
   printf("Build: " __DATE__ " - " __TIME__ "\n");
 
   robotics::logger::Init();
 
-  main_0();
+  main_puropo_test();
   return 0;
-}
-
-template <typename T>
-using Node = robotics::node::Node<T>;
-
-using robotics::types::JoyStick2D;
-
-class PuropoController {
-  Puropo puropo;
-
- public:
-  Node<JoyStick2D> stick1;
-  Node<JoyStick2D> stick2;
-  Node<bool> button1;
-  Node<bool> button2;
-  Node<bool> button3;
-  Node<bool> button4;
-
-  // コンストラクタ→初期化
-  PuropoController(PinName tx, PinName rx) : puropo(tx, rx) { puropo.start(); }
-
-  // 毎ティック実行される関数
-  void Tick() {
-    // プロポの値を Node に格納
-    // <xxx>.SetValue(<value>);
-    auto stick1 = JoyStick2D{puropo.get(1), -1 * puropo.get(2)};
-    auto stick2 = JoyStick2D{puropo.get(1), -1 * puropo.get(2)};
-    button1.SetValue(puropo.get(5));  // valueはダミー
-    button2.SetValue(puropo.get(6));  // valueはダミー
-    button3.SetValue(puropo.get(7));  // valueはダミー
-    button4.SetValue(puropo.get(8));  // valueはダミー
-  }
-};
-
-void main_puropo_test() {  // プロポ実験
-  auto puropo = Puropo{PC_6, PC_7};
-
-  while (1) {
-    printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
-           puropo.get(1), puropo.get(2), puropo.get(3), puropo.get(4));
-    printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
-           puropo.get(5), puropo.get(6), puropo.get(7), puropo.get(8));
-    printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
-           puropo.get(9), puropo.get(10), puropo.get(11), puropo.get(12));
-    printf("ch13: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //
-           puropo.get(13), puropo.get(14), puropo.get(15), puropo.get(16));
-
-    ThisThread::sleep_for(500ms);
-  }
 }
