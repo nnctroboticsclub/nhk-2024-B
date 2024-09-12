@@ -60,13 +60,13 @@ class App {
   using Actuators = nhk2024b::robot2::Actuators;
   using Robot = nhk2024b::robot2::Robot;
 
-  DigitalOut emc{PA_15};
+  DigitalOut emc{PC_0};
 
   Actuators *actuators = new Actuators{(Actuators::Config){
-      .can_1_rd = PB_5,
-      .can_1_td = PB_6,
-      .can_2_rd = PA_11,
-      .can_2_td = PA_12,
+      // .can_1_rd = PA_11,
+      // .can_1_td = PA_12,
+      .can_2_rd = PB_8,
+      .can_2_td = PB_9,
   }};
 
   IkakoRobomasNode *move_l;
@@ -84,6 +84,11 @@ class App {
   float fb2 = 0;
   float fb3 = 0;
   int status_actuators_send_ = 0;
+  bool emc_ctrl = true;
+  bool emc_conn = true;
+
+  PwmOut led0{PA_6};
+  PwmOut led1{PA_7};
 
  public:
   App()
@@ -99,24 +104,28 @@ class App {
     ctrl_net.Init();
     ctrl = ctrl_net.ConnectToPipe2();
 
-    ctrl_net.keep_alive->connection_available.SetChangeCallback(
-        [this](bool available) {
-          if (available) {
-            logger.Info("Connection available");
-          } else {
-            logger.Info("Connection lost");
-          }
-        });
-
     ctrl->move >> robot.ctrl_move;
     ctrl->button_deploy >> robot.ctrl_deploy;
     ctrl->button_bridge_toggle >> robot.ctrl_bridge_toggle;
+    ctrl->emc.SetChangeCallback([this](bool btn) {
+      emc_ctrl ^= btn;
+      emc.write(emc_ctrl & emc_conn);
+    });
+
+    ctrl_net.keep_alive->connection_available.SetChangeCallback(
+        [this](bool available) {
+          emc_conn = available;
+          emc.write(emc_ctrl & emc_conn);
+        });
 
     robot.LinkController();
 
     robot.out_move_l >> move_l->velocity;
     robot.out_move_r >> move_r->velocity;
-    robot.out_deploy >> actuators->rohm_md.in_velocity;
+    robot.out_deploy >> deploy->velocity;
+
+    move_l->velocity.SetChangeCallback([this](float v) { led0.write(v); });
+    move_r->velocity.SetChangeCallback([this](float v) { led1.write(v); });
 
     robot.out_unlock_duty.SetChangeCallback([this](float duty) {
       servo0->SetValue(102 + 85 * duty);
@@ -157,6 +166,8 @@ class App {
         logger.Info("  actuators_send %d", status_actuators_send_);
         logger.Info("Report");
         logger.Info("  s %f, %f", stick[0], stick[1]);
+        logger.Info("  b d%d, b%d", ctrl->button_deploy.GetValue(),
+                    ctrl->button_bridge_toggle.GetValue());
         logger.Info("  o %f %f", servo0->GetValue(), servo1->GetValue());
       }
       i += 1;
