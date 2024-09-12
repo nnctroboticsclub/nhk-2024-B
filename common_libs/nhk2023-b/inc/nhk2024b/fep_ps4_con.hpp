@@ -90,8 +90,8 @@ class PS4Con {
     button_l3.SetValue(ps4.getButton(L3));
     button_r3.SetValue(ps4.getButton(R3));
 
-    trigger_l.SetValue(ps4.getTrigger(L2) * 1.0f / 0x7fff);
-    trigger_r.SetValue(ps4.getTrigger(R2) * 1.0f / 0x7fff);
+    trigger_l.SetValue(ps4.getTrigger(L2) / 255.0f);
+    trigger_r.SetValue(ps4.getTrigger(R2) / 255.0f);
   }
 
  public:
