@@ -10,6 +10,10 @@ use core::option::{Option, Option::None, Option::Some};
 
 static mut LOGGER: Option<Logger> = None;
 
+extern "C" {
+    fn puts(data: *const u8);
+}
+
 fn get_logger() -> &'static mut Logger {
     let logger = unsafe { &mut LOGGER };
     if logger.is_none() {
@@ -22,7 +26,9 @@ fn get_logger() -> &'static mut Logger {
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    // get_logger().error("Panic");
+    unsafe {
+        puts("panic\0".as_ptr());
+    }
 
     loop {}
 }
