@@ -17,7 +17,7 @@ class Controller {
   Node<float> rotation_ccw;
 
   void RegisterTo(
-      robotics::network::ssp::ValueStoreService<uint16_t> *value_store,
+      robotics::network::ssp::ValueStoreService<uint16_t, bool> *value_store,
       uint16_t remote) {
     value_store->AddController(0x2400'0100, remote, move);
     value_store->AddController(0x2400'0101, remote, emc);

@@ -28,10 +28,8 @@ robotics::Node<float> trigger_r;
 robotics::Node<float> battery_level;
 
 namespace state {
-float stick_left_x = 0;
-float stick_left_y = 0;
-float stick_right_x = 0;
-float stick_right_y = 0;
+robotics::types::JoyStick2D stick_left_value;
+robotics::types::JoyStick2D stick_right_value;
 nhk2024b::ps4_con::DPad dpad_value = nhk2024b::ps4_con::DPad::kNone;
 bool button_square_value = false;
 bool button_cross_value = false;
@@ -49,69 +47,112 @@ float trigger_l_value = 0;
 float trigger_r_value = 0;
 float battery_level_value = 0;
 
-void Update() {
-  stick_left.SetValue(robotics::types::JoyStick2D{stick_left_x, stick_left_y});
-  stick_right.SetValue(
-      robotics::types::JoyStick2D{stick_right_x, stick_right_y});
-  dpad.SetValue(dpad_value);
+class GenericEntry {
+ public:
+  virtual int Dirtyness() = 0;
+  virtual void Update() = 0;
+  virtual void Invalidate() = 0;
+};
 
-  button_square.SetValue(button_square_value);
-  button_cross.SetValue(button_cross_value);
-  button_circle.SetValue(button_circle_value);
-  button_triangle.SetValue(button_triangle_value);
-  button_share.SetValue(button_share_value);
-  button_options.SetValue(button_options_value);
-  button_ps.SetValue(button_ps_value);
-  button_touchPad.SetValue(button_touchPad_value);
-  button_l1.SetValue(button_l1_value);
-  button_r1.SetValue(button_r1_value);
-  button_l3.SetValue(button_l3_value);
-  button_r3.SetValue(button_r3_value);
-  trigger_l.SetValue(trigger_l_value);
-  trigger_r.SetValue(trigger_r_value);
-  battery_level.SetValue(battery_level_value);
+template <typename T>
+class Entry : public GenericEntry {
+  T &raw_value;
+  robotics::Node<T> &node;
+  int dirtyness = 0;
+
+ public:
+  Entry(T &value, robotics::Node<T> &node) : raw_value(value), node(node) {}
+
+  int Dirtyness() override { return dirtyness; }
+
+  void Update() override {
+    if (raw_value != node.GetValue()) {
+      dirtyness++;
+    } else {
+      dirtyness = 0;
+    }
+  }
+
+  void Invalidate() override {
+    node.SetValue(raw_value);
+    dirtyness = 0;
+  }
+};
+
+std::vector<GenericEntry *> *entries = nullptr;
+
+void Init() {
+  if (entries) return;
+  entries = new std::vector<GenericEntry *>();
+
+  entries->emplace_back(
+      new Entry<robotics::types::JoyStick2D>(stick_left_value, stick_left));
+  entries->emplace_back(
+      new Entry<robotics::types::JoyStick2D>(stick_right_value, stick_right));
+  entries->emplace_back(new Entry<nhk2024b::ps4_con::DPad>(dpad_value, dpad));
+  entries->emplace_back(new Entry<bool>(button_square_value, button_square));
+  entries->emplace_back(new Entry<bool>(button_cross_value, button_cross));
+  entries->emplace_back(new Entry<bool>(button_circle_value, button_circle));
+  entries->emplace_back(
+      new Entry<bool>(button_triangle_value, button_triangle));
+  entries->emplace_back(new Entry<bool>(button_share_value, button_share));
+  entries->emplace_back(new Entry<bool>(button_options_value, button_options));
+  entries->emplace_back(new Entry<bool>(button_ps_value, button_ps));
+  entries->emplace_back(
+      new Entry<bool>(button_touchPad_value, button_touchPad));
+  entries->emplace_back(new Entry<bool>(button_l1_value, button_l1));
+  entries->emplace_back(new Entry<bool>(button_r1_value, button_r1));
+  entries->emplace_back(new Entry<bool>(button_l3_value, button_l3));
+  entries->emplace_back(new Entry<bool>(button_r3_value, button_r3));
+  entries->emplace_back(new Entry<float>(trigger_l_value, trigger_l));
+  entries->emplace_back(new Entry<float>(trigger_r_value, trigger_r));
+  entries->emplace_back(new Entry<float>(battery_level_value, battery_level));
+}
+
+GenericEntry *FindMostDirtyEntry() {
+  int dirtiest = 0;
+  GenericEntry *dirtiest_entry = nullptr;
+
+  for (auto entry : *entries) {
+    auto dirtyness = entry->Dirtyness();
+    if (dirtyness > dirtiest) {
+      dirtiest = dirtyness;
+      dirtiest_entry = entry;
+    }
+  }
+
+  /* if (dirtiest_entry) {
+    printf("Dirtiest entry: Dirtyness = %d\n", dirtiest);
+  } */
+
+  return dirtiest_entry;
+}
+
+int DirtyEntries() {
+  int result = 0;
+
+  for (auto entry : *entries) {
+    if (entry->Dirtyness() > 0) {
+      result += 1;
+    }
+  }
+
+  return result;
+}
+
+void Update() {
+  for (auto entry : *entries) {
+    entry->Update();
+  }
+}
+
+void Send() {
+  auto entry = FindMostDirtyEntry();
+  if (!entry) {
+    return;
+  }
+  entry->Invalidate();
 }
 }  // namespace state
-
-void RegisterWatcher() {
-  stick_left.SetChangeCallback([](robotics::types::JoyStick2D v) {
-    logger.Info("[Local] stick_left: %lf %lf", v[0], v[1]);
-  });
-  stick_right.SetChangeCallback([](robotics::types::JoyStick2D v) {
-    logger.Info("[Local] stick_right: %lf %lf", v[0], v[1]);
-  });
-  dpad.SetChangeCallback(
-      [](nhk2024b::ps4_con::DPad v) { logger.Info("[Local] dpad: %d", v); });
-  button_square.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_square: %d", v); });
-  button_cross.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_cross: %d", v); });
-  button_circle.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_circle: %d", v); });
-  button_triangle.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_triangle: %d", v); });
-  button_share.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_share: %d", v); });
-  button_options.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_options: %d", v); });
-  button_ps.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_ps: %d", v); });
-  button_touchPad.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_touchPad: %d", v); });
-  button_l1.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_l1: %d", v); });
-  button_r1.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_r1: %d", v); });
-  button_l3.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_l3: %d", v); });
-  button_r3.SetChangeCallback(
-      [](bool v) { logger.Info("[Local] button_r3: %d", v); });
-  trigger_l.SetChangeCallback(
-      [](float v) { logger.Info("[Local] trigger_l: %lf", v); });
-  trigger_r.SetChangeCallback(
-      [](float v) { logger.Info("[Local] trigger_r: %lf", v); });
-  battery_level.SetChangeCallback(
-      [](float v) { logger.Info("[Local] battery_level: %lf", v); });
-}
 
 };  // namespace vs_ps4

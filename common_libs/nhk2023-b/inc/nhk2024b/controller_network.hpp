@@ -17,11 +17,13 @@ namespace nhk2024b {
 class ControllerNetwork {
   srobo2::com::IM920_SRobo1 *im920 = nullptr;
 
-  robotics::network::ssp::SerialServiceProtocol<uint16_t> *ssp = nullptr;
+  robotics::network::ssp::SerialServiceProtocol<uint16_t, bool> *ssp = nullptr;
 
  public:
-  robotics::network::ssp::KeepAliveService<uint16_t> *keep_alive = nullptr;
-  robotics::network::ssp::ValueStoreService<uint16_t> *value_store = nullptr;
+  robotics::network::ssp::KeepAliveService<uint16_t, bool> *keep_alive =
+      nullptr;
+  robotics::network::ssp::ValueStoreService<uint16_t, bool> *value_store =
+      nullptr;
 
  public:
   ControllerNetwork() {}
@@ -38,16 +40,17 @@ class ControllerNetwork {
 
     im920 = new srobo2::com::IM920_SRobo1(cim920);
 
-    ssp = new robotics::network::ssp::SerialServiceProtocol<uint16_t>(*im920);
+    ssp = new robotics::network::ssp::SerialServiceProtocol<uint16_t, bool>(
+        *im920);
 
     value_store = ssp->RegisterService<
-        robotics::network::ssp::ValueStoreService<uint16_t>>();
+        robotics::network::ssp::ValueStoreService<uint16_t, bool>>();
 
     keep_alive = ssp->RegisterService<
-        robotics::network::ssp::KeepAliveService<uint16_t>>();
+        robotics::network::ssp::KeepAliveService<uint16_t, bool>>();
 
-    logger.Info("Node number: %d", im920->GetNodeNumber());
-    logger.Info("Group number: %d", im920->GetGroupNumber());
+    logger.Info("Node number: %04x", im920->GetNodeNumber());
+    logger.Info("Group number: %08x", im920->GetGroupNumber());
   }
 
   nhk2024b::robot2::Controller *ConnectToPipe2() {
