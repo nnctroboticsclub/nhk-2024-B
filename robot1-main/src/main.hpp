@@ -57,15 +57,16 @@ class PseudoController {
 };
 
 class App {
-  DigitalOut emc{PA_15};
+  DigitalOut emc{PC_0};
 
   nhk2024b::ControllerNetwork ctrl_net;
   nhk2024b::robot1::Controller *ctrl;
 
-  bool emc_state = true;
+  bool emc_ctrl = false;
+  bool emc_conn = true;
 
   nhk2024b::robot1::Refrige robot;
-  ikarashiCAN_mk2 ican{PB_5, PB_6, 0, (int)1e6};  // TODO: Fix this
+  ikarashiCAN_mk2 ican{PB_8, PB_9, 0, (int)1e6};  // TODO: Fix this
 
   robotics::registry::ikakoMDC mdc0;
   robotics::assembly::MotorPair<float> &motor0;
@@ -97,8 +98,14 @@ class App {
 
     logger.Info("Init");
 
-    ctrl_net.Init();
+    ctrl_net.Init(0x0011);
     ctrl = ctrl_net.ConnectToPipe1();
+
+    ctrl_net.keep_alive->connection_available.SetChangeCallback([this](bool v) {
+      emc_conn = v;
+
+      emc.write(emc_conn & emc_ctrl);
+    });
 
     ctrl->buttons.SetChangeCallback([this](DPad dpad) {
       robot.ctrl_brake.SetValue(dpad & DPad::kLeft);
@@ -108,8 +115,9 @@ class App {
     });
 
     ctrl->emc.SetChangeCallback([this](bool btn) {
-      emc_state = emc_state ^ btn;
-      emc.write(emc_state ? 1 : 0);
+      emc_ctrl = emc_ctrl ^ btn;
+
+      emc.write(emc_ctrl & emc_conn);
     });
 
     ctrl->rotation_cw >>
@@ -164,7 +172,7 @@ class App {
       if (mdc0.Send() == 0) actuator_errors |= 1;
       if (mdc1.Send() == 0) actuator_errors |= 2;
 
-      if (i % 200 == 0) {
+      if (i % 200 == 0 && false) {
         auto stick = ctrl->move.GetValue();
         logger.Info("Status");
         logger.Info("  actuator_errors: %d", actuator_errors);

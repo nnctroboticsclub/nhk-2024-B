@@ -99,7 +99,7 @@ class App {
   void Init() {
     logger.Info("Init");
 
-    ctrl_net.Init();
+    ctrl_net.Init(0x0012);
     ctrl = ctrl_net.ConnectToPipe2();
 
     ctrl_net.keep_alive->connection_available.SetChangeCallback(
