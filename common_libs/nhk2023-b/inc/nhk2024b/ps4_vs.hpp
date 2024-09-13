@@ -79,80 +79,92 @@ class Entry : public GenericEntry {
   }
 };
 
-std::vector<GenericEntry *> *entries = nullptr;
+struct Entries {
+  std::vector<GenericEntry *> entries;
+
+  GenericEntry *FindMostDirtyEntry() {
+    int dirtiest = 0;
+    GenericEntry *dirtiest_entry = nullptr;
+
+    for (auto entry : entries) {
+      auto dirtyness = entry->Dirtyness();
+      if (dirtyness > dirtiest) {
+        dirtiest = dirtyness;
+        dirtiest_entry = entry;
+      }
+    }
+
+    return dirtiest_entry;
+  }
+
+  int DirtyEntries() {
+    int result = 0;
+
+    for (auto entry : entries) {
+      if (entry->Dirtyness() > 0) {
+        result += 1;
+      }
+    }
+
+    return result;
+  }
+
+  void Update() {
+    for (auto entry : entries) {
+      entry->Update();
+    }
+  }
+
+  void Send() {
+    auto entry = FindMostDirtyEntry();
+    if (!entry) {
+      return;
+    }
+    entry->Invalidate();
+  }
+
+  void Add(GenericEntry *entry) {
+    entries.emplace_back(entry);
+  }
+};
+
+Entries *entries_1 = nullptr;
+Entries *entries_2 = nullptr;
 
 void Init() {
-  if (entries) return;
-  entries = new std::vector<GenericEntry *>();
-
-  entries->emplace_back(
-      new Entry<robotics::types::JoyStick2D>(stick_left_value, stick_left));
-  entries->emplace_back(
-      new Entry<robotics::types::JoyStick2D>(stick_right_value, stick_right));
-  entries->emplace_back(new Entry<nhk2024b::ps4_con::DPad>(dpad_value, dpad));
-  entries->emplace_back(new Entry<bool>(button_square_value, button_square));
-  entries->emplace_back(new Entry<bool>(button_cross_value, button_cross));
-  entries->emplace_back(new Entry<bool>(button_circle_value, button_circle));
-  entries->emplace_back(
-      new Entry<bool>(button_triangle_value, button_triangle));
-  entries->emplace_back(new Entry<bool>(button_share_value, button_share));
-  entries->emplace_back(new Entry<bool>(button_options_value, button_options));
-  entries->emplace_back(new Entry<bool>(button_ps_value, button_ps));
-  entries->emplace_back(
-      new Entry<bool>(button_touchPad_value, button_touchPad));
-  entries->emplace_back(new Entry<bool>(button_l1_value, button_l1));
-  entries->emplace_back(new Entry<bool>(button_r1_value, button_r1));
-  entries->emplace_back(new Entry<bool>(button_l3_value, button_l3));
-  entries->emplace_back(new Entry<bool>(button_r3_value, button_r3));
-  entries->emplace_back(new Entry<float>(trigger_l_value, trigger_l));
-  entries->emplace_back(new Entry<float>(trigger_r_value, trigger_r));
-  entries->emplace_back(new Entry<float>(battery_level_value, battery_level));
-}
-
-GenericEntry *FindMostDirtyEntry() {
-  int dirtiest = 0;
-  GenericEntry *dirtiest_entry = nullptr;
-
-  for (auto entry : *entries) {
-    auto dirtyness = entry->Dirtyness();
-    if (dirtyness > dirtiest) {
-      dirtiest = dirtyness;
-      dirtiest_entry = entry;
-    }
-  }
-
-  /* if (dirtiest_entry) {
-    printf("Dirtiest entry: Dirtyness = %d\n", dirtiest);
-  } */
-
-  return dirtiest_entry;
-}
-
-int DirtyEntries() {
-  int result = 0;
-
-  for (auto entry : *entries) {
-    if (entry->Dirtyness() > 0) {
-      result += 1;
-    }
-  }
-
-  return result;
-}
-
-void Update() {
-  for (auto entry : *entries) {
-    entry->Update();
-  }
-}
-
-void Send() {
-  auto entry = FindMostDirtyEntry();
-  if (!entry) {
+  static bool initialized = false;
+  if (initialized) {
     return;
   }
-  entry->Invalidate();
+
+  entries_1 = new Entries();
+  entries_2 = new Entries();
+
+  entries_1->Add(
+      new Entry<robotics::types::JoyStick2D>(stick_left_value, stick_left));
+  entries_2->Add(
+      new Entry<robotics::types::JoyStick2D>(stick_right_value, stick_right));
+  entries_1->Add(new Entry<nhk2024b::ps4_con::DPad>(dpad_value, dpad));
+  entries_2->Add(new Entry<bool>(button_square_value, button_square));
+  entries_2->Add(new Entry<bool>(button_cross_value, button_cross));
+  entries_2->Add(new Entry<bool>(button_circle_value, button_circle));
+  entries_2->Add(
+      new Entry<bool>(button_triangle_value, button_triangle));
+  entries_1->Add(new Entry<bool>(button_share_value, button_share));
+  entries_2->Add(new Entry<bool>(button_options_value, button_options));
+  // entries->Add(new Entry<bool>(button_ps_value, button_ps));
+  // entries->Add(
+  //     new Entry<bool>(button_touchPad_value, button_touchPad));
+  // entries->Add(new Entry<bool>(button_l1_value, button_l1));
+  // entries->Add(new Entry<bool>(button_r1_value, button_r1));
+  // entries->Add(new Entry<bool>(button_l3_value, button_l3));
+  // entries->Add(new Entry<bool>(button_r3_value, button_r3));
+  entries_1->Add(new Entry<float>(trigger_l_value, trigger_l));
+  entries_1->Add(new Entry<float>(trigger_r_value, trigger_r));
+  // entries->Add(new Entry<float>(battery_level_value, battery_level));
 }
+
+
 }  // namespace state
 
 };  // namespace vs_ps4

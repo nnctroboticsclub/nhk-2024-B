@@ -48,6 +48,8 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 extern "C" void MX_USB_HOST_Process(void);
 
+static bool is_usb_hid_connected = false;
+
 namespace robotics::system {
 void SleepFor(std::chrono::milliseconds duration) {
   HAL_Delay(duration.count());
@@ -80,10 +82,10 @@ extern "C" int main(void) {
   auto im920 = nhk2024b::controller::im920::GetIM920();
   auto nn = im920->GetNodeNumber();
 
-  SerialServiceProtocol<uint16_t> ssp(*im920);
-  auto vs = ssp.RegisterService<ValueStoreService<uint16_t>>();
-  auto keep_alive =
-      ssp.RegisterService<robotics::network::ssp::KeepAliveService<uint16_t>>();
+  SerialServiceProtocol<uint16_t, bool> ssp(*im920);
+  auto vs = ssp.RegisterService<ValueStoreService<uint16_t, bool>>();
+  auto keep_alive = ssp.RegisterService<
+      robotics::network::ssp::KeepAliveService<uint16_t, bool>>();
 
   auto pipe1_remote = nhk2024b::node_id::GetPipe1Remote(nn);
   auto robot1_ctrl = new nhk2024b::robot1::Controller();
@@ -93,6 +95,7 @@ extern "C" int main(void) {
   vs_ps4::trigger_l >> robot1_ctrl->rotation_ccw;
   vs_ps4::trigger_r >> robot1_ctrl->rotation_cw;
   robot1_ctrl->RegisterTo(vs, pipe1_remote);
+  keep_alive->AddTarget(pipe1_remote);
 
   auto pipe2_remote = nhk2024b::node_id::GetPipe2Remote(nn);
   auto robot2_ctrl = new nhk2024b::robot2::Controller();
@@ -103,8 +106,6 @@ extern "C" int main(void) {
   vs_ps4::button_circle >> robot2_ctrl->button_unassigned0;
   vs_ps4::button_triangle >> robot2_ctrl->button_unassigned1;
   robot2_ctrl->RegisterTo(vs, pipe2_remote);
-
-  keep_alive->AddTarget(pipe1_remote);
   keep_alive->AddTarget(pipe2_remote);
 
   int i = 1;
@@ -112,63 +113,45 @@ extern "C" int main(void) {
   HAL_Delay(1000);
   printf("Entering Main loop\n");
 
-  const float kValueStoreInterval = 0.01;  // 10ms
-  const float kKeepAliveInterval = 0.05;   // 10ms
+  const float kKeepAliveInterval = 0.2;  // 200ms
 
-  //* [Priority] KeepAlive > ValueStore
-
-  float value_store_timer = kValueStoreInterval;
-  float keep_alive_timer = kKeepAliveInterval;
-
-  enum class Action { kNone, kSendKeepAlive, kUpdateValueStore };
-
-  auto previous_tick = HAL_GetTick();
+  auto start_time = HAL_GetTick() / 1000.0f;
+  float schedule_1 = start_time + kKeepAliveInterval;
+  float schedule_2 = start_time + kKeepAliveInterval;
   while (1) {
-    auto current_tick = HAL_GetTick();
+    i += 1;
 
-    auto delta_tick = current_tick - previous_tick;
-    previous_tick = current_tick;
-
-    auto delta_s = delta_tick / 1000.0;
-
+    //* Task
     robotics::logger::core::LoggerProcess();
     MX_USB_HOST_Process();
 
-    if (nn == 1) vs_ps4::state::Update();
+    if (!is_usb_hid_connected) continue;
 
-    keep_alive->Update(delta_s);
-    vs_ps4::state::Update();
+    //* Time
+    auto current_time = HAL_GetTick() / 1000.0f;
 
-    Action action = Action::kNone;
+    //* Update
+    vs_ps4::state::entries_1->Update();
+    vs_ps4::state::entries_2->Update();
 
-    value_store_timer -= delta_s;
-    keep_alive_timer -= delta_s;
-
-    if (value_store_timer < 0) {
-      value_store_timer = kValueStoreInterval;
-      action = Action::kUpdateValueStore;
-    }
-    if (keep_alive_timer < 0) {
-      keep_alive_timer = kKeepAliveInterval;
-      action = Action::kSendKeepAlive;
-    }
-
-    switch (action) {
-      case Action::kNone: {
-        // noop
-        break;
-      }
-      case Action::kUpdateValueStore: {
-        vs_ps4::state::Send();
-        break;
-      }
-      case Action::kSendKeepAlive: {
-        keep_alive->SendKeepAliveToAll();
-        break;
-      }
+    //* Connection scheduler
+    auto entry_1 = vs_ps4::state::entries_1->FindMostDirtyEntry();
+    if (entry_1) {
+      entry_1->Invalidate();
+      schedule_1 = current_time + kKeepAliveInterval;
+    } else if (schedule_1 < current_time) {
+      keep_alive->SendKeepAliveTo(pipe1_remote);
+      schedule_1 = current_time + kKeepAliveInterval;
     }
 
-    i += 1;
+    auto entry_2 = vs_ps4::state::entries_2->FindMostDirtyEntry();
+    if (entry_2) {
+      entry_2->Invalidate();
+      schedule_2 = current_time + kKeepAliveInterval;
+    } else if (schedule_2 < current_time) {
+      keep_alive->SendKeepAliveTo(pipe2_remote);
+      schedule_2 = current_time + kKeepAliveInterval;
+    }
   }
 }
 
@@ -267,15 +250,30 @@ extern "C" void USBH_HID_EventCallback(USBH_HandleTypeDef *phost) {
     return;
   }
 
+  if (!is_usb_hid_connected) {
+    printf("USB HID connected\n");
+    is_usb_hid_connected = true;
+  }
+
   auto stick_left_x = (ptr[1] - 128) / 128.0;
   auto stick_left_y = (ptr[2] - 128) / 128.0;
+
   auto stick_left = robotics::types::JoyStick2D(stick_left_x, stick_left_y);
-  vs_ps4::state::stick_left_value = stick_left;
+  auto old_stick_left_x = vs_ps4::state::stick_left_value;
+
+  if ((stick_left - old_stick_left_x).Magnitude() > 0.01) {
+    vs_ps4::state::stick_left_value = stick_left;
+  }
 
   auto stick_right_x = (ptr[3] - 128) / 128.0;
   auto stick_right_y = (ptr[4] - 128) / 128.0;
+
   auto stick_right = robotics::types::JoyStick2D(stick_right_x, stick_right_y);
-  vs_ps4::state::stick_right_value = stick_right;
+  auto old_stick_right_x = vs_ps4::state::stick_right_value;
+
+  if ((stick_right - old_stick_right_x).Magnitude() > 0.01) {
+    vs_ps4::state::stick_right_value = stick_right;
+  }
 
   // 0: up |       |      |
   // 1: up | right |      |

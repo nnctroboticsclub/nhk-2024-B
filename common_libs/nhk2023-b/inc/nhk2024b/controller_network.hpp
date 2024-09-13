@@ -31,6 +31,10 @@ class ControllerNetwork {
   void Init() {
     auto uart = std::make_shared<mbed::UnbufferedSerial>(PA_9, PA_10, 19200);
 
+    uart->write("STCH 02\r\n", 9);
+    static char buf[512];
+    uart->read(buf, 512);
+
     auto tx = new srobo2::com::UARTCStreamTx(uart);
     auto rx = new srobo2::com::UARTCStreamRx(uart);
     auto timer = new srobo2::timer::MBedTimer();
@@ -48,6 +52,10 @@ class ControllerNetwork {
 
     keep_alive = ssp->RegisterService<
         robotics::network::ssp::KeepAliveService<uint16_t, bool>>();
+
+    value_store->OnNodeReceived([this](uint16_t _from, uint32_t _node_id){
+      keep_alive->TreatKeepAlive();
+    });
 
     logger.Info("Node number: %04x", im920->GetNodeNumber());
     logger.Info("Group number: %08x", im920->GetGroupNumber());

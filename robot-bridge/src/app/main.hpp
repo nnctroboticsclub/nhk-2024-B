@@ -81,6 +81,9 @@ class App {
 
   Robot robot;
 
+  PwmOut led0{PA_6};
+  PwmOut led1{PA_7};
+
   float fb2 = 0;
   float fb3 = 0;
   int status_actuators_send_ = 0;
@@ -118,6 +121,11 @@ class App {
     robot.out_move_r >> move_r->velocity;
     robot.out_deploy >> actuators->rohm_md.in_velocity;
 
+    ctrl->move.SetChangeCallback([this](robotics::types::JoyStick2D x) {
+      led0.write((1 + x[0]) / 2);
+      led1.write((1 - x[0]) / 2);
+    });
+
     robot.out_unlock_duty.SetChangeCallback([this](float duty) {
       servo0->SetValue(102 + 85 * duty);
       servo1->SetValue(177.8 - 85 * duty);
@@ -151,7 +159,7 @@ class App {
       status_actuators_send_ = actuators->Send();
       actuators->Tick();
 
-      if (i % 100 == 0) {
+      if (i % 100 == 0 && false) {
         auto stick = ctrl->move.GetValue();
         logger.Info("Status");
         logger.Info("  actuators_send %d", status_actuators_send_);

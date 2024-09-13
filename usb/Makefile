@@ -15,6 +15,7 @@ write: write1
 write1: build/app.hex
 	st-flash \
 		--connect-under-reset \
+		--serial 066DFF303435554157121020 \
 		--format ihex \
 		write $<
 

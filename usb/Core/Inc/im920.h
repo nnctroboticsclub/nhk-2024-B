@@ -55,6 +55,7 @@ class IM920TxCStream {
     self->DoWrite(data, len);
   }
 
+ public:
   void DoWrite(const uint8_t *data, size_t len) {
     HAL_UART_Transmit(&huart1, const_cast<uint8_t *>(data), len, 1000);
 
@@ -63,12 +64,13 @@ class IM920TxCStream {
 
     // static char buffer[0x100];
     // for (size_t i = 0; i < len; i++) {
-    // buffer[i] = isprint(data[i]) ? data[i] : '.';
+    //   buffer[i] = isprint(data[i]) ? data[i] : '.';
     // }
     // buffer[len] = '\0';
     // app_logger.Info("IM920: Sent: %s", buffer);
   }
 
+ private:
   static IM920TxCStream instance;
 
  public:
@@ -102,6 +104,14 @@ class IM920RxCStream {
     // app_logger.Info("IM920: Rx: %02x", data[0]);
   }
 
+  void ControlRunning(bool running) {
+    if (running) {
+      HAL_UART_Receive_IT(&huart1, data, 1);
+    } else {
+      HAL_UART_AbortReceive(&huart1);
+    }
+  }
+
   srobo2::ffi::CStreamRx *GetRx() { return rx; }
 };
 
@@ -123,10 +133,12 @@ void ResetIM920() {
   GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  printf("Resetting IM920\n");
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);  // causes im920's reset
   HAL_Delay(100);
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);  // up again
   HAL_Delay(100);
+  printf("Resetted IM920\n");
 }
 
 void Init() {
@@ -139,9 +151,16 @@ void Init() {
   ResetIM920();
   MX_USART1_UART_Init();
 
-  nhk2024b::controller::im920::IM920RxCStream::GetInstance()->Init();
-  nhk2024b::controller::im920::IM920TxCStream::GetInstance()->Init();
+  auto rx = nhk2024b::controller::im920::IM920RxCStream::GetInstance();
+  rx->Init();
+  auto tx = nhk2024b::controller::im920::IM920TxCStream::GetInstance();
+  tx->Init();
   srobo2::timer::HALCTime::GetInstance()->Init();
+
+  rx->ControlRunning(false);
+  tx->DoWrite((const uint8_t *)"STCH 02\r\n", 9);
+  HAL_Delay(100);
+  rx->ControlRunning(true);
 }
 
 srobo2::com::IM920_SRobo1 *GetIM920() {
