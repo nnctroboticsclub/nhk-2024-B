@@ -33,88 +33,65 @@ class ControllerNetwork {
 
     auto uart = std::make_shared<mbed::UnbufferedSerial>(PA_9, PA_10, 19200);
 
-  {
-    char tx_buf[] = "ENWR\r\n";
-    uart.write(tx_buf, 6);
-    printf("--> %02x %02x %02x %02x", tx_buf[0], tx_buf[1], tx_buf[2], tx_buf[3]);
 
-    char rx_buf[4] = {0};
-    uart.read(rx_buf, 4);
-    printf("<-- %02x %02x %02x %02x")
-  }
+    ThisThread::sleep_for(200ms);
 
-  {
-    char tx_buf[] = "STNN0000\r\n";
-    buf[4] = "0123456789ABCDEF"[(node_number >> 12) & 0x0f];
-    buf[5] = "0123456789ABCDEF"[(node_number >> 8) & 0x0f];
-    buf[6] = "0123456789ABCDEF"[(node_number >> 4) & 0x0f];
-    buf[7] = "0123456789ABCDEF"[(node_number >> 0) & 0x0f];
-    uart.write(tx_buf, 6);
-    printf("--> %02x %02x %02x %02x", tx_buf[0], tx_buf[1], tx_buf[2], tx_buf[3]);
+    /* {
+      char tx_buf[] = "ENWR\r\n";
+      uart->write(tx_buf, 6);
+      printf("--> %02x %02x %02x %02x %02x %02x\n", tx_buf[0], tx_buf[1], tx_buf[2], tx_buf[3], tx_buf[4], tx_buf[5]);
 
-    char rx_buf[4] = {0};
-    uart.read(rx_buf, 4);
-    printf("<-- %02x %02x %02x %02x")
-  }
+      ThisThread::sleep_for(50ms);
 
-
-    {
-      static char buf[0x19];
-      buf[0x00] = 'E';
-      buf[0x01] = 'N';
-      buf[0x02] = 'W';
-      buf[0x03] = 'R';
-      buf[0x04] = '\r';
-      buf[0x05] = '\n';
-      buf[0x06] = 'S';
-      buf[0x07] = 'T';
-
-      buf[0x08] = 'N';
-      buf[0x09] = 'N';
-      buf[0x0A] = "0123456789ABCDEF"[(node_number >> 12) & 0x0f];
-      buf[0x0B] = "0123456789ABCDEF"[(node_number >> 8) & 0x0f];
-      buf[0x0C] = "0123456789ABCDEF"[(node_number >> 4) & 0x0f];
-      buf[0x0D] = "0123456789ABCDEF"[(node_number >> 0) & 0x0f];
-      buf[0x0E] = '\r';
-      buf[0x0F] = '\n';
-
-      buf[0x10] = 'S';
-      buf[0x11] = 'T';
-      buf[0x12] = 'C';
-      buf[0x13] = 'H';
-      buf[0x14] = '0';
-      buf[0x15] = '2';
-      buf[0x16] = '\r';
-      buf[0x17] = '\n';
-
-      memset(print_buf, 0, sizeof(print_buf));
-      for(int i = 0; i < 0x18; i++) {
-        print_buf[2 * i + 0] = "0123456789ABCDEF"[(buf[i] >> 4) & 0x0f];
-        print_buf[2 * i + 1] = "0123456789ABCDEF"[(buf[i] >> 0) & 0x0f];
-      }
-      robotics::system::SleepFor(500ms);
-      printf("--> %s\n", print_buf);
-
-      uart->write(buf, 0x19);
+      char rx_buf[4] = {0};
+      uart->read(&rx_buf[0], 1);
+      uart->read(&rx_buf[1], 1);
+      uart->read(&rx_buf[2], 1);
+      uart->read(&rx_buf[3], 1);
+      printf("<-- %02x %02x %02x %02x\n", rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3]);
     }
 
     {
-      static char buf[12];
+      char tx_buf[] = "STNN0000\r\n";
+      tx_buf[4] = "0123456789ABCDEF"[(node_number >> 12) & 0x0f];
+      tx_buf[5] = "0123456789ABCDEF"[(node_number >> 8) & 0x0f];
+      tx_buf[6] = "0123456789ABCDEF"[(node_number >> 4) & 0x0f];
+      tx_buf[7] = "0123456789ABCDEF"[(node_number >> 0) & 0x0f];
+      uart->write(tx_buf, 10);
+      printf("--> %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+        tx_buf[0], tx_buf[1], tx_buf[2], tx_buf[3], tx_buf[4],
+        tx_buf[5], tx_buf[6], tx_buf[7], tx_buf[8], tx_buf[9]
+      );
 
-      printf("Wait...\n");
-      robotics::system::SleepFor(500ms);
-      printf("Reading...\n");
-      auto len = uart->read(buf, 12);
+      ThisThread::sleep_for(50ms);
 
-      memset(print_buf, 0, sizeof(print_buf));
-      for(int i = 0; i < 12; i++) {
-        print_buf[2 * i + 0] = "0123456789ABCDEF"[(buf[i] >> 4) & 0x0f];
-        print_buf[2 * i + 1] = "0123456789ABCDEF"[(buf[i] >> 0) & 0x0f];
-      }
-
-      robotics::system::SleepFor(500ms);
-      printf("<-- %s [%d]\n", print_buf, len);
+      char rx_buf[4] = {0};
+      uart->read(&rx_buf[0], 1);
+      uart->read(&rx_buf[1], 1);
+      uart->read(&rx_buf[2], 1);
+      uart->read(&rx_buf[3], 1);
+      printf("<-- %02x %02x %02x %02x\n", rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3]);
     }
+
+    {
+      char tx_buf[] = "STCH02\r\n";
+      uart->write(tx_buf, 8);
+      printf("--> %02x %02x %02x %02x %02x %02x %02x %02x\n",
+        tx_buf[0], tx_buf[1], tx_buf[2], tx_buf[3],
+        tx_buf[4], tx_buf[5], tx_buf[6], tx_buf[7]
+      );
+
+      ThisThread::sleep_for(50ms);
+
+      char rx_buf[4] = {0};
+      uart->read(&rx_buf[0], 1);
+      uart->read(&rx_buf[1], 1);
+      uart->read(&rx_buf[2], 1);
+      uart->read(&rx_buf[3], 1);
+      printf("<-- %02x %02x %02x %02x\n", rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3]);
+    } */
+
+    ThisThread::sleep_for(500ms);
 
     auto tx = new srobo2::com::UARTCStreamTx(uart);
     auto rx = new srobo2::com::UARTCStreamRx(uart);
@@ -140,6 +117,7 @@ class ControllerNetwork {
 
     logger.Info("Node number: %04x", im920->GetNodeNumber());
     logger.Info("Group number: %08x", im920->GetGroupNumber());
+    logger.Info("Channel: %02x", im920->GetChannel());
   }
 
   nhk2024b::robot2::Controller *ConnectToPipe2() {
