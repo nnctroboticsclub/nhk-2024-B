@@ -174,9 +174,8 @@ srobo2::com::IM920_SRobo1 *GetIM920() {
     im920 = new srobo2::com::IM920_SRobo1(cim920);
 
     printf("GN: 0x%08x (Group Number)\n", im920->GetGroupNumber());
-
-    auto nn = im920->GetNodeNumber();
-    printf("NN: 0x%04x (Node Number)\n", nn);
+    printf("NN: 0x%04x (Node Number)\n", im920->GetNodeNumber());
+    printf("Ch: 0x%02x\n", im920->GetChannel());
   }
 
   return im920;
