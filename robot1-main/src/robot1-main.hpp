@@ -38,7 +38,6 @@ class Refrige {
   int brake_state = false;
   int collecter_state = 0;
 
-
   float unlock_stop_limit_s = 0;
 
   // float max_unlock_angle = 15.0;
@@ -60,40 +59,39 @@ class Refrige {
       double setmotor[4] = {-M_PI / 4, M_PI / 4, 3 * M_PI / 4, 5 * M_PI / 4};
 
       out_motor1.SetValue(
-          (cos(setmotor[0]) * stick[0] + sin(setmotor[0]) * stick[1]) * 0.7 *
+          (cos(setmotor[0]) * stick[0] + sin(setmotor[0]) * stick[1]) * 0.8 *
           -1);
       out_motor2.SetValue(
-          (cos(setmotor[1]) * stick[0] + sin(setmotor[1]) * stick[1]) * 0.7 *
+          (cos(setmotor[1]) * stick[0] + sin(setmotor[1]) * stick[1]) * 0.8 *
           -1);
       out_motor3.SetValue(
-          (cos(setmotor[2]) * stick[0] + sin(setmotor[2]) * stick[1]) * 0.7 *
+          (cos(setmotor[2]) * stick[0] + sin(setmotor[2]) * stick[1]) * 0.8 *
           -1);
       out_motor4.SetValue(
-          (cos(setmotor[3]) * stick[0] + sin(setmotor[3]) * stick[1]) * 0.7 *
+          (cos(setmotor[3]) * stick[0] + sin(setmotor[3]) * stick[1]) * 0.8 *
           -1);
     });
     // ↓ボタンの作動
 
     ctrl_turning_right.SetChangeCallback([this](float trigger) {
-      out_motor1.SetValue(-trigger * 0.7);
-      out_motor2.SetValue(trigger * 0.7);
-      out_motor3.SetValue(trigger * 0.7);
-      out_motor4.SetValue(-trigger * 0.7);
+      out_motor1.SetValue(-trigger * 0.8);
+      out_motor2.SetValue(-trigger * 0.8);
+      out_motor3.SetValue(-trigger * 0.8);
+      out_motor4.SetValue(-trigger * 0.8);
     });
 
     ctrl_turning_left.SetChangeCallback([this](float trigger) {
-      out_motor1.SetValue(trigger * 0.7);
-      out_motor2.SetValue(-trigger * 0.7);
-      out_motor3.SetValue(-trigger * 0.7);
-      out_motor4.SetValue(trigger * 0.7);
+      out_motor1.SetValue(trigger * 0.8);
+      out_motor2.SetValue(trigger * 0.8);
+      out_motor3.SetValue(trigger * 0.8);
+      out_motor4.SetValue(trigger * 0.8);
     });
 
     ctrl_unlock.SetChangeCallback([this](bool btn) {  // アンロックトグル
-      out_unlock.SetValue(-0.6);
-      unlock_stop_limit_s = 0.1;
+      out_unlock.SetValue(-0.3);
+      unlock_stop_limit_s = 0.15;
     });
 
-  
     ctrl_brake_back.SetChangeCallback([this](bool btn) {  // アンロックトグル
       out_brake.SetValue(btn ? -1 : 0);
     });
