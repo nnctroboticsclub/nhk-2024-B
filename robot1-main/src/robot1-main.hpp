@@ -88,8 +88,8 @@ class Refrige {
     });
 
     ctrl_unlock.SetChangeCallback([this](bool btn) {  // アンロックトグル
-      out_unlock.SetValue(-0.3);
-      unlock_stop_limit_s = 0.15;
+      out_unlock.SetValue(-0.6);
+      unlock_stop_limit_s = 0.1;
     });
 
     ctrl_brake_back.SetChangeCallback([this](bool btn) {  // アンロックトグル
