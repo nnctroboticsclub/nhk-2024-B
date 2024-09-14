@@ -105,11 +105,11 @@ class Refrige {
     });
 
     ctrl_brake_back.SetChangeCallback([this](bool btn) {  // アンロックトグル
-      out_brake.SetValue(btn ? -0.6 : 0);
+      out_brake.SetValue(btn ? -0.8 : 0);
     });
 
     ctrl_brake.SetChangeCallback([this](bool btn) {  // アンロックトグル
-      out_brake.SetValue(btn ? 0.6 : 0);
+      out_brake.SetValue(btn ? 0.8 : 0);
     });
 
     ctrl_collector.SetChangeCallback([this](bool btn) {  // コレクタトグル
