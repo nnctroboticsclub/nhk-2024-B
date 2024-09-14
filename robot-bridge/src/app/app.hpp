@@ -9,15 +9,15 @@ namespace nhk2024b::robot2 {
 class Actuators {
  public:
   struct Config {
-    PinName can_1_rd;
-    PinName can_1_td;
+    // PinName can_1_rd;
+    // PinName can_1_td;
 
     PinName can_2_rd;
     PinName can_2_td;
   };
 
  public:
-  ikarashiCAN_mk2 can1;
+  // ikarashiCAN_mk2 can1;
   ikarashiCAN_mk2 can2;
 
  public:
@@ -26,14 +26,14 @@ class Actuators {
   common::Rohm1chMD rohm_md;
 
   Actuators(Config config)
-      : can1(config.can_1_rd, config.can_1_td, 0, (int)1E6),
+      :  // can1(config.can_1_rd, config.can_1_td, 0, (int)1E6),
         can2(config.can_2_rd, config.can_2_td, 0, (int)1E6),
         can_servo(can2, 1),
-        ikako_robomas(can1),
+        ikako_robomas(can2),
         rohm_md(can2, 2) {}
 
   void Init() {
-    can1.read_start();
+    // can1.read_start();
     can2.read_start();
   }
 
@@ -61,7 +61,7 @@ class Actuators {
 
     // ikako_robomas's sender uses this_id to specify the message id
     // for the next message to be sent, so we need to restore it.
-    can1.set_this_id(0);
+    // can1.set_this_id(0);
     can2.set_this_id(0);
 
     status = rohm_md.Send();
@@ -74,7 +74,7 @@ class Actuators {
   }
 
   void Tick() {
-    can1.reset();
+    // can1.reset();
     can2.reset();
 
     ikako_robomas.Tick();
