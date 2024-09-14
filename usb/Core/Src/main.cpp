@@ -56,6 +56,18 @@ void SleepFor(std::chrono::milliseconds duration) {
 }
 }  // namespace robotics::system
 
+namespace board_led {
+const int kPin1 = GPIO_PIN_7;
+const int kPin2 = GPIO_PIN_8;
+const int kPin3 = GPIO_PIN_9;
+
+inline void On(uint16_t pin) { HAL_GPIO_WritePin(GPIOC, pin, GPIO_PIN_SET); }
+
+inline void Off(uint16_t pin) { HAL_GPIO_WritePin(GPIOC, pin, GPIO_PIN_RESET); }
+
+inline void Toggle(uint16_t pin) { HAL_GPIO_TogglePin(GPIOC, pin); }
+}  // namespace board_led
+
 /**
  * @brief  The application entry point.
  * @retval int
@@ -71,8 +83,12 @@ extern "C" int main(void) {
   MX_USB_HOST_Init();
 
   printf("\n\n\nProgram started\n");
-  robotics::logger::core::Init();
 
+  board_led::On(board_led::kPin1);
+  board_led::On(board_led::kPin2);
+  board_led::On(board_led::kPin3);
+
+  robotics::logger::core::Init();
   nhk2024b::controller::im920::Init();
   vs_ps4::state::Init();
 
@@ -111,13 +127,18 @@ extern "C" int main(void) {
   int i = 1;
 
   HAL_Delay(1000);
+  board_led::Off(board_led::kPin1);
+  board_led::Off(board_led::kPin2);
+  board_led::Off(board_led::kPin3);
   printf("Entering Main loop\n");
 
   const float kKeepAliveInterval = 0.2;  // 200ms
+  const float kBlinkInterval = 0.25;     // 200ms
 
   auto start_time = HAL_GetTick() / 1000.0f;
   float schedule_1 = start_time + kKeepAliveInterval;
   float schedule_2 = start_time + kKeepAliveInterval;
+  float schedule_blink = start_time + kBlinkInterval;
   while (1) {
     i += 1;
 
@@ -129,6 +150,13 @@ extern "C" int main(void) {
 
     //* Time
     auto current_time = HAL_GetTick() / 1000.0f;
+
+    //* Board LED Blink
+    if (schedule_blink < current_time) {
+      printf("Blink\n");
+      board_led::Toggle(board_led::kPin1);
+      schedule_blink = current_time + kBlinkInterval;
+    }
 
     //* Update
     vs_ps4::state::entries_1->Update();
@@ -159,7 +187,7 @@ extern "C" int main(void) {
  * @brief System Clock Configuration
  * @retval None
  */
-static void SystemClock_Config(void) {
+void SystemClock_Config(void) {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
@@ -223,9 +251,28 @@ static void MX_USART2_UART_Init(void) {
  * @retval None
  */
 static void MX_GPIO_Init(void) {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+  /* USER CODE END MX_GPIO_Init_1 */
+
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9,
+                    GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PC7 PC8 PC9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -256,7 +303,7 @@ extern "C" void USBH_HID_EventCallback(USBH_HandleTypeDef *phost) {
   }
 
   auto stick_left_x = (ptr[1] - 128) / 128.0;
-  auto stick_left_y = (ptr[2] - 128) / 128.0;
+  auto stick_left_y = (128 - ptr[2]) / 128.0;
 
   auto stick_left = robotics::types::JoyStick2D(stick_left_x, stick_left_y);
   auto old_stick_left_x = vs_ps4::state::stick_left_value;
@@ -266,7 +313,7 @@ extern "C" void USBH_HID_EventCallback(USBH_HandleTypeDef *phost) {
   }
 
   auto stick_right_x = (ptr[3] - 128) / 128.0;
-  auto stick_right_y = (ptr[4] - 128) / 128.0;
+  auto stick_right_y = (128 - ptr[4]) / 128.0;
 
   auto stick_right = robotics::types::JoyStick2D(stick_right_x, stick_right_y);
   auto old_stick_right_x = vs_ps4::state::stick_right_value;
