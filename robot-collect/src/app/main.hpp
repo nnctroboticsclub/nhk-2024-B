@@ -60,6 +60,7 @@ class PuropoController {
   Node<bool> button2;
   Node<bool> button3;
   Node<bool> button4;
+  Node<bool> button5;
 
   // コンストラクタ→初期化
   PuropoController(PinName tx, PinName rx) : puropo(tx, rx) { puropo.start(); }
@@ -68,13 +69,16 @@ class PuropoController {
   void Tick() {
     // プロポの値を Node に格納
     // <xxx>.SetValue(<value>);
-    auto stick1 = JoyStick2D{-1 * puropo.get(1), puropo.get(2)};
-    auto stick2 = JoyStick2D{-1 * puropo.get(1), puropo.get(2)};
+    auto stick1_value = JoyStick2D{-1 * puropo.get(4), puropo.get(2)};
+    auto stick2_value = JoyStick2D{-1 * puropo.get(1), puropo.get(3)};
+    stick1.SetValue(stick1_value);
+    stick2.SetValue(stick2_value);
     button1.SetValue((puropo.get(5) + 1) / 2);
     button2.SetValue((puropo.get(6) + 1) / 2);
     button3.SetValue((puropo.get(7) + 1) /
                      2);  // Cボタンだけ真ん中に立てられるがそれはしないこと
     button4.SetValue((puropo.get(8) + 1) / 2);
+    button5.SetValue((puropo.get(10) + 1) / 2);
   }
 };
 
@@ -101,8 +105,8 @@ class Test {
       .arm_extension_motor_fin = PA_9,
       .arm_extension_motor_rin = PA_8,
   }};
-  // PS4Con ps4{PC_6, PC_7, 115200};
-  PuropoController puropo{PA_0, PA_1};
+
+  PuropoController puropo{PC_6, PC_7};
 
   nhk2024b::robot3::Robot robot{};
 
@@ -115,6 +119,11 @@ class Test {
     puropo.button2 >> robot.ctrl_button_arm_close;
     puropo.button3 >> robot.ctrl_button_arm_up;
     puropo.button4 >> robot.ctrl_button_arm_down;
+
+    puropo.button5.SetChangeCallback([this](bool btn) {
+      emc.write(btn ? 0 : 1);
+      logger.Info("btn = emc_ctrl = %d", btn);
+    });
 
     robot.out_move_left >> actuators.move_motor_l;
     robot.out_move_right >> actuators.move_motor_r;
@@ -137,17 +146,15 @@ class Test {
       if (i % 1000 == 0) logger.Info("Update");
       puropo.Tick();
 
-      if (i % 100 == 0) {
+      if (i % 200 == 0) {
         logger.Info("Report");
-        logger.Info("  Stick: %f, %f; %f, %f",
-                    robot.ctrl_stick_rotate.GetValue()[0],
-                    robot.ctrl_stick_rotate.GetValue()[1],
-                    robot.ctrl_stick_forward_back.GetValue()[0],
-                    robot.ctrl_stick_forward_back.GetValue()[1]);
-        logger.Info("  output: %f %f %f %f", robot.out_move_left.GetValue(),
-                    robot.out_move_right.GetValue(),
-                    robot.out_arm_elevation.GetValue(),
-                    robot.out_arm_extension.GetValue());
+        logger.Info("  Stick: %f, %f; %f, %f", puropo.stick1.GetValue()[0],
+                    puropo.stick1.GetValue()[1], puropo.stick2.GetValue()[0],
+                    puropo.stick2.GetValue()[1]);
+        logger.Info("  output: %f %f %f %f", actuators.move_motor_l.GetValue(),
+                    actuators.move_motor_r.GetValue(),
+                    actuators.arm_elevation_motor.GetValue(),
+                    actuators.arm_extension_motor.GetValue());
       }
       i += 1;
       ThisThread::sleep_for(1ms);
@@ -158,8 +165,6 @@ class Test {
 int main_0() {
   Thread thread{osPriorityNormal, 8192, nullptr, "Main"};
   thread.start([]() {
-    InitFEP();
-
     auto test = new Test();
 
     test->Init();
@@ -217,7 +222,7 @@ App app(config);
 }
 
 void main_puropo_test() {  // プロポ実験
-  auto puropo = Puropo{PA_0, PA_1};
+  auto puropo = Puropo{PC_6, PC_7};
   puropo.start();
   printf("\x1b[2J");
   while (1) {
@@ -242,6 +247,6 @@ int main_switch() {
 
   robotics::logger::Init();
 
-  main_puropo_test();
+  main_0();
   return 0;
 }
