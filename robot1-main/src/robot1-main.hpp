@@ -40,6 +40,10 @@ class Refrige {
 
   float unlock_stop_limit_s = 0;
 
+  const float kMoveFactorNormal = 0.65;
+  const float kMoveFactorFast = 0.75;
+  const float kRotationFactor = 0.5;
+
   // float max_unlock_angle = 15.0;
 
   void Update(float dt) {
@@ -58,33 +62,41 @@ class Refrige {
     ctrl_move.SetChangeCallback([this](robotics::JoyStick2D stick) {
       double setmotor[4] = {-M_PI / 4, M_PI / 4, 3 * M_PI / 4, 5 * M_PI / 4};
 
+      float factor = 0;
+
+      if (abs(stick[0]) > abs(stick[1]) * 2) {
+        factor = kMoveFactorFast;
+      } else {
+        factor = kMoveFactorNormal;
+      }
+
       out_motor1.SetValue(
-          (cos(setmotor[0]) * stick[0] + sin(setmotor[0]) * stick[1]) * 0.8 *
+          (cos(setmotor[0]) * stick[0] + sin(setmotor[0]) * stick[1]) * factor *
           -1);
       out_motor2.SetValue(
-          (cos(setmotor[1]) * stick[0] + sin(setmotor[1]) * stick[1]) * 0.8 *
+          (cos(setmotor[1]) * stick[0] + sin(setmotor[1]) * stick[1]) * factor *
           -1);
       out_motor3.SetValue(
-          (cos(setmotor[2]) * stick[0] + sin(setmotor[2]) * stick[1]) * 0.8 *
+          (cos(setmotor[2]) * stick[0] + sin(setmotor[2]) * stick[1]) * factor *
           -1);
       out_motor4.SetValue(
-          (cos(setmotor[3]) * stick[0] + sin(setmotor[3]) * stick[1]) * 0.8 *
+          (cos(setmotor[3]) * stick[0] + sin(setmotor[3]) * stick[1]) * factor *
           -1);
     });
     // ↓ボタンの作動
 
     ctrl_turning_right.SetChangeCallback([this](float trigger) {
-      out_motor1.SetValue(-trigger * 0.8);
-      out_motor2.SetValue(-trigger * 0.8);
-      out_motor3.SetValue(-trigger * 0.8);
-      out_motor4.SetValue(-trigger * 0.8);
+      out_motor1.SetValue(-trigger * kRotationFactor);
+      out_motor2.SetValue(-trigger * kRotationFactor);
+      out_motor3.SetValue(-trigger * kRotationFactor);
+      out_motor4.SetValue(-trigger * kRotationFactor);
     });
 
     ctrl_turning_left.SetChangeCallback([this](float trigger) {
-      out_motor1.SetValue(trigger * 0.8);
-      out_motor2.SetValue(trigger * 0.8);
-      out_motor3.SetValue(trigger * 0.8);
-      out_motor4.SetValue(trigger * 0.8);
+      out_motor1.SetValue(trigger * kRotationFactor);
+      out_motor2.SetValue(trigger * kRotationFactor);
+      out_motor3.SetValue(trigger * kRotationFactor);
+      out_motor4.SetValue(trigger * kRotationFactor);
     });
 
     ctrl_unlock.SetChangeCallback([this](bool btn) {  // アンロックトグル
@@ -93,11 +105,11 @@ class Refrige {
     });
 
     ctrl_brake_back.SetChangeCallback([this](bool btn) {  // アンロックトグル
-      out_brake.SetValue(btn ? -1 : 0);
+      out_brake.SetValue(btn ? -0.6 : 0);
     });
 
     ctrl_brake.SetChangeCallback([this](bool btn) {  // アンロックトグル
-      out_brake.SetValue(btn ? 1 : 0);
+      out_brake.SetValue(btn ? 0.6 : 0);
     });
 
     ctrl_collector.SetChangeCallback([this](bool btn) {  // コレクタトグル
