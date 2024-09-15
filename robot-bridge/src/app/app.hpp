@@ -2,7 +2,7 @@
 
 #include "can_servo.hpp"
 #include "ikako_robomas_bus.hpp"
-#include "rohm_md.hpp"
+#include "rohm_md_bus.hpp"
 
 namespace nhk2024b::robot2 {
 
@@ -22,15 +22,13 @@ class Actuators {
 
  public:
   common::CanServoBus can_servo;
-  common::IkakoRobomasBus ikako_robomas;
-  common::Rohm1chMD rohm_md;
+  common::RohmMDBus rohm_md;
 
   Actuators(Config config)
       : can1(config.can_1_rd, config.can_1_td, 0, (int)1E6),
         can2(config.can_2_rd, config.can_2_td, 0, (int)1E6),
         can_servo(can1, 1),
-        ikako_robomas(can1),
-        rohm_md(can1, 2) {}
+        rohm_md(can1) {}
 
   void Init() {
     can1.read_start();
@@ -38,7 +36,6 @@ class Actuators {
   }
 
   int Read() {
-    ikako_robomas.Read();
     rohm_md.Read();
     return 0;
   }
@@ -53,17 +50,6 @@ class Actuators {
       errors |= 1;
     }
 
-    status = ikako_robomas.Write();  // Sends 1FF/200H CAN message
-    if (status != 1) {
-      // logger.Error("IkakoRobomasBus::Write failed");
-      errors |= 2;
-    }
-
-    // ikako_robomas's sender uses this_id to specify the message id
-    // for the next message to be sent, so we need to restore it.
-    can1.set_this_id(0);
-    can2.set_this_id(0);
-
     status = rohm_md.Send();
     if (status != 1) {
       // logger.Error("IkakoRobomasBus::Write failed");
@@ -76,9 +62,6 @@ class Actuators {
   void Tick() {
     can1.reset();
     can2.reset();
-
-    ikako_robomas.Tick();
-    ikako_robomas.Update();
   }
 };
 }  // namespace nhk2024b::robot2

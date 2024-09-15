@@ -1,0 +1,49 @@
+#include <mbed.h>
+#include <ikarashiCAN_mk2.h>
+#include <rohm_md.h>
+
+#include "rohm_md.hpp"
+
+ikarashiCAN_mk2 can(PB_8, PB_9, 0, 1e6);
+nhk2024b::common::Rohm1chMD md(can, 1);
+DigitalOut es(PA_7);
+Thread thread;
+
+int cnt = 0;
+
+void send_thread() {
+  while (1) {
+    md.Send();
+    cnt++;
+    ThisThread::sleep_for(1ms);
+  }
+}
+
+int main() {
+  float velocity = 0;
+  es = 1;
+  thread.start(&send_thread);
+  can.read_start();
+
+  robotics::Node<float> v;
+  robotics::Node<float> r;
+  robotics::Node<float> c;
+
+  auto f = [&v, &r, &c](float) {
+    printf("%lf %lf %lf\n", v.GetValue(), r.GetValue(), c.GetValue());
+  };
+
+  md.out_current >> c;
+  md.out_radian >> r;
+  md.out_velocity >> v;
+
+  v.SetChangeCallback(f);
+  r.SetChangeCallback(f);
+  c.SetChangeCallback(f);
+
+  while (1) {
+    velocity = 0.5f * sin(2 * M_PI * cnt / 1000);
+    md.in_velocity.SetValue(velocity);
+    md.Read();
+  }
+}

@@ -6,14 +6,14 @@
 #include <robotics/node/node.hpp>
 
 namespace nhk2024b::common {
-class Rohm1chMD {
+class aRohm1chMD {
   ::RohmMD md;
 
  public:
   robotics::Node<float> in_velocity;
-  // robotics::Node<float> out_velocity;  // [rad/s]
-  // robotics::Node<float> out_current;   // [A]
-  // robotics::Node<float> out_radian;    // [rad]
+  robotics::Node<float> out_velocity;  // [rad/s]
+  robotics::Node<float> out_current;   // [A]
+  robotics::Node<float> out_radian;    // [rad]
 
   Rohm1chMD(ikarashiCAN_mk2 &can, int id) : md(&can, id) {
     in_velocity.SetChangeCallback([this](float v) { md.set(0, v); });
@@ -22,10 +22,12 @@ class Rohm1chMD {
   bool Send() { return md.send(); }
 
   bool Read() {
-    return md.read();
-    // out_velocity.SetValue(md.get_vel());
-    // out_current.SetValue(md.get_cur());
-    // out_radian.SetValue(md.get_rad());
+    auto r = md.read();
+    out_velocity.SetValue(md.get_vel());
+    out_current.SetValue(md.get_cur());
+    out_radian.SetValue(md.get_rad());
+
+    return r;
   }
 };
 }  // namespace nhk2024b::common

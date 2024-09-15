@@ -71,17 +71,11 @@ class App {
       .can_2_td = PB_6,
   }};
 
-  IkakoRobomasNode *dummy0;
-  IkakoRobomasNode *move_l;
-  IkakoRobomasNode *move_r;
-  IkakoRobomasNode *deploy;
-  /* IkakoRobomasNode *dummy4;
-  IkakoRobomasNode *dummy5;
-  IkakoRobomasNode *dummy6;
-  IkakoRobomasNode *dummy7; */
-
   nhk2024b::common::CanServo *servo0;
   nhk2024b::common::CanServo *servo1;
+  nhk2024b::common::Rohm1chMD &move_l;
+  nhk2024b::common::Rohm1chMD &move_r;
+  nhk2024b::common::Rohm1chMD &deploy;
 
   nhk2024b::ControllerNetwork ctrl_net;
   nhk2024b::robot2::Controller *ctrl;
@@ -100,14 +94,9 @@ class App {
 
  public:
   App()
-      : dummy0(actuators->ikako_robomas.NewNode(1, new IkakoM3508(1))),
-        move_l(actuators->ikako_robomas.NewNode(2, new IkakoM3508(2))),
-        move_r(actuators->ikako_robomas.NewNode(3, new IkakoM3508(3))),
-        deploy(actuators->ikako_robomas.NewNode(4, new IkakoM2006(4))),
-        /* dummy4(actuators->ikako_robomas.NewNode(5, new IkakoM2006(5))),
-        dummy5(actuators->ikako_robomas.NewNode(6, new IkakoM2006(6))),
-        dummy6(actuators->ikako_robomas.NewNode(7, new IkakoM2006(7))),
-        dummy7(actuators->ikako_robomas.NewNode(8, new IkakoM2006(8))), */
+      : move_l(actuators->rohm_md.NewNode(2)),
+        move_r(actuators->rohm_md.NewNode(3)),
+        deploy(actuators->rohm_md.NewNode(4)),
         servo0(actuators->can_servo.NewNode(0)),
         servo1(actuators->can_servo.NewNode(1)) {}
 
@@ -133,12 +122,12 @@ class App {
 
     robot.LinkController();
 
-    robot.out_move_l >> move_l->velocity;
-    robot.out_move_r >> move_r->velocity;
-    robot.out_deploy >> deploy->velocity;
+    robot.out_move_l >> move_l.in_velocity;
+    robot.out_move_r >> move_r.in_velocity;
+    robot.out_deploy >> deploy.in_velocity;
 
-    move_l->velocity.SetChangeCallback([this](float v) { led0.write(v); });
-    move_r->velocity.SetChangeCallback([this](float v) { led1.write(v); });
+    move_l.in_velocity.SetChangeCallback([this](float v) { led0.write(v); });
+    move_r.in_velocity.SetChangeCallback([this](float v) { led1.write(v); });
 
     ctrl->move.SetChangeCallback([this](robotics::types::JoyStick2D x) {
       led0.write((1 + x[0]) / 2);
@@ -204,8 +193,8 @@ class App {
         logger.Info("  b d%d, b%d", ctrl->button_deploy.GetValue(),
                     ctrl->button_bridge_toggle.GetValue());
         logger.Info("  o s %f %f", servo0->GetValue(), servo1->GetValue());
-        logger.Info("    m %f %f", move_l->velocity.GetValue(),
-                    move_r->velocity.GetValue());
+        logger.Info("    m %f %f", move_l.in_velocity.GetValue(),
+                    move_r.in_velocity.GetValue());
         logger.Info("Network");
         logger.Info("  can1");
         {
@@ -223,20 +212,6 @@ class App {
                       can1_lec);
           logger.Info("    Bus Off?: %d, Passive?: %d, Warning?: %d", can1_boff,
                       can1_bpvf, can1_bwgf);
-        }
-
-        {
-          auto &df = actuators->ikako_robomas.sender.df_0x1FF.data_array;
-          logger.Info("    C620/C610 Dataframe (0x1FF)");
-          logger.Info("      %02x%02x %02x%02x %02x%02x %02x%02x", df[0], df[1],
-                      df[2], df[3], df[4], df[5], df[6], df[7]);
-        }
-
-        {
-          auto &df = actuators->ikako_robomas.sender.df_0x200.data_array;
-          logger.Info("    C620/C610 Dataframe (0x200)");
-          logger.Info("      %02x%02x %02x%02x %02x%02x %02x%02x", df[0], df[1],
-                      df[2], df[3], df[4], df[5], df[6], df[7]);
         }
       }
       i += 1;
@@ -260,12 +235,35 @@ int main_prod() {
   return 0;
 }
 
+int test_rohm_1ch_md() {
+  robotics::logger::Logger logger("rohm1chmd", "rohm1chmd");
+  // tr
+  ikarashiCAN_mk2 can(PB_8, PB_9, 0, (int)1E6);
+  nhk2024b::common::Rohm1chMD md(can, 1);
+
+  can.read_start();
+  md.in_velocity.SetValue(0.2);
+  md.out_velocity.SetChangeCallback(
+      [&logger](float v) { logger.Info("out_velocity: %f", v); });
+  md.out_current.SetChangeCallback(
+      [&logger](float v) { logger.Info("out_current: %f", v); });
+  md.out_radian.SetChangeCallback(
+      [&logger](float v) { logger.Info("out_radian: %f", v); });
+
+  logger.Info("Start");
+
+  while (1) {
+    md.Read();
+    md.Send();
+
+    ThisThread::sleep_for(1ms);
+  }
+}
+
 int main_switch() {
   robotics::logger::SuppressLogger("rxp.fep.nw");
   robotics::logger::SuppressLogger("st.fep.nw");
   robotics::logger::SuppressLogger("sr.fep.nw");
 
-  // nhk2024b::InitFEP();
-
-  return main_prod();
+  return test_rohm_1ch_md();
 }
