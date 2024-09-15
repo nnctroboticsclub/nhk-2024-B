@@ -141,6 +141,13 @@ class Test {
 
   void Main() {
     logger.Info("Main loop");
+
+    Timer timer;
+    timer.reset();
+    timer.start();
+
+    float previous = 0;
+
     int i = 0;
     while (1) {
       if (i % 1000 == 0) logger.Info("Update");

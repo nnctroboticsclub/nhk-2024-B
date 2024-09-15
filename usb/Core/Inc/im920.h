@@ -125,6 +125,8 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
   }
 }
 
+static srobo2::com::IM920_SRobo1 *im920 = nullptr;
+
 void ResetIM920() {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   GPIO_InitStruct.Pin = GPIO_PIN_2;
@@ -153,29 +155,28 @@ void Init() {
 
   auto rx = nhk2024b::controller::im920::IM920RxCStream::GetInstance();
   rx->Init();
+
   auto tx = nhk2024b::controller::im920::IM920TxCStream::GetInstance();
   tx->Init();
-  srobo2::timer::HALCTime::GetInstance()->Init();
 
-  rx->ControlRunning(false);
-  tx->DoWrite((const uint8_t *)"STCH 02\r\n", 9);
-  HAL_Delay(100);
-  rx->ControlRunning(true);
+  auto ctime = srobo2::timer::HALCTime::GetInstance();
+  ctime->Init();
+
+  auto cim920 =
+      new srobo2::com::CIM920(tx->GetTx(), rx->GetRx(), ctime->GetTime());
+  im920 = new srobo2::com::IM920_SRobo1(cim920);
+
+  im920->EnableWrite();
+  im920->SetChannel(0x02);
+
+  printf("GN: 0x%08x (Group Number)\n", im920->GetGroupNumber());
+  printf("NN: 0x%04x (Node Number)\n", im920->GetNodeNumber());
+  printf("Ch: 0x%02x\n", im920->GetChannel());
 }
 
 srobo2::com::IM920_SRobo1 *GetIM920() {
-  static srobo2::com::IM920_SRobo1 *im920 = nullptr;
   if (im920 == nullptr) {
     Init();
-    auto cim920 = new srobo2::com::CIM920(
-        IM920TxCStream::GetInstance()->GetTx(),
-        IM920RxCStream::GetInstance()->GetRx(),
-        srobo2::timer::HALCTime::GetInstance()->GetTime());
-    im920 = new srobo2::com::IM920_SRobo1(cim920);
-
-    printf("GN: 0x%08x (Group Number)\n", im920->GetGroupNumber());
-    printf("NN: 0x%04x (Node Number)\n", im920->GetNodeNumber());
-    printf("Ch: 0x%02x\n", im920->GetChannel());
   }
 
   return im920;

@@ -5,9 +5,6 @@
 
 namespace nhk2024b::common {
 class IkakoRobomasBus {
-  IkakoRobomasSender sender;
-  std::vector<IkakoRobomasNode *> nodes;
-
  public:
   IkakoRobomasBus(ikarashiCAN_mk2 &can) : sender(&can) {}
 
@@ -33,5 +30,8 @@ class IkakoRobomasBus {
   }
 
   void Tick() { sender.read(); }
+
+  std::vector<IkakoRobomasNode *> nodes;
+  IkakoRobomasSender sender;
 };
 }  // namespace nhk2024b::common
