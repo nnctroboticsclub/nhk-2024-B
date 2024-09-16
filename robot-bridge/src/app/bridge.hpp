@@ -20,11 +20,17 @@ class Robot {
     ctrl_deploy.SetChangeCallback(
         [this](bool btn) { out_deploy.SetValue(btn ? 0.3 : 0); });
     ctrl_move.SetChangeCallback([this](robotics::types::JoyStick2D stick) {
-      auto left = (stick[0] - stick[1]) / 1.4142135623730951;
-      auto right = (stick[0] + stick[1]) / 1.4142135623730951;
+      auto left = (stick[0] + stick[1]) / 1.41;
+      auto right = (stick[0] - stick[1]) / 1.41;
 
-      out_move_l.SetValue(left);
-      out_move_r.SetValue(right);
+      if (abs(left) > 1 || abs(right) > 1) {
+        auto max = std::max(abs(left), abs(right));
+        left /= max;
+        right /= max;
+      }
+
+      out_move_l.SetValue(left * 0.95);
+      out_move_r.SetValue(right * 0.95);
     });
 
     ctrl_bridge_toggle.SetChangeCallback([this](bool value) {
