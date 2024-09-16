@@ -18,17 +18,29 @@ class Actuators {
 
  public:
   ikarashiCAN_mk2 can1;
+
+ private:
   ikarashiCAN_mk2 can2;
+  common::RohmMDBus rohm_md;
+  common::CanServoBus can_servo;
 
  public:
-  common::CanServoBus can_servo;
-  common::RohmMDBus rohm_md;
+  common::CanServo &servo_0;
+  common::CanServo &servo_1;
+  common::Rohm1chMD move_l;
+  common::Rohm1chMD move_r;
+  common::Rohm1chMD deploy;
 
   Actuators(Config config)
       : can1(config.can_1_rd, config.can_1_td, 0, (int)1E6),
         can2(config.can_2_rd, config.can_2_td, 0, (int)1E6),
         can_servo(can1, 1),
-        rohm_md(can1) {}
+        rohm_md(),
+        servo_0(*can_servo.NewNode(0)),
+        servo_1(*can_servo.NewNode(1)),
+        move_l(can1, 2),
+        move_r(can1, 3),
+        deploy(can1, 4) {}
 
   void Init() {
     can1.read_start();
@@ -50,10 +62,17 @@ class Actuators {
       errors |= 1;
     }
 
-    status = rohm_md.Send();
+    status = move_l.Send();
     if (status != 1) {
-      // logger.Error("IkakoRobomasBus::Write failed");
+      errors |= 2;
+    }
+    status = move_r.Send();
+    if (status != 1) {
       errors |= 4;
+    }
+    status = deploy.Send();
+    if (status != 1) {
+      errors |= 8;
     }
 
     return -errors;

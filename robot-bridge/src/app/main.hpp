@@ -73,9 +73,9 @@ class App {
 
   nhk2024b::common::CanServo *servo0;
   nhk2024b::common::CanServo *servo1;
-  nhk2024b::common::Rohm1chMD &move_l;
-  nhk2024b::common::Rohm1chMD &move_r;
-  nhk2024b::common::Rohm1chMD &deploy;
+  nhk2024b::common::Rohm1chMD *move_l;
+  nhk2024b::common::Rohm1chMD *move_r;
+  nhk2024b::common::Rohm1chMD *deploy;
 
   nhk2024b::ControllerNetwork ctrl_net;
   nhk2024b::robot2::Controller *ctrl;
@@ -93,18 +93,21 @@ class App {
   bool emc_conn = true;
 
  public:
-  App()
-      : move_l(actuators->rohm_md.NewNode(2)),
-        move_r(actuators->rohm_md.NewNode(3)),
-        deploy(actuators->rohm_md.NewNode(4)),
-        servo0(actuators->can_servo.NewNode(0)),
-        servo1(actuators->can_servo.NewNode(1)) {}
+  App() {}
 
   void Init() {
-    logger.Info("Init");
+    logger.Info("Init - Ctrl");
 
     ctrl_net.Init(0x0012);
+    ctrl_net.keep_alive->connection_available.SetChangeCallback(
+        [this](bool available) {
+          emc_conn = available;
+          emc.write(emc_ctrl & emc_conn);
+        });
+
     ctrl = ctrl_net.ConnectToPipe2();
+
+    logger.Info("Init - Link");
 
     ctrl->move >> robot.ctrl_move;
     ctrl->button_deploy >> robot.ctrl_deploy;
@@ -113,40 +116,26 @@ class App {
       emc_ctrl ^= btn;
       emc.write(emc_ctrl & emc_conn);
     });
-
-    ctrl_net.keep_alive->connection_available.SetChangeCallback(
-        [this](bool available) {
-          emc_conn = available;
-          emc.write(emc_ctrl & emc_conn);
-        });
-
     robot.LinkController();
 
-    robot.out_move_l >> move_l.in_velocity;
-    robot.out_move_r >> move_r.in_velocity;
-    robot.out_deploy >> deploy.in_velocity;
+    logger.Info("Init - Actuator");
 
-    move_l.in_velocity.SetChangeCallback([this](float v) { led0.write(v); });
-    move_r.in_velocity.SetChangeCallback([this](float v) { led1.write(v); });
-
-    ctrl->move.SetChangeCallback([this](robotics::types::JoyStick2D x) {
-      led0.write((1 + x[0]) / 2);
-      led1.write((1 - x[0]) / 2);
-    });
+    robot.out_move_l >> actuators->move_l.in_velocity;
+    robot.out_move_r >> actuators->move_r.in_velocity;
+    robot.out_deploy >> actuators->deploy.in_velocity;
 
     robot.out_unlock_duty.SetChangeCallback([this](float duty) {
-      servo0->SetValue(102 + 85 * duty);
-      servo1->SetValue(177.8 - 85 * duty);
+      actuators->servo_0.SetValue(102 + 85 * duty);
+      actuators->servo_1.SetValue(177.8 - 85 * duty);
     });
-    servo0->SetValue(102);
-    servo1->SetValue(177.8);
+    actuators->servo_0.SetValue(102);
+    actuators->servo_1.SetValue(177.8);
 
-    /* dummy4->velocity.SetValue(0);
-    dummy5->velocity.SetValue(0);
-    dummy6->velocity.SetValue(0);
-    dummy7->velocity.SetValue(0); */
-
-    // ps4.Propagate();
+    logger.Info("Init - LED");
+    actuators->move_l.in_velocity.SetChangeCallback(
+        [this](float v) { led0.write(v); });
+    actuators->move_r.in_velocity.SetChangeCallback(
+        [this](float v) { led1.write(v); });
 
     emc.write(1);
     actuators->Init();
@@ -162,7 +151,6 @@ class App {
     timer.reset();
     timer.start();
     float previous = 0;
-    float scheduled_can1_reset = 0.1;
 
     while (1) {
       float current = timer.read_ms() / 1000.0;
@@ -171,17 +159,10 @@ class App {
 
       ctrl_net.keep_alive->Update(delta_s);
 
-      /* if (scheduled_can1_reset < current) {
-        logger.Info("\x1b[1;31m[Actuators] Resetting CAN1 Peripheral\x1b[m");
-        __HAL_RCC_CAN1_FORCE_RESET();
-        __HAL_RCC_CAN1_RELEASE_RESET();
-
-        scheduled_can1_reset = current + 0.1;
-      } */
+      actuators->Tick();
 
       actuators->Read();
       status_actuators_send_ = actuators->Send();
-      actuators->Tick();
       can_send_failed = status_actuators_send_ != 0;
 
       if (i % 100 == 0) {
@@ -192,9 +173,10 @@ class App {
         logger.Info("  s %f, %f", stick[0], stick[1]);
         logger.Info("  b d%d, b%d", ctrl->button_deploy.GetValue(),
                     ctrl->button_bridge_toggle.GetValue());
-        logger.Info("  o s %f %f", servo0->GetValue(), servo1->GetValue());
-        logger.Info("    m %f %f", move_l.in_velocity.GetValue(),
-                    move_r.in_velocity.GetValue());
+        logger.Info("  o s %f %f", actuators->servo_0.GetValue(),
+                    actuators->servo_1.GetValue());
+        logger.Info("    m %f %f", actuators->move_l.in_velocity.GetValue(),
+                    actuators->move_r.in_velocity.GetValue());
         logger.Info("Network");
         logger.Info("  can1");
         {
@@ -223,7 +205,7 @@ class App {
 int main_prod() {
   auto thread = robotics::system::Thread();
   thread.SetThreadName("App");
-  thread.SetStackSize(8192);
+  thread.SetStackSize(2048 + 2048 + 2048);
 
   thread.Start([]() {
     auto test = new App();
@@ -239,22 +221,23 @@ int test_rohm_1ch_md() {
   robotics::logger::Logger logger("rohm1chmd", "rohm1chmd");
   // tr
   ikarashiCAN_mk2 can(PB_8, PB_9, 0, (int)1E6);
-  nhk2024b::common::Rohm1chMD md(can, 1);
+  nhk2024b::common::RohmMDBus md_bus;
+  auto md = md_bus.NewNode(&can, 1);
 
   can.read_start();
-  md.in_velocity.SetValue(0.2);
-  md.out_velocity.SetChangeCallback(
+  md->in_velocity.SetValue(0.2);
+  /* md.out_velocity.SetChangeCallback(
       [&logger](float v) { logger.Info("out_velocity: %f", v); });
   md.out_current.SetChangeCallback(
       [&logger](float v) { logger.Info("out_current: %f", v); });
   md.out_radian.SetChangeCallback(
-      [&logger](float v) { logger.Info("out_radian: %f", v); });
+      [&logger](float v) { logger.Info("out_radian: %f", v); }); */
 
   logger.Info("Start");
 
   while (1) {
-    md.Read();
-    md.Send();
+    md->Read();
+    md->Send();
 
     ThisThread::sleep_for(1ms);
   }
@@ -265,5 +248,6 @@ int main_switch() {
   robotics::logger::SuppressLogger("st.fep.nw");
   robotics::logger::SuppressLogger("sr.fep.nw");
 
-  return test_rohm_1ch_md();
+  // return test_rohm_1ch_md();
+  return main_prod();
 }

@@ -6,15 +6,17 @@
 namespace nhk2024b::common {
 class RohmMDBus {
   std::vector<Rohm1chMD *> nodes;
-  ikarashiCAN_mk2 &can;
 
  public:
-  RohmMDBus(ikarashiCAN_mk2 &can) : can(can) {}
+  RohmMDBus() {}
 
   int Send() {
     for (auto &&node : nodes) {
-      node->Send();
+      if (node->Send() != 1) {
+        return 0;
+      }
     }
+    return 1;
   }
 
   void Read() {
@@ -23,9 +25,12 @@ class RohmMDBus {
     }
   }
 
-  Rohm1chMD &NewNode(int id) {
-    nodes.emplace_back(new Rohm1chMD(can, id));
-    return *nodes.back();
+  Rohm1chMD *NewNode(ikarashiCAN_mk2 *can, int id) {
+    auto p = new Rohm1chMD(*can, id);
+    printf("Rohm 1ch MD placed at %p\n", p);
+
+    nodes.emplace_back(p);
+    return p;
   }
 };
 }  // namespace nhk2024b::common

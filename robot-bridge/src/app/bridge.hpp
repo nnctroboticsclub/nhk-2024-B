@@ -23,8 +23,8 @@ class Robot {
       auto left = (stick[0] - stick[1]) / 1.4142135623730951;
       auto right = (stick[0] + stick[1]) / 1.4142135623730951;
 
-      out_move_l.SetValue(left * 0.6);
-      out_move_r.SetValue(right * 0.6);
+      out_move_l.SetValue(left);
+      out_move_r.SetValue(right);
     });
 
     ctrl_bridge_toggle.SetChangeCallback([this](bool value) {
