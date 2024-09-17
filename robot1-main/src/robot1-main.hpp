@@ -38,22 +38,52 @@ class Refrige {
   int brake_state = false;
   int collecter_state = 0;
 
-  float unlock_stop_limit_s = 0;
-
   const float kMoveFactorNormal = 0.65;
   const float kMoveFactorFast = 0.75;
   const float kRotationFactor = 0.5;
 
   // float max_unlock_angle = 15.0;
 
-  void Update(float dt) {
-    if (unlock_stop_limit_s > 0) {
-      unlock_stop_limit_s -= dt;
+  float unlock_timer = 0;
 
-      if (unlock_stop_limit_s < 0) {
-        logger.Info("Stop unlock motor");
-        out_unlock.SetValue(0);
-        unlock_stop_limit_s = 0;
+  // オートマトン
+  enum class UnlockState { kIdle, kReverse, kForward };
+  　UnlockState unlock_state = UnlockState::kIdle;
+
+  void unlock_case(UnlockState state) {
+    switch (state) {
+      case kReverse:
+        state = kForward;  // 状態推移
+        unlock_timer = 1;
+        // アンロックモーターを止めたりする
+        // 1s 間保持される状態を記述
+        out_motor1.SetValue(0.4);
+        out_motor2.SetValue(0.4);
+        out_motor3.SetValue(0.4);
+        out_motor4.SetValue(0.4);
+        break;
+
+      case kForward:
+        state = kIdle;  // 安定状態へ推移
+        // 足回り？を止める
+        out_motor1.SetValue(0);
+        out_motor2.SetValue(0);
+        out_motor3.SetValue(0);
+        out_motor4.SetValue(0);
+        break;
+
+      case kIdle:
+      default:
+        break;
+    }
+  }
+
+  void Update(float dt) {
+    if (unlock_timer < 0) {  // ほんとは関数に切り出したほうがいい
+      unlock_timer = 0;
+      using enum UnlockState;
+      if (unlock_timer > 0) {
+        unlock_timer -= dt;
       }
     }
   }
@@ -99,20 +129,24 @@ class Refrige {
       out_motor4.SetValue(trigger * kRotationFactor);
     });
 
-    ctrl_unlock.SetChangeCallback([this](bool btn) {  // アンロックトグル
+    ctrl_unlock.SetChangeCallback([this](bool btn) {
       out_unlock.SetValue(-0.6);
       unlock_stop_limit_s = 0.1;
     });
 
-    ctrl_brake_back.SetChangeCallback([this](bool btn) {  // アンロックトグル
-      out_brake.SetValue(btn ? -1 : 0);
+    ctrl_brake_back.SetChangeCallback(
+        [this](bool btn) { out_brake.SetValue(btn ? -1 : 0); });
+
+    ctrl_brake.SetChangeCallback(
+        [this](bool btn) { out_brake.SetValue(btn ? 1 : 0); });
+
+    ctrl_unlock.SetChangeCallback([this](bool btn) {
+      out_unlock.SetValue(-0.6);
+      unlock_timer = 0.1;
+      unlock_state = UnlockState::kReverse;
     });
 
-    ctrl_brake.SetChangeCallback([this](bool btn) {  // アンロックトグル
-      out_brake.SetValue(btn ? 1 : 0);
-    });
-
-    ctrl_collector.SetChangeCallback([this](bool btn) {  // コレクタトグル
+    ctrl_collector.SetChangeCallback([this](bool btn) {
       collecter_state = (collecter_state + btn) % 3;
       if (collecter_state == 0) {
         out_collector.SetValue(0);
