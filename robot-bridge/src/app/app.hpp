@@ -27,6 +27,8 @@ class Actuators {
  public:
   common::CanServo &servo_0;
   common::CanServo &servo_1;
+  common::CanServo &servo_2;
+  common::CanServo &servo_3;
   common::Rohm1chMD move_l;
   common::Rohm1chMD move_r;
   common::Rohm1chMD deploy;
@@ -38,6 +40,8 @@ class Actuators {
         rohm_md(),
         servo_0(*can_servo.NewNode(0)),
         servo_1(*can_servo.NewNode(1)),
+        servo_2(*can_servo.NewNode(2)),
+        servo_3(*can_servo.NewNode(3)),
         move_l(can1, 2),
         move_r(can1, 3),
         deploy(can1, 4) {}

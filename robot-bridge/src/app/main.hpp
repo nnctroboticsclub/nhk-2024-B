@@ -22,42 +22,6 @@
 
 robotics::logger::Logger logger{"robot2.app", "Robot2App"};
 
-class PseudoController {
-  robotics::system::Thread thread;
-
- public:
-  robotics::Node<robotics::types::JoyStick2D> stick_right;
-  robotics::Node<bool> button_square;
-  robotics::Node<bool> button_cross;
-  robotics::Node<bool> button_circle;
-  // robotics::Node<bool> button_triangle;
-
-  PseudoController() {
-    thread.SetThreadName("PseudoController");
-    thread.Start([this]() {
-      button_square.SetValue(false);
-      while (1) {
-        stick_right.SetValue({0, 0});
-        button_cross.SetValue(false);
-        button_circle.SetValue(false);
-        // button_triangle.SetValue(false);
-
-        ThisThread::sleep_for(100ms);
-
-        stick_right.SetValue({0, 1});
-
-        button_cross.SetValue(true);
-        button_circle.SetValue(true);
-        // button_triangle.SetValue(true);
-
-        ThisThread::sleep_for(100ms);
-      }
-    });
-  }
-
-  void Update() {}
-};
-
 class App {
   using Actuators = nhk2024b::robot2::Actuators;
   using Robot = nhk2024b::robot2::Robot;
@@ -86,9 +50,6 @@ class App {
   PwmOut led1{PA_7};
   DigitalOut can_send_failed{PA_4};
 
-  float fb2 = 0;
-  float fb3 = 0;
-  int status_actuators_send_ = 0;
   bool emc_ctrl = true;
   bool emc_conn = true;
 
@@ -162,7 +123,7 @@ class App {
       actuators->Tick();
 
       actuators->Read();
-      status_actuators_send_ = actuators->Send();
+      int status_actuators_send_ = actuators->Send();
       can_send_failed = status_actuators_send_ != 0;
 
       if (i % 100 == 0) {
@@ -177,9 +138,9 @@ class App {
                     actuators->servo_1.GetValue());
         logger.Info("    m %f %f", actuators->move_l.in_velocity.GetValue(),
                     actuators->move_r.in_velocity.GetValue());
-        logger.Info("Network");
-        logger.Info("  can1");
-        {
+
+        // logger.Info("Network");
+        /* {
           auto can1_ESR = actuators->can1.get_can_instance()
                               ->get_can()
                               ->CanHandle.Instance->ESR;
@@ -190,11 +151,12 @@ class App {
           auto can1_bpvf = (can1_ESR >> 1) & 1;
           auto can1_bwgf = (can1_ESR >> 0) & 1;
 
+          logger.Info("  can1");
           logger.Info("    REC = %d, TEC = %d LEC = %d", can1_rec, can1_tec,
                       can1_lec);
           logger.Info("    Bus Off?: %d, Passive?: %d, Warning?: %d", can1_boff,
                       can1_bpvf, can1_bwgf);
-        }
+        } */
       }
       i += 1;
       ThisThread::sleep_for(1ms);

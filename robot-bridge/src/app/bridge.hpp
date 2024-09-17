@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nhk2024b/types.hpp>
+#include "value_test.hpp"
 
 namespace nhk2024b::robot2 {
 class Robot {

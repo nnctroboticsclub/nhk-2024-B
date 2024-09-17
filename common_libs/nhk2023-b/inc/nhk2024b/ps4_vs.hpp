@@ -123,9 +123,7 @@ struct Entries {
     entry->Invalidate();
   }
 
-  void Add(GenericEntry *entry) {
-    entries.emplace_back(entry);
-  }
+  void Add(GenericEntry *entry) { entries.emplace_back(entry); }
 };
 
 Entries *entries_1 = nullptr;
@@ -148,22 +146,20 @@ void Init() {
   entries_2->Add(new Entry<bool>(button_square_value, button_square));
   entries_2->Add(new Entry<bool>(button_cross_value, button_cross));
   entries_2->Add(new Entry<bool>(button_circle_value, button_circle));
-  entries_2->Add(
-      new Entry<bool>(button_triangle_value, button_triangle));
+  entries_2->Add(new Entry<bool>(button_triangle_value, button_triangle));
   entries_1->Add(new Entry<bool>(button_share_value, button_share));
   entries_2->Add(new Entry<bool>(button_options_value, button_options));
   // entries->Add(new Entry<bool>(button_ps_value, button_ps));
   // entries->Add(
   //     new Entry<bool>(button_touchPad_value, button_touchPad));
-  // entries->Add(new Entry<bool>(button_l1_value, button_l1));
-  // entries->Add(new Entry<bool>(button_r1_value, button_r1));
+  entries_2->Add(new Entry<bool>(button_l1_value, button_l1));
+  entries_2->Add(new Entry<bool>(button_r1_value, button_r1));
   // entries->Add(new Entry<bool>(button_l3_value, button_l3));
   // entries->Add(new Entry<bool>(button_r3_value, button_r3));
   entries_1->Add(new Entry<float>(trigger_l_value, trigger_l));
   entries_1->Add(new Entry<float>(trigger_r_value, trigger_r));
   // entries->Add(new Entry<float>(battery_level_value, battery_level));
 }
-
 
 }  // namespace state
 

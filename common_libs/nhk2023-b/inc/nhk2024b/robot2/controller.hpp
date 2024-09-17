@@ -17,6 +17,9 @@ class Controller {
   Node<bool> button_unassigned0;
   Node<bool> button_unassigned1;
 
+  Node<bool> test_increase;
+  Node<bool> test_decrease;
+
   void RegisterTo(
       robotics::network::ssp::ValueStoreService<uint16_t, bool> *value_store,
       uint16_t remote) {
@@ -26,6 +29,8 @@ class Controller {
     value_store->AddController(0x2400'0203, remote, button_bridge_toggle);
     value_store->AddController(0x2400'0204, remote, button_unassigned0);
     value_store->AddController(0x2400'0205, remote, button_unassigned1);
+    value_store->AddController(0x2400'0206, remote, test_increase);
+    value_store->AddController(0x2400'0207, remote, test_decrease);
   }
 };
 }  // namespace nhk2024b::robot2
