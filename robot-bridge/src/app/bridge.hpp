@@ -6,16 +6,21 @@
 namespace nhk2024b::robot2 {
 class Robot {
   bool is_unlocked = false;
+  float unlock_duty = 0.5;
 
  public:
   Node<JoyStick2D> ctrl_move;
   Node<bool> ctrl_deploy;
   Node<bool> ctrl_bridge_toggle;
 
-  Node<float> out_unlock_duty;
+  Node<float> out_bridge_unlock_duty;
   Node<float> out_deploy;
   Node<float> out_move_l;
   Node<float> out_move_r;
+
+  Node<bool> ctrl_test_increment;
+  Node<bool> ctrl_test_decrement;
+  Node<float> out_unlock_duty;
 
   void LinkController() {
     ctrl_deploy.SetChangeCallback(
@@ -36,7 +41,17 @@ class Robot {
 
     ctrl_bridge_toggle.SetChangeCallback([this](bool value) {
       is_unlocked = is_unlocked ^ value;
-      out_unlock_duty.SetValue(is_unlocked ? 0.60 : -0.05);
+      out_bridge_unlock_duty.SetValue(is_unlocked ? 0.60 : -0.05);
+    });
+
+    ctrl_test_increment.SetChangeCallback([this](bool btn) {
+      if (btn) unlock_duty += 1 / 20;
+      out_unlock_duty.SetValue(unlock_duty);
+    });
+
+    ctrl_test_decrement.SetChangeCallback([this](bool btn) {
+      if (btn) unlock_duty -= 1 / 20;
+      out_unlock_duty.SetValue(unlock_duty);
     });
   }
 };

@@ -73,6 +73,8 @@ class App {
     ctrl->move >> robot.ctrl_move;
     ctrl->button_deploy >> robot.ctrl_deploy;
     ctrl->button_bridge_toggle >> robot.ctrl_bridge_toggle;
+    ctrl->test_increase >> robot.ctrl_test_increment;
+    ctrl->test_decrease >> robot.ctrl_test_decrement;
     ctrl->emc.SetChangeCallback([this](bool btn) {
       emc_ctrl ^= btn;
       emc.write(emc_ctrl & emc_conn);
@@ -85,12 +87,19 @@ class App {
     robot.out_move_r >> actuators->move_r.in_velocity;
     robot.out_deploy >> actuators->deploy.in_velocity;
 
-    robot.out_unlock_duty.SetChangeCallback([this](float duty) {
+    robot.out_bridge_unlock_duty.SetChangeCallback([this](float duty) {
       actuators->servo_0.SetValue(102 + 85 * duty);
       actuators->servo_1.SetValue(177.8 - 85 * duty);
     });
     actuators->servo_0.SetValue(102);
     actuators->servo_1.SetValue(177.8);
+
+    robot.out_unlock_duty.SetChangeCallback([this](float duty) {
+      actuators->servo_2.SetValue(128 + 128 * duty);
+      actuators->servo_3.SetValue(128 - 128 * duty);
+    });
+    actuators->servo_2.SetValue(128);
+    actuators->servo_3.SetValue(128);
 
     logger.Info("Init - LED");
     actuators->move_l.in_velocity.SetChangeCallback(
@@ -134,8 +143,12 @@ class App {
         logger.Info("  s %f, %f", stick[0], stick[1]);
         logger.Info("  b d%d, b%d", ctrl->button_deploy.GetValue(),
                     ctrl->button_bridge_toggle.GetValue());
-        logger.Info("  o s %f %f", actuators->servo_0.GetValue(),
-                    actuators->servo_1.GetValue());
+        logger.Info("  o s %f %f | %f %f",  ///
+                    actuators->servo_0.GetValue(),
+                    actuators->servo_1.GetValue(),
+                    actuators->servo_2.GetValue(),
+                    actuators->servo_3.GetValue()  //
+        );
         logger.Info("    m %f %f", actuators->move_l.in_velocity.GetValue(),
                     actuators->move_r.in_velocity.GetValue());
 
