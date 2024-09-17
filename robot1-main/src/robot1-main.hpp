@@ -57,9 +57,9 @@ class Refrige {
         unlock_timer = 1;
         // アンロックモーターを止めたりする
         // 1s 間保持される状態を記述
-        out_motor1.SetValue(0.4);
+        out_motor1.SetValue(-0.4);
         out_motor2.SetValue(0.4);
-        out_motor3.SetValue(0.4);
+        out_motor3.SetValue(-0.4);
         out_motor4.SetValue(0.4);
         break;
 
