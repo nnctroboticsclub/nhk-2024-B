@@ -49,6 +49,7 @@ static void MX_USART2_UART_Init(void);
 extern "C" void MX_USB_HOST_Process(void);
 
 static bool is_usb_hid_connected = false;
+static bool is_controller_stopped = false;
 
 namespace robotics::system {
 void SleepFor(std::chrono::milliseconds duration) {
@@ -93,6 +94,8 @@ extern "C" int main(void) {
 
   auto im920 = nhk2024b::controller::im920::GetIM920();
   auto nn = im920->GetNodeNumber();
+  auto gn = im920->GetGroupNumber();
+  auto ch = im920->GetChannel();
 
   SerialServiceProtocol<uint16_t, bool> ssp(*im920);
   auto vs = ssp.RegisterService<ValueStoreService<uint16_t, bool>>();
@@ -119,14 +122,37 @@ extern "C" int main(void) {
   vs_ps4::button_triangle >> robot2_ctrl->button_unassigned1;
   vs_ps4::button_l1 >> robot2_ctrl->test_decrease;
   vs_ps4::button_r1 >> robot2_ctrl->test_increase;
+
+  vs_ps4::button_ps.SetChangeCallback([](bool btn) {
+    is_controller_stopped ^= btn;
+    if (is_controller_stopped) {
+      board_led::On(board_led::kPin3);
+    } else {
+      board_led::Off(board_led::kPin3);
+    }
+    vs_ps4::state::trigger_l_value = 0;
+    vs_ps4::state::trigger_r_value = 0;
+  });
+
   robot2_ctrl->RegisterTo(vs, pipe2_remote);
   keep_alive->AddTarget(pipe2_remote);
 
-  int i = 1;
+  //* Visualize node_number, group_number, channel
+  board_led::Off(board_led::kPin1);
+  board_led::Off(board_led::kPin2);
+  board_led::Off(board_led::kPin3);
+  for (int i = 0; i < 64; i++) {
+    if ((nn >> (i % 32)) & 1) board_led::Toggle(board_led::kPin1);
+    if ((gn >> (i % 16)) & 1) board_led::Toggle(board_led::kPin2);
+    if ((ch >> (i % 8)) & 1) board_led::Toggle(board_led::kPin3);
+
+    HAL_Delay(5);
+  }
 
   board_led::Off(board_led::kPin1);
   board_led::Off(board_led::kPin2);
   board_led::Off(board_led::kPin3);
+
   printf("Entering Main loop\n");
 
   const float kKeepAliveInterval = 0.2;  // 200ms
@@ -136,9 +162,8 @@ extern "C" int main(void) {
   float schedule_1 = start_time + kKeepAliveInterval;
   float schedule_2 = start_time + kKeepAliveInterval;
   float schedule_blink = start_time + kBlinkInterval;
-  while (1) {
-    i += 1;
 
+  while (1) {
     //* Task
     robotics::logger::core::LoggerProcess();
     MX_USB_HOST_Process();
@@ -157,6 +182,12 @@ extern "C" int main(void) {
     //* Update
     vs_ps4::state::entries_1->Update();
     vs_ps4::state::entries_2->Update();
+    vs_ps4::state::entries_other->Update();
+
+    auto entry_other = vs_ps4::state::entries_other->FindMostDirtyEntry();
+    if (entry_other) {
+      entry_other->Invalidate();
+    }
 
     //* Connection scheduler
     auto entry_1 = vs_ps4::state::entries_1->FindMostDirtyEntry();
@@ -374,8 +405,10 @@ extern "C" void USBH_HID_EventCallback(USBH_HandleTypeDef *phost) {
   vs_ps4::state::button_ps_value = ptr[7] & 0x01;
   vs_ps4::state::button_touchPad_value = ptr[7] & 0x02;
 
-  vs_ps4::state::trigger_l_value = ptr[8] / 255.0f;
-  vs_ps4::state::trigger_r_value = ptr[9] / 255.0f;
+  vs_ps4::state::trigger_l_value =
+      is_controller_stopped ? 0 : (ptr[8] / 255.0f);
+  vs_ps4::state::trigger_r_value =
+      is_controller_stopped ? 0 : (ptr[9] / 255.0f);
   vs_ps4::state::battery_level_value = ptr[12] / 255.0f;
 }
 
