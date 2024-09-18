@@ -57,26 +57,24 @@ class Actuators {
   }
 
   int Send() {
-    int errors = 0;
-    int status;
+    static int errors = 0;
+    static int status = 0;
 
-    status = can_servo.Send();  // Sends 020H CAN message
-    if (status == 0) {
-      // logger.Error("CanServoBus::Send failed");
-      errors |= 1;
-    }
+    status = (status + 1) % 2;
 
-    status = move_l.Send();
-    if (status != 1) {
-      errors |= 2;
-    }
-    status = move_r.Send();
-    if (status != 1) {
-      errors |= 4;
-    }
-    status = deploy.Send();
-    if (status != 1) {
-      errors |= 8;
+    switch (status) {
+      case 0:
+        errors = move_l.Send() ? errors | 2 : errors & ~2;
+        errors = move_r.Send() ? errors | 4 : errors & ~4;
+        errors = deploy.Send() ? errors | 8 : errors & ~8;
+        break;
+      case 1:
+        errors = can_servo.Send() ? errors | 1 : errors & ~1;
+        break;
+
+      case 2:
+        //
+        break;
     }
 
     return -errors;
