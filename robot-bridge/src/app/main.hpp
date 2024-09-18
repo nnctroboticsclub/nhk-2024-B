@@ -68,19 +68,6 @@ class App {
 
     ctrl = ctrl_net.ConnectToPipe2();
 
-    logger.Info("Init - Link");
-
-    ctrl->move >> robot.ctrl_move;
-    ctrl->button_deploy >> robot.ctrl_deploy;
-    ctrl->button_bridge_toggle >> robot.ctrl_bridge_toggle;
-    ctrl->test_increase >> robot.ctrl_test_increment;
-    ctrl->test_decrease >> robot.ctrl_test_decrement;
-    ctrl->emc.SetChangeCallback([this](bool btn) {
-      emc_ctrl ^= btn;
-      emc.write(emc_ctrl & emc_conn);
-    });
-    robot.LinkController();
-
     logger.Info("Init - Actuator");
 
     robot.out_move_l >> actuators->move_l.in_velocity;
@@ -95,7 +82,7 @@ class App {
     actuators->servo_1.SetValue(177.8);
 
     robot.out_unlock_duty.SetChangeCallback([this](float duty) {
-      actuators->servo_2.SetValue(128 + 128 * duty);
+      actuators->servo_2.SetValue(128 - 128 * duty);
       actuators->servo_3.SetValue(128 - 128 * duty);
     });
     actuators->servo_2.SetValue(128);
@@ -106,6 +93,20 @@ class App {
         [this](float v) { led0.write(v); });
     actuators->move_r.in_velocity.SetChangeCallback(
         [this](float v) { led1.write(v); });
+
+    logger.Info("Init - Link");
+
+    ctrl->move >> robot.ctrl_move;
+    ctrl->button_deploy >> robot.ctrl_deploy;
+    ctrl->button_bridge_toggle >> robot.ctrl_bridge_toggle;
+    ctrl->button_unassigned0 >> robot.ctrl_unlock;
+    /* ctrl->test_increase >> robot.ctrl_test_increment;
+    ctrl->test_decrease >> robot.ctrl_test_decrement; */
+    ctrl->emc.SetChangeCallback([this](bool btn) {
+      emc_ctrl ^= btn;
+      emc.write(emc_ctrl & emc_conn);
+    });
+    robot.LinkController();
 
     emc.write(1);
     actuators->Init();
