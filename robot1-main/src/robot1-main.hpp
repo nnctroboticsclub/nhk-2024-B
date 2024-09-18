@@ -46,44 +46,12 @@ class Refrige {
 
   float unlock_timer = 0;
 
-  // オートマトン
-  enum class UnlockState { kIdle, kReverse, kForward };
-  UnlockState unlock_state = UnlockState::kIdle;
-
-  void unlock_case(UnlockState state) {
-    switch (state) {
-      case kReverse:
-        state = kForward;  // 状態推移
-        unlock_timer = 1;
-        // アンロックモーターを止めたりする
-        // 1s 間保持される状態を記述
-        out_motor1.SetValue(-0.4);
-        out_motor2.SetValue(0.4);
-        out_motor3.SetValue(0.4);
-        out_motor4.SetValue(-0.4);
-        break;
-
-      case kForward:
-        state = kIdle;  // 安定状態へ推移
-        // 足回り？を止める
-        out_motor1.SetValue(0);
-        out_motor2.SetValue(0);
-        out_motor3.SetValue(0);
-        out_motor4.SetValue(0);
-        break;
-
-      case kIdle:
-      default:
-        break;
-    }
-  }
-
   void Update(float dt) {
-    if (unlock_timer < 0) {
-      unlock_timer = 0;
-      using enum UnlockState;
-      if (unlock_timer > 0) {
-        unlock_timer -= dt;
+    if (unlock_timer > 0) {
+      unlock_timer -= dt;
+      if (unlock_timer < 0) {
+        unlock_timer = 0;
+        out_unlock.SetValue(0);
       }
     }
   }
