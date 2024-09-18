@@ -128,6 +128,7 @@ struct Entries {
 
 Entries *entries_1 = nullptr;
 Entries *entries_2 = nullptr;
+Entries *entries_other = nullptr;
 
 void Init() {
   static bool initialized = false;
@@ -137,6 +138,7 @@ void Init() {
 
   entries_1 = new Entries();
   entries_2 = new Entries();
+  entries_other= new Entries();
 
   entries_1->Add(
       new Entry<robotics::types::JoyStick2D>(stick_left_value, stick_left));
@@ -149,7 +151,7 @@ void Init() {
   entries_2->Add(new Entry<bool>(button_triangle_value, button_triangle));
   entries_1->Add(new Entry<bool>(button_share_value, button_share));
   entries_2->Add(new Entry<bool>(button_options_value, button_options));
-  // entries->Add(new Entry<bool>(button_ps_value, button_ps));
+  entries_other->Add(new Entry<bool>(button_ps_value, button_ps));
   // entries->Add(
   //     new Entry<bool>(button_touchPad_value, button_touchPad));
   entries_2->Add(new Entry<bool>(button_l1_value, button_l1));
