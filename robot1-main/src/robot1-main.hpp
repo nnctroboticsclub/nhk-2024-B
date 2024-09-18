@@ -34,7 +34,6 @@ class Refrige {
   Node<float> out_collector;  // 回収機構ー＞戻さなくてもよさそう
   Node<float> out_unlock;     // アンロック （タイマー）
 
-  bool unlock_state = false;
   int brake_state = false;
   int collecter_state = 0;
 
@@ -99,7 +98,7 @@ class Refrige {
 
     ctrl_unlock.SetChangeCallback([this](bool btn) {
       out_unlock.SetValue(-0.6);
-      unlock_stop_limit_s = 0.1;
+      unlock_timer = 0.1;
     });
 
     ctrl_brake_back.SetChangeCallback(
@@ -111,7 +110,6 @@ class Refrige {
     ctrl_unlock.SetChangeCallback([this](bool btn) {
       out_unlock.SetValue(-0.6);
       unlock_timer = 0.1;
-      unlock_state = UnlockState::kReverse;
     });
 
     ctrl_collector.SetChangeCallback([this](bool btn) {
