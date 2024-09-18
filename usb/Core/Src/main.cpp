@@ -84,10 +84,6 @@ extern "C" int main(void) {
 
   printf("\n\n\nProgram started\n");
 
-  board_led::On(board_led::kPin1);
-  board_led::On(board_led::kPin2);
-  board_led::On(board_led::kPin3);
-
   robotics::logger::core::Init();
   nhk2024b::controller::im920::Init();
   vs_ps4::state::Init();
@@ -121,12 +117,13 @@ extern "C" int main(void) {
   vs_ps4::button_square >> robot2_ctrl->button_bridge_toggle;
   vs_ps4::button_circle >> robot2_ctrl->button_unassigned0;
   vs_ps4::button_triangle >> robot2_ctrl->button_unassigned1;
+  vs_ps4::button_l1 >> robot2_ctrl->test_decrease;
+  vs_ps4::button_r1 >> robot2_ctrl->test_increase;
   robot2_ctrl->RegisterTo(vs, pipe2_remote);
   keep_alive->AddTarget(pipe2_remote);
 
   int i = 1;
 
-  HAL_Delay(1000);
   board_led::Off(board_led::kPin1);
   board_led::Off(board_led::kPin2);
   board_led::Off(board_led::kPin3);
@@ -146,17 +143,16 @@ extern "C" int main(void) {
     robotics::logger::core::LoggerProcess();
     MX_USB_HOST_Process();
 
-    if (!is_usb_hid_connected) continue;
-
     //* Time
     auto current_time = HAL_GetTick() / 1000.0f;
 
     //* Board LED Blink
     if (schedule_blink < current_time) {
-      printf("Blink\n");
       board_led::Toggle(board_led::kPin1);
       schedule_blink = current_time + kBlinkInterval;
     }
+
+    if (!is_usb_hid_connected) continue;
 
     //* Update
     vs_ps4::state::entries_1->Update();
@@ -261,10 +257,10 @@ static void MX_GPIO_Init(void) {
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9,
-                    GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9, GPIO_PIN_SET);
 
   /*Configure GPIO pins : PC7 PC8 PC9 */
+
   GPIO_InitStruct.Pin = GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -298,8 +294,8 @@ extern "C" void USBH_HID_EventCallback(USBH_HandleTypeDef *phost) {
   }
 
   if (!is_usb_hid_connected) {
-    printf("USB HID connected\n");
     is_usb_hid_connected = true;
+    board_led::On(board_led::kPin2);
   }
 
   auto stick_left_x = (ptr[1] - 128) / 128.0;
