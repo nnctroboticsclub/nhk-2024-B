@@ -38,29 +38,27 @@ class Refrige {
   int brake_state = false;
   int collecter_state = 0;
 
-  float unlock_stop_limit_s = 0;
-
   const float kMoveFactorNormal = 0.65;
   const float kMoveFactorFast = 0.75;
   const float kRotationFactor = 0.5;
 
   // float max_unlock_angle = 15.0;
 
-  void Update(float dt) {
-    if (unlock_stop_limit_s > 0) {
-      unlock_stop_limit_s -= dt;
+  float unlock_timer = 0;
 
-      if (unlock_stop_limit_s < 0) {
-        logger.Info("Stop unlock motor");
+  void Update(float dt) {
+    if (unlock_timer > 0) {
+      unlock_timer -= dt;
+      if (unlock_timer < 0) {
+        unlock_timer = 0;
         out_unlock.SetValue(0);
-        unlock_stop_limit_s = 0;
       }
     }
   }
 
   void LinkController() {
     ctrl_move.SetChangeCallback([this](robotics::JoyStick2D stick) {
-      double setmotor[4] = {-M_PI / 4, M_PI / 4, 3 * M_PI / 4, 5 * M_PI / 4};
+      double setmotor[4] = {5 * M_PI / 4, -M_PI / 4, M_PI / 4, 3 * M_PI / 4};
 
       float factor = 0;
 
@@ -99,20 +97,24 @@ class Refrige {
       out_motor4.SetValue(trigger * kRotationFactor);
     });
 
-    ctrl_unlock.SetChangeCallback([this](bool btn) {  // アンロックトグル
+    ctrl_unlock.SetChangeCallback([this](bool btn) {
       out_unlock.SetValue(-0.6);
       unlock_stop_limit_s = 0.1;
     });
 
-    ctrl_brake_back.SetChangeCallback([this](bool btn) {  // アンロックトグル
-      out_brake.SetValue(btn ? -1 : 0);
+    ctrl_brake_back.SetChangeCallback(
+        [this](bool btn) { out_brake.SetValue(btn ? -1 : 0); });
+
+    ctrl_brake.SetChangeCallback(
+        [this](bool btn) { out_brake.SetValue(btn ? 1 : 0); });
+
+    ctrl_unlock.SetChangeCallback([this](bool btn) {
+      out_unlock.SetValue(-0.6);
+      unlock_timer = 0.1;
+      unlock_state = UnlockState::kReverse;
     });
 
-    ctrl_brake.SetChangeCallback([this](bool btn) {  // アンロックトグル
-      out_brake.SetValue(btn ? 1 : 0);
-    });
-
-    ctrl_collector.SetChangeCallback([this](bool btn) {  // コレクタトグル
+    ctrl_collector.SetChangeCallback([this](bool btn) {
       collecter_state = (collecter_state + btn) % 3;
       if (collecter_state == 0) {
         out_collector.SetValue(0);
