@@ -48,7 +48,7 @@ class Refrige {
 
   // オートマトン
   enum class UnlockState { kIdle, kReverse, kForward };
-  　UnlockState unlock_state = UnlockState::kIdle;
+  UnlockState unlock_state = UnlockState::kIdle;
 
   void unlock_case(UnlockState state) {
     switch (state) {
@@ -59,8 +59,8 @@ class Refrige {
         // 1s 間保持される状態を記述
         out_motor1.SetValue(-0.4);
         out_motor2.SetValue(0.4);
-        out_motor3.SetValue(-0.4);
-        out_motor4.SetValue(0.4);
+        out_motor3.SetValue(0.4);
+        out_motor4.SetValue(-0.4);
         break;
 
       case kForward:
@@ -79,7 +79,7 @@ class Refrige {
   }
 
   void Update(float dt) {
-    if (unlock_timer < 0) {  // ほんとは関数に切り出したほうがいい
+    if (unlock_timer < 0) {
       unlock_timer = 0;
       using enum UnlockState;
       if (unlock_timer > 0) {
@@ -90,7 +90,7 @@ class Refrige {
 
   void LinkController() {
     ctrl_move.SetChangeCallback([this](robotics::JoyStick2D stick) {
-      double setmotor[4] = {-M_PI / 4, M_PI / 4, 3 * M_PI / 4, 5 * M_PI / 4};
+      double setmotor[4] = {5 * M_PI / 4, -M_PI / 4, M_PI / 4, 3 * M_PI / 4};
 
       float factor = 0;
 
