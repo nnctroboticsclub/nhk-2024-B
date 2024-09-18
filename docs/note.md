@@ -38,7 +38,7 @@ value store ID 割当
 - [x] ロボマス治す (月曜日とか)
 ### ロボ 3
 - [x] 完成
-- [-] プロポ対応
+- [x] プロポ対応
 ### 通信
 - [x] IM920(sL) 受信/構成情報読み取り
 - [x] IM920(sL) 送信
@@ -51,6 +51,30 @@ value store ID 割当
 - [x] connection/im920 をマージする
 - [x] HAL 用に IM920 読むやつの互換性レイヤを実装
 - [x] DS4 コンポーネントと IM920 コンポーネントとを統合 (完成)
-- [ ] 送り分け
-  - [ ] 共通ライブラリへ組み込み
-  - [ ] KeepAlive Service の実装
+- [x] 送り分け
+  - [x] 共通ライブラリへ組み込み
+  - [x] KeepAlive Service の実装
+
+## Robo3
+
+```cpp
+DigitalOut emc{PB_9};
+
+Actuators actuators{(Actuators::Config){
+  // M4
+  .move_motor_l_fin = PB_4,
+  .move_motor_l_rin = PB_3,
+
+  // M3
+  .move_motor_r_fin = PB_6,
+  .move_motor_r_rin = PB_5,
+
+  // M2
+  .arm_elevation_motor_fin = PC_12,
+  .arm_elevation_motor_rin = PC_11,
+
+  // M1
+  .arm_extension_motor_fin = PC_10,
+  .arm_extension_motor_rin = PA_15,
+}};
+```
