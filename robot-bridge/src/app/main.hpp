@@ -14,7 +14,7 @@
 
 #include <nhk2024b/fep.hpp>
 #include <nhk2024b/controller_network.hpp>
-
+#include <nhk2024b/led_tape.hpp>
 #include <ikako_m2006.h>
 
 #include "app.hpp"
@@ -53,6 +53,17 @@ class App {
   bool emc_ctrl = true;
   bool emc_conn = true;
 
+  void UpdateEMC() {
+    bool emc_state = emc_ctrl & emc_conn;
+    emc.write(emc_state);
+
+    if (emc_state) {
+      nhk2024b::led_tape::ColorOrange();
+    } else {
+      nhk2024b::led_tape::ColorLightBlue();
+    }
+  }
+
  public:
   App() {}
 
@@ -63,7 +74,7 @@ class App {
     ctrl_net.keep_alive->connection_available.SetChangeCallback(
         [this](bool available) {
           emc_conn = available;
-          emc.write(emc_ctrl & emc_conn);
+          UpdateEMC();
         });
 
     ctrl = ctrl_net.ConnectToPipe2();
@@ -75,7 +86,7 @@ class App {
     ctrl->button_bridge_toggle >> robot.ctrl_bridge_toggle;
     ctrl->emc.SetChangeCallback([this](bool btn) {
       emc_ctrl ^= btn;
-      emc.write(emc_ctrl & emc_conn);
+      UpdateEMC();
     });
     robot.LinkController();
 
