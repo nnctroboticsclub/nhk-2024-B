@@ -66,9 +66,9 @@ class Actuators {
       case 0:
         errors = move_l.Send() ? errors | 2 : errors & ~2;
         errors = move_r.Send() ? errors | 4 : errors & ~4;
-        errors = deploy.Send() ? errors | 8 : errors & ~8;
         break;
       case 1:
+        errors = deploy.Send() ? errors | 8 : errors & ~8;
         errors = can_servo.Send() ? errors | 1 : errors & ~1;
         break;
 
