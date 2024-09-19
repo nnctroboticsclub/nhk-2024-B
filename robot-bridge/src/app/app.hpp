@@ -44,7 +44,7 @@ class Actuators {
         servo_3(*can_servo.NewNode(3)),
         move_l(can1, 2),
         move_r(can1, 3),
-        deploy(can1, 4) {}
+        deploy(can1, 5) {}
 
   void Init() {
     can1.read_start();
