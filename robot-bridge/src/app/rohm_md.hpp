@@ -15,11 +15,12 @@ class Rohm1chMD {
   // robotics::Node<float> out_current;   // [A]
   // robotics::Node<float> out_radian;    // [rad]
 
-  Rohm1chMD(ikarashiCAN_mk2 &can, int id) : md(&can, id) {
-    in_velocity.SetChangeCallback([this](float v) { md.set(0, v); });
-  }
+  Rohm1chMD(ikarashiCAN_mk2 &can, int id) : md(&can, id) {}
 
-  bool Send() { return md.send(); }
+  bool Send() {
+    md.set(0, in_velocity.GetValue());
+    return md.send();
+  }
 
   bool Read() {
     auto r = md.read();
