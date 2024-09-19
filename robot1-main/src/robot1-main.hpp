@@ -57,7 +57,12 @@ class Refrige {
 
   void LinkController() {
     ctrl_move.SetChangeCallback([this](robotics::JoyStick2D stick) {
-      double setmotor[4] = {5 * M_PI / 4, -M_PI / 4, M_PI / 4, 3 * M_PI / 4};
+      double setmotor[4] = {
+          7 * M_PI / 4,  //
+          1 * M_PI / 4,  //
+          3 * M_PI / 4,  //
+          5 * M_PI / 4   //
+      };
 
       float factor = 0;
 
