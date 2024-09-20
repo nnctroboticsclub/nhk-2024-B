@@ -86,7 +86,7 @@ class Test {
   using PS4Con = nhk2024b::ps4_con::PS4Con;
   using Actuators = nhk2024b::robot3::Actuators;
 
-  DigitalOut emc{PA_15};
+  DigitalIn emc{PA_15, PinMode::PullUp};
 
   Actuators actuators{(Actuators::Config){
       // M4
@@ -121,7 +121,7 @@ class Test {
     puropo.button4 >> robot.ctrl_button_arm_down;
 
     puropo.button5.SetChangeCallback([this](bool btn) {
-      emc.write(btn ? 0 : 1);
+      robot.emc_state.SetValue(btn ? 0 : 1);
       logger.Info("btn = emc_ctrl = %d", btn);
     });
 
@@ -132,9 +132,11 @@ class Test {
 
     robot.LinkController();
 
+    puropo.button5.SetValue(false);
+
     // ps4.Init();
 
-    emc.write(1);
+    // emc.write(1);
 
     logger.Info("Init done");
   }
@@ -162,6 +164,7 @@ class Test {
                     actuators.move_motor_r.GetValue(),
                     actuators.arm_elevation_motor.GetValue(),
                     actuators.arm_extension_motor.GetValue());
+        logger.Info("  emc: %d", robot.emc_state.GetValue());
       }
       i += 1;
       ThisThread::sleep_for(1ms);

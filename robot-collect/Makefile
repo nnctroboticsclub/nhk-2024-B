@@ -10,7 +10,7 @@ $(BUILD)/build.ninja: CMakeLists.txt src/CMakeLists.txt
 
 .PHONY: write
 write: build
-	st-flash --connect-under-reset --format ihex --serial 066DFF303435554157121020 write $(BUILD)/src/app/app.hex
+	st-flash --connect-under-reset --format ihex --serial 066BFF535455886687123635 write $(BUILD)/src/app/app.hex
 
 .PHONY: clean
 clean:
