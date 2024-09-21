@@ -90,19 +90,15 @@ class Test {
 
   Actuators actuators{(Actuators::Config){
       // M4
-      .move_motor_l_fin = PB_10,
-      .move_motor_l_rin = PB_2,
+      .move_motor_fin = PA_9,
+      .move_motor_rin = PA_8,
 
-      // M12
-      .move_motor_r_fin = PA_9,
-      .move_motor_r_rin = PA_8,
+      // M3
+      .arm_elevation_motor_fin = PB_9,
+      .arm_elevation_motor_rin = PB_8,
 
-      // M2
-      .arm_elevation_motor_fin = PA_11,
-      .arm_elevation_motor_rin = PA_10,
-
-      // M13      .arm_extension_motor_fin = PB_9,
-
+      .arm_expansion_motor_fin = PB_10,
+      .arm_expansion_motor_rin = PB_2,
   }};
 
   PuropoController puropo{PC_6, PC_7};
@@ -124,8 +120,7 @@ class Test {
  public:
   void Init() {
     logger.Info("Init");
-    puropo.stick1 >> robot.ctrl_stick_rotate;
-    puropo.stick2 >> robot.ctrl_stick_forward_back;
+    puropo.stick1 >> robot.ctrl_stick_move;
     puropo.button1 >> robot.ctrl_button_arm_open;
     puropo.button2 >> robot.ctrl_button_arm_close;
     puropo.button3 >> robot.ctrl_button_arm_up;
@@ -136,8 +131,7 @@ class Test {
       UpdateEMC();
     });
 
-    robot.out_move_left >> actuators.move_motor_l;
-    robot.out_move_right >> actuators.move_motor_r;
+    robot.out_move >> actuators.move_motor;
     robot.out_arm_elevation >> actuators.arm_elevation_motor;
     robot.LinkController();
 
@@ -176,9 +170,9 @@ class Test {
         logger.Info("  Stick: %f, %f; %f, %f", puropo.stick1.GetValue()[0],
                     puropo.stick1.GetValue()[1], puropo.stick2.GetValue()[0],
                     puropo.stick2.GetValue()[1]);
-        logger.Info("  output: %f %f %f", actuators.move_motor_l.GetValue(),
-                    actuators.move_motor_r.GetValue(),
-                    actuators.arm_elevation_motor.GetValue());
+        logger.Info("  output: %f %f %f", actuators.move_motor.GetValue(),
+                    actuators.arm_elevation_motor.GetValue(),
+                    actuators.arm_expansion_motor.GetValue());
         logger.Info("  emc: %d", robot.emc_state.GetValue());
       }
       i += 1;
