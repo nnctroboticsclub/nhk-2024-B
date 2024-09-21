@@ -86,29 +86,40 @@ class Test {
   using PS4Con = nhk2024b::ps4_con::PS4Con;
   using Actuators = nhk2024b::robot3::Actuators;
 
-  DigitalIn emc{PA_15, PinMode::PullUp};
+  InterruptIn hard_emc_gpio{PA_15, PinMode::PullDown};
 
   Actuators actuators{(Actuators::Config){
       // M4
       .move_motor_l_fin = PB_10,
       .move_motor_l_rin = PB_2,
 
-      // M3
-      .move_motor_r_fin = PB_9,
-      .move_motor_r_rin = PB_8,
+      // M12
+      .move_motor_r_fin = PA_9,
+      .move_motor_r_rin = PA_8,
 
       // M2
       .arm_elevation_motor_fin = PA_11,
       .arm_elevation_motor_rin = PA_10,
 
-      // M1
-      .arm_extension_motor_fin = PA_9,
-      .arm_extension_motor_rin = PA_8,
+      // M13      .arm_extension_motor_fin = PB_9,
+
   }};
 
   PuropoController puropo{PC_6, PC_7};
 
   nhk2024b::robot3::Robot robot{};
+
+  bool ctrl_emc = false;
+  bool hard_emc = false;
+
+  void UpdateEMC() {
+    bool emc_out = ctrl_emc & hard_emc;
+
+    logger.Info("(emc_ctrl = %d) & (hard_emc = %d) -> (emc_out = %d)", ctrl_emc,
+                hard_emc, emc_out);
+
+    robot.emc_state.SetValue(emc_out);
+  }
 
  public:
   void Init() {
@@ -121,22 +132,27 @@ class Test {
     puropo.button4 >> robot.ctrl_button_arm_down;
 
     puropo.button5.SetChangeCallback([this](bool btn) {
-      robot.emc_state.SetValue(btn ? 0 : 1);
-      logger.Info("btn = emc_ctrl = %d", btn);
+      ctrl_emc = btn ? 0 : 1;  // pressed = 0 (stop actuators)
+      UpdateEMC();
     });
 
     robot.out_move_left >> actuators.move_motor_l;
     robot.out_move_right >> actuators.move_motor_r;
     robot.out_arm_elevation >> actuators.arm_elevation_motor;
-    robot.out_arm_extension >> actuators.arm_extension_motor;
-
     robot.LinkController();
 
     puropo.button5.SetValue(false);
 
-    // ps4.Init();
-
-    // emc.write(1);
+    hard_emc_gpio.fall([this]() {
+      this->hard_emc = 0;
+      this->UpdateEMC();
+    });
+    hard_emc_gpio.rise([this]() {
+      this->hard_emc = 1;
+      this->UpdateEMC();
+    });
+    this->hard_emc = hard_emc_gpio.read();
+    this->UpdateEMC();
 
     logger.Info("Init done");
   }
@@ -160,10 +176,9 @@ class Test {
         logger.Info("  Stick: %f, %f; %f, %f", puropo.stick1.GetValue()[0],
                     puropo.stick1.GetValue()[1], puropo.stick2.GetValue()[0],
                     puropo.stick2.GetValue()[1]);
-        logger.Info("  output: %f %f %f %f", actuators.move_motor_l.GetValue(),
+        logger.Info("  output: %f %f %f", actuators.move_motor_l.GetValue(),
                     actuators.move_motor_r.GetValue(),
-                    actuators.arm_elevation_motor.GetValue(),
-                    actuators.arm_extension_motor.GetValue());
+                    actuators.arm_elevation_motor.GetValue());
         logger.Info("  emc: %d", robot.emc_state.GetValue());
       }
       i += 1;
