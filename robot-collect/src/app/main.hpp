@@ -111,9 +111,6 @@ class Test {
   void UpdateEMC() {
     bool emc_out = ctrl_emc & hard_emc;
 
-    logger.Info("(emc_ctrl = %d) & (hard_emc = %d) -> (emc_out = %d)", ctrl_emc,
-                hard_emc, emc_out);
-
     robot.emc_state.SetValue(emc_out);
   }
 
@@ -178,7 +175,8 @@ class Test {
                     actuators.arm_elevation_motor.GetValue(),  //
                     actuators.arm_expansion_motor.GetValue()   //
         );
-        logger.Info("  emc: %d", robot.emc_state.GetValue());
+        logger.Info("  (emc_ctrl = %d) & (hard_emc = %d) -> (emc_out = %d)",
+                    ctrl_emc, hard_emc, ctrl_emc & hard_emc);
       }
       i += 1;
       ThisThread::sleep_for(1ms);
