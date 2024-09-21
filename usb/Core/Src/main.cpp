@@ -109,8 +109,6 @@ extern "C" int main(void) {
   vs_ps4::button_share >> robot1_ctrl->emc;
   vs_ps4::trigger_l >> robot1_ctrl->rotation_ccw;
   vs_ps4::trigger_r >> robot1_ctrl->rotation_cw;
-  robot1_ctrl->RegisterTo(vs, pipe1_remote);
-  keep_alive->AddTarget(pipe1_remote);
 
   auto pipe2_remote = nhk2024b::node_id::GetPipe2Remote(nn);
   auto robot2_ctrl = new nhk2024b::robot2::Controller();
@@ -134,9 +132,6 @@ extern "C" int main(void) {
     vs_ps4::state::trigger_r_value = 0;
   });
 
-  robot2_ctrl->RegisterTo(vs, pipe2_remote);
-  keep_alive->AddTarget(pipe2_remote);
-
   //* Visualize node_number, group_number, channel
   board_led::Off(board_led::kPin1);
   board_led::Off(board_led::kPin2);
@@ -155,12 +150,12 @@ extern "C" int main(void) {
 
   printf("Entering Main loop\n");
 
-  const float kKeepAliveInterval = 0.2;  // 200ms
-  const float kBlinkInterval = 0.25;     // 200ms
+  const float kSendInterval = 0.2;    // 200ms
+  const float kBlinkInterval = 0.25;  // 200ms
 
   auto start_time = HAL_GetTick() / 1000.0f;
-  float schedule_1 = start_time + kKeepAliveInterval;
-  float schedule_2 = start_time + kKeepAliveInterval;
+  float schedule_1 = start_time + kSendInterval;
+  float schedule_2 = start_time + kSendInterval;
   float schedule_blink = start_time + kBlinkInterval;
 
   while (1) {
@@ -193,19 +188,26 @@ extern "C" int main(void) {
     auto entry_1 = vs_ps4::state::entries_1->FindMostDirtyEntry();
     if (entry_1) {
       entry_1->Invalidate();
-      schedule_1 = current_time + kKeepAliveInterval;
-    } else if (schedule_1 < current_time) {
-      keep_alive->SendKeepAliveTo(pipe1_remote);
-      schedule_1 = current_time + kKeepAliveInterval;
     }
 
     auto entry_2 = vs_ps4::state::entries_2->FindMostDirtyEntry();
     if (entry_2) {
       entry_2->Invalidate();
-      schedule_2 = current_time + kKeepAliveInterval;
+    }
+
+    if (schedule_1 < current_time) {
+      auto df = robot1_ctrl->Pack();
+
+      schedule_1 = current_time + kSendInterval;
+    }
+
+    auto entry_2 = vs_ps4::state::entries_2->FindMostDirtyEntry();
+    if (entry_2) {
+      entry_2->Invalidate();
+      schedule_2 = current_time + kSendInterval;
     } else if (schedule_2 < current_time) {
       keep_alive->SendKeepAliveTo(pipe2_remote);
-      schedule_2 = current_time + kKeepAliveInterval;
+      schedule_2 = current_time + kSendInterval;
     }
   }
 }
