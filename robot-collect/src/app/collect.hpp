@@ -13,14 +13,14 @@ class Robot {
 
   Node<float> out_move;
   Node<float> out_arm_elevation;
-  Node<float> out_arm_expanden;
+  Node<float> out_arm_expansion;
 
   Node<bool> emc_state;
 
  private:
   Node<float> value_move;
   Node<float> value_arm_elevation;
-  Node<float> value_arm_expamsion;
+  Node<float> value_arm_expansion;
 
   Node<float> zero;
 
@@ -42,15 +42,21 @@ class Robot {
     move.AddInput(value_move);
     move.output_ >> out_move;
 
-    arm_elevation.AddInput(zero);
+    /* arm_elevation.AddInput(zero);
     arm_elevation.AddInput(value_arm_elevation);
-    arm_elevation.output_ >> out_arm_elevation;
+    arm_elevation.output_ >> out_arm_elevation; */
+    value_arm_elevation >> out_arm_elevation;
+
+    arm_expansion.AddInput(zero);
+    arm_expansion.AddInput(value_arm_expansion);
+    arm_expansion.output_ >> out_arm_expansion;
 
     emc_state.SetChangeCallback([this](bool emc) {
       auto i = emc ? 1 : 0;
       logger.Info("Select i = %d", i);
       move.Select(i);
       arm_elevation.Select(i);
+      arm_expansion.Select(i);
     });
 
     emc_state.SetValue(0);
@@ -66,9 +72,9 @@ class Robot {
     ctrl_button_arm_down.SetChangeCallback(
         [this](bool btn) { value_arm_elevation.SetValue(btn ? -1 : 0); });
     ctrl_button_arm_open.SetChangeCallback(
-        [this](bool btn) { value_arm_expamsion.SetValue(btn ? 1 : 0); });
+        [this](bool btn) { value_arm_expansion.SetValue(btn ? 1 : 0); });
     ctrl_button_arm_close.SetChangeCallback(
-        [this](bool btn) { value_arm_expamsion.SetValue(btn ? -1 : 0); });
+        [this](bool btn) { value_arm_expansion.SetValue(btn ? -1 : 0); });
   }
 };
 }  // namespace nhk2024b::robot3

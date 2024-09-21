@@ -89,16 +89,14 @@ class Test {
   InterruptIn hard_emc_gpio{PA_15, PinMode::PullDown};
 
   Actuators actuators{(Actuators::Config){
-      // M4
-      .move_motor_fin = PA_9,
-      .move_motor_rin = PA_8,
+      .move_motor_fin = PB_10,
+      .move_motor_rin = PB_2,
 
-      // M3
-      .arm_elevation_motor_fin = PB_9,
-      .arm_elevation_motor_rin = PB_8,
+      .arm_elevation_motor_fin = PA_9,
+      .arm_elevation_motor_rin = PA_8,
 
-      .arm_expansion_motor_fin = PB_10,
-      .arm_expansion_motor_rin = PB_2,
+      .arm_expansion_motor_fin = PA_11,
+      .arm_expansion_motor_rin = PA_10,
   }};
 
   PuropoController puropo{PC_6, PC_7};
@@ -130,6 +128,7 @@ class Test {
 
     robot.out_move >> actuators.move_motor;
     robot.out_arm_elevation >> actuators.arm_elevation_motor;
+    robot.out_arm_expansion >> actuators.arm_expansion_motor;
     robot.LinkController();
 
     puropo.button5.SetValue(false);
@@ -161,6 +160,8 @@ class Test {
     while (1) {
       if (i % 1000 == 0) logger.Info("Update");
       puropo.Tick();
+
+      float current = timer.read_ms() / 1000.f;
 
       if (i % 200 == 0) {
         logger.Info("Report");
