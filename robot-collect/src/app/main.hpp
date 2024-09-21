@@ -167,12 +167,17 @@ class Test {
 
       if (i % 200 == 0) {
         logger.Info("Report");
-        logger.Info("  Stick: %f, %f; %f, %f", puropo.stick1.GetValue()[0],
-                    puropo.stick1.GetValue()[1], puropo.stick2.GetValue()[0],
-                    puropo.stick2.GetValue()[1]);
-        logger.Info("  output: %f %f %f", actuators.move_motor.GetValue(),
-                    actuators.arm_elevation_motor.GetValue(),
-                    actuators.arm_expansion_motor.GetValue());
+        logger.Info("  Stick: %f, %f; %f, %f",    //
+                    puropo.stick1.GetValue()[0],  //
+                    puropo.stick1.GetValue()[1],  //
+                    puropo.stick2.GetValue()[0],  //
+                    puropo.stick2.GetValue()[1]   //
+        );
+        logger.Info("  output: %f %f %f",                      //
+                    actuators.move_motor.GetValue(),           //
+                    actuators.arm_elevation_motor.GetValue(),  //
+                    actuators.arm_expansion_motor.GetValue()   //
+        );
         logger.Info("  emc: %d", robot.emc_state.GetValue());
       }
       i += 1;

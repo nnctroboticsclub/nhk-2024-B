@@ -39,10 +39,12 @@ class Robot {
     zero.SetValue(0);
 
     move.AddInput(zero);
-    arm_elevation.AddInput(zero);
-
     move.AddInput(value_move);
+    move.output_ >> out_move;
+
+    arm_elevation.AddInput(zero);
     arm_elevation.AddInput(value_arm_elevation);
+    arm_elevation.output_ >> out_arm_elevation;
 
     emc_state.SetChangeCallback([this](bool emc) {
       auto i = emc ? 1 : 0;
@@ -50,9 +52,6 @@ class Robot {
       move.Select(i);
       arm_elevation.Select(i);
     });
-
-    move.output_ >> out_move;
-    arm_elevation.output_ >> out_arm_elevation;
 
     emc_state.SetValue(0);
   }
