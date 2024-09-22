@@ -57,6 +57,17 @@ value store ID 割当
 
 ## Robo3
 
+### pinmap 旧
+
+| M | Fin  | Rin  |
+|:-:|:----:|:----:|
+| 1 | pa9  | pa8  |
+| 2 | pa11 | pa10 |
+| 3 | pb9  | pb8  |
+| 4 | pb10 | pb2  |
+
+### pinmap 新
+
 ```cpp
 DigitalOut emc{PB_9};
 

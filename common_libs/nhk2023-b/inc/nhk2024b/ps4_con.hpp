@@ -5,7 +5,7 @@
 #include <robotics/node/node.hpp>
 
 namespace nhk2024b::ps4_con {
-enum DPad {
+enum DPad : uint8_t {
   kUp = 0x01,
   kDown = 0x02,
   kLeft = 0x04,

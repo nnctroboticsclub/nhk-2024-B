@@ -35,8 +35,7 @@
 #include <robotics/types/joystick_2d.hpp>
 
 #include <nhk2024b/ps4_vs.hpp>
-#include <nhk2024b/robot1/controller.hpp>
-#include <nhk2024b/robot2/controller.hpp>
+#include <nhk2024b/controller_network.hpp>
 #include <nhk2024b/node_id.hpp>
 #include <logger.h>
 #include <im920.h>
@@ -97,29 +96,34 @@ extern "C" int main(void) {
   auto gn = im920->GetGroupNumber();
   auto ch = im920->GetChannel();
 
+  auto cnet = new nhk2024b::ControllerNetwork();
+  cnet->IM920_UseAs(*im920);
+
   SerialServiceProtocol<uint16_t, bool> ssp(*im920);
   auto vs = ssp.RegisterService<ValueStoreService<uint16_t, bool>>();
   auto keep_alive = ssp.RegisterService<
       robotics::network::ssp::KeepAliveService<uint16_t, bool>>();
 
   auto pipe1_remote = nhk2024b::node_id::GetPipe1Remote(nn);
-  auto robot1_ctrl = new nhk2024b::robot1::Controller();
-  vs_ps4::stick_left >> robot1_ctrl->move;
-  vs_ps4::dpad >> robot1_ctrl->buttons;
-  vs_ps4::button_share >> robot1_ctrl->emc;
-  vs_ps4::trigger_l >> robot1_ctrl->rotation_ccw;
-  vs_ps4::trigger_r >> robot1_ctrl->rotation_cw;
+  auto robot1_svc = cnet->ssp->RegisterService<nhk2024b::robot1::ControllerService<uint16_t, bool>>();
+  auto &robot1_ctrl =robot1_svc->GetController();
+  vs_ps4::stick_left >> robot1_ctrl.move;
+  vs_ps4::dpad >> robot1_ctrl.buttons;
+  vs_ps4::button_share >> robot1_ctrl.emc;
+  vs_ps4::trigger_l >> robot1_ctrl.rotation_ccw;
+  vs_ps4::trigger_r >> robot1_ctrl.rotation_cw;
 
   auto pipe2_remote = nhk2024b::node_id::GetPipe2Remote(nn);
-  auto robot2_ctrl = new nhk2024b::robot2::Controller();
-  vs_ps4::stick_right >> robot2_ctrl->move;
-  vs_ps4::button_options >> robot2_ctrl->emc;
-  vs_ps4::button_cross >> robot2_ctrl->button_deploy;
-  vs_ps4::button_square >> robot2_ctrl->button_bridge_toggle;
-  vs_ps4::button_circle >> robot2_ctrl->button_unassigned0;
-  vs_ps4::button_triangle >> robot2_ctrl->button_unassigned1;
-  vs_ps4::button_l1 >> robot2_ctrl->test_decrease;
-  vs_ps4::button_r1 >> robot2_ctrl->test_increase;
+  auto robot2_svc = cnet->GetRobot2Service();
+  auto &robot2_ctrl =robot2_svc->GetController();
+  vs_ps4::stick_right >> robot2_ctrl.move;
+  vs_ps4::button_options >> robot2_ctrl.emc;
+  vs_ps4::button_cross >> robot2_ctrl.button_deploy;
+  vs_ps4::button_square >> robot2_ctrl.button_bridge_toggle;
+  vs_ps4::button_circle >> robot2_ctrl.button_unassigned0;
+  vs_ps4::button_triangle >> robot2_ctrl.button_unassigned1;
+  vs_ps4::button_l1 >> robot2_ctrl.test_decrease;
+  vs_ps4::button_r1 >> robot2_ctrl.test_increase;
 
   vs_ps4::button_ps.SetChangeCallback([](bool btn) {
     is_controller_stopped ^= btn;
@@ -184,7 +188,6 @@ extern "C" int main(void) {
       entry_other->Invalidate();
     }
 
-    //* Connection scheduler
     auto entry_1 = vs_ps4::state::entries_1->FindMostDirtyEntry();
     if (entry_1) {
       entry_1->Invalidate();
@@ -195,19 +198,17 @@ extern "C" int main(void) {
       entry_2->Invalidate();
     }
 
+    //* Network tasks
     if (schedule_1 < current_time) {
-      auto df = robot1_ctrl->Pack();
-
       schedule_1 = current_time + kSendInterval;
+
+      robot1_svc->SendTo(pipe1_remote);
     }
 
-    auto entry_2 = vs_ps4::state::entries_2->FindMostDirtyEntry();
-    if (entry_2) {
-      entry_2->Invalidate();
+    if (schedule_2 < current_time) {
       schedule_2 = current_time + kSendInterval;
-    } else if (schedule_2 < current_time) {
-      keep_alive->SendKeepAliveTo(pipe2_remote);
-      schedule_2 = current_time + kSendInterval;
+
+      robot2_svc->SendTo(pipe2_remote);
     }
   }
 }

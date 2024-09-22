@@ -18,7 +18,7 @@ struct ControllerDataFrame {
   int button_unassigned1 : 1;
   int test_increase : 1;
   int test_decrease : 1;
-} __attrinutes__((__packed__));
+} __attribute__ ((__packed__));
 class Controller {
  public:
   Node<JoyStick2D> move;
@@ -31,7 +31,7 @@ class Controller {
   Node<bool> test_decrease;
 
   std::array<uint8_t, 3> Pack() {
-    union{
+    union {
       ControllerDataFrame df;
       uint8_t bytes[3];
     } df;
@@ -46,9 +46,9 @@ class Controller {
     df.df.test_decrease = test_decrease.GetValue();
 
     return std::array<uint8_t, 3>{
-      df.bytes[0],
-      df.bytes[1],
-      df.bytes[2],
+        df.bytes[0],
+        df.bytes[1],
+        df.bytes[2],
     };
   }
 
@@ -57,24 +57,23 @@ class Controller {
       ControllerDataFrame df;
       uint8_t bytes[3];
     } df = {
-      raw_data[0],
-      raw_data[1],
-      raw_data[2],
+        raw_data[0],
+        raw_data[1],
+        raw_data[2],
     };
 
-    auto stick_x = df.df.move_x[0] / 255.0f - 0.5f;
-    auto stick_y = df.df.move_y[1] / 255.0f - 0.5f;
+    auto stick_x = (df.df.move_x / 255.0f - 0.5f) * 2;
+    auto stick_y = (df.df.move_y / 255.0f - 0.5f) * 2;
     auto stick = robotics::types::JoyStick2D(stick_x, stick_y);
     move.SetValue(stick);
 
-    emc.SetValue(df.df.emc) ;
-    button_deploy.SetValue(df.df.button_deploy) ;
-    button_bridge_toggle.SetValue(df.df.button_bridge_toggle) ;
-    button_unassigned0.SetValue(df.df.button_unassigned0) ;
-    button_unassigned1.SetValue(df.df.button_unassigned1) ;
-    test_increase.SetValue(df.df.test_increase) ;
-    test_decrease.SetValue(df.df.test_decrease) ;
-
+    emc.SetValue(df.df.emc);
+    button_deploy.SetValue(df.df.button_deploy);
+    button_bridge_toggle.SetValue(df.df.button_bridge_toggle);
+    button_unassigned0.SetValue(df.df.button_unassigned0);
+    button_unassigned1.SetValue(df.df.button_unassigned1);
+    test_increase.SetValue(df.df.test_increase);
+    test_decrease.SetValue(df.df.test_decrease);
   }
 };
 }  // namespace nhk2024b::robot2

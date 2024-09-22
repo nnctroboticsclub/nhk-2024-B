@@ -28,19 +28,19 @@ class Controller {
   }
 
   void Unpack(std::array<uint8_t, 5> const data) {
-    auto stick_x = data[0] / 255.0f - 0.5f;
-    auto stick_y = data[1] / 255.0f - 0.5f;
+    auto stick_x = (data[0] / 255.0f - 0.5f) * 2;
+    auto stick_y = (data[1] / 255.0f - 0.5f) * 2;
     auto stick = robotics::types::JoyStick2D(stick_x, stick_y);
     move.SetValue(stick);
 
-    auto rotation_cw = data[2] / 255.0f - 0.5f;
-  rotation_cw.SetValue(rotation_cw);
+    auto rotation_cw_value = data[2] / 255.0f - 0.5f;
+    rotation_cw.SetValue(rotation_cw_value);
 
-    auto rotation_ccw = data[3] / 255.0f - 0.5f;
-    rotation_ccw.SetValue(rotation_ccw);
+    auto rotation_ccw_value = data[3] / 255.0f - 0.5f;
+    rotation_ccw.SetValue(rotation_ccw_value);
 
     auto button_dpad = data[5] >> 1;
-    buttons.SetValue(reinterrupt_cast<ps4_con::DPad>(button_dpad));
+    buttons.SetValue(static_cast<ps4_con::DPad>(button_dpad));
 
     auto button_emc = data[5] & 1;
     emc.SetValue(button_emc);

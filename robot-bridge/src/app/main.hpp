@@ -77,7 +77,7 @@ class App {
           UpdateEMC();
         });
 
-    ctrl = ctrl_net.ConnectToPipe2();
+    ctrl = &ctrl_net.GetRobot2Service()->GetController();
 
     logger.Info("Init - Actuator");
 

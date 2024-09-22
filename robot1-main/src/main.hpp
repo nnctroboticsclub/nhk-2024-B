@@ -110,7 +110,7 @@ class App {
     logger.Info("Init");
 
     ctrl_net.Init(0x0011);
-    ctrl = ctrl_net.ConnectToPipe1();
+    ctrl = &ctrl_net.GetRobot1Service()->GetController();
 
     ctrl_net.keep_alive->connection_available.SetChangeCallback([this](bool v) {
       emc_conn = v;
