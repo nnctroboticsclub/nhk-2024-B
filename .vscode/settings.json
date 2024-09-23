@@ -18,4 +18,5 @@
     "usb": true,
   },
   "editor.inlayHints.enabled": "on",
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/robot1-main/compile_commands.json",
 }

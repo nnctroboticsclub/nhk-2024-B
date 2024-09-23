@@ -18,12 +18,17 @@
     ".mbed": true,
     "mbed_settings.py": true,
     "BUILD": true,
-    "bno055": true,
+    /* "bno055": true,
     "ikakoMDC": true,
     "IkakoRobomas": true,
     "ikarashiCAN_mk2": true,
     "MotorController": true,
     "ikako_c620": true,
     "can_servo": true,
+    "Futaba_Puropo": true,
+    "nhk2023-b": true,
+    "PS4_RX": true,
+    "ikako_rohm_md": true,
+    "mbed-os": true, */
   }
 }

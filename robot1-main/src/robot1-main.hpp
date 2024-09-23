@@ -1,6 +1,6 @@
 #pragma once
 
-// #include <nhk2024b/types.hpp>
+#include <nhk2024b/types.hpp>
 #include <math.h>
 
 #include <robotics/filter/angled_motor.hpp>

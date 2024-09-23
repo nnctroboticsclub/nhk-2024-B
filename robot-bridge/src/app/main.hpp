@@ -7,14 +7,12 @@
 // #include <mbed-robotics/simple_can.hpp>
 #include <mbed-robotics/simple_can.hpp>
 #include <mbed-robotics/uart_stream.hpp>
-#include <nhk2024b/fep_ps4_con.hpp>
 #include <robotics/logger/logger.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
 #include <robotics/platform/dout.hpp>
 
 #include <nhk2024b/fep.hpp>
 #include <nhk2024b/controller_network.hpp>
-#include <nhk2024b/led_tape.hpp>
 #include <ikako_m2006.h>
 
 #include "app.hpp"
@@ -56,12 +54,6 @@ class App {
   void UpdateEMC() {
     bool emc_state = emc_ctrl & emc_conn;
     emc.write(emc_state);
-
-    if (emc_state) {
-      nhk2024b::led_tape::ColorOrange();
-    } else {
-      nhk2024b::led_tape::ColorLightBlue();
-    }
   }
 
  public:
@@ -123,9 +115,6 @@ class App {
     emc.write(1);
     actuators->Init();
 
-    nhk2024b::led_tape::Init();
-    nhk2024b::led_tape::ColorLightBlue();
-
     logger.Info("Init - Done");
   }
 
@@ -145,7 +134,6 @@ class App {
 
       ctrl_net.keep_alive->Update(delta_s);
 
-      nhk2024b::led_tape::Write();
       actuators->Tick();
 
       actuators->Read();

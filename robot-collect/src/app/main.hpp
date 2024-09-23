@@ -8,7 +8,6 @@
 #include <puropo.h>
 
 #include <mbed-robotics/uart_stream.hpp>
-#include <nhk2024b/fep_ps4_con.hpp>
 #include <robotics/logger/logger.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
 #include <robotics/platform/dout.hpp>
@@ -17,33 +16,6 @@
 #include "collect.hpp"
 
 robotics::logger::Logger logger{"   app   ", "app"};
-
-void InitFEP() {
-  robotics::network::UARTStream uart{PC_6, PC_7, 115200};
-  robotics::driver::Dout rst{PC_9};
-  robotics::driver::Dout ini{PC_8};
-  robotics::network::fep::FEPDriver fep_drv{uart, rst, ini};
-
-  robotics::logger::SuppressLogger("rxp.fep.nw");
-  robotics::logger::SuppressLogger("st.fep.nw");
-  robotics::logger::SuppressLogger("sr.fep.nw");
-
-  fep_drv.AddConfiguredRegister(0, 21);
-  fep_drv.AddConfiguredRegister(1, 0xF0);
-  fep_drv.AddConfiguredRegister(7, 0x22);
-  fep_drv.AddConfiguredRegister(8, 0x2E);
-  fep_drv.AddConfiguredRegister(9, 0x3A);
-  fep_drv.ConfigureBaudrate(robotics::network::fep::FEPBaudrate(
-      robotics::network::fep::FEPBaudrateValue::k115200));
-
-  {
-    auto result = fep_drv.Init();
-    if (!result.IsOk()) {
-      logger.Error("Failed to init FEP Driver: %s",
-                   result.UnwrapError().c_str());
-    }
-  }
-}
 
 template <typename T>
 using Node = robotics::node::Node<T>;
@@ -83,7 +55,6 @@ class PuropoController {
 };
 
 class Test {
-  using PS4Con = nhk2024b::ps4_con::PS4Con;
   using Actuators = nhk2024b::robot3::Actuators;
 
   InterruptIn hard_emc_gpio{PA_15, PinMode::PullDown};
@@ -199,49 +170,6 @@ int main_0() {
   }
 
   return 0;
-}
-
-int main_1() { return 0; }
-
-int main_2() { return 0; }
-
-int main_3() { return 0; }
-
-int main_pro() {
-  /* App::Config config{        //
-                     .com =  //
-                     {
-                         .can =
-                             {
-                                 .id = CAN_ID,
-                                 .freqency = (int)1E6,
-                                 .rx = PB_8,
-                                 .tx = PB_9,
-                             },
-                         .driving_can =
-                             {
-                                 .rx = PB_5, // PB_5,
-                                 .tx = PB_6, // PB_6,
-                             },
-                         .i2c =
-                             {
-                                 .sda = PC_9,
-                                 .scl = PA_8,
-                             },
-
-                         .value_store_config = {},
-                     },
-                     .can1_debug = false};
-
-
-App app(config);
-  app.Init();
-
-  while (1) {
-    ThisThread::sleep_for(100s);
-  }
-
-  return 0; */
 }
 
 void main_puropo_test() {  // プロポ実験

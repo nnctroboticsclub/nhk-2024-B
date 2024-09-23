@@ -8,53 +8,14 @@
 #include <mbed-robotics/ikako_mdc.hpp>
 #include <mbed-robotics/simple_can.hpp>
 #include <mbed-robotics/uart_stream.hpp>
-#include <nhk2024b/fep_ps4_con.hpp>
 #include <robotics/logger/logger.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
 #include <robotics/platform/dout.hpp>
 #include <nhk2024b/fep.hpp>
 #include "robot1-main.hpp"
-#include <nhk2024b/test_ps4_fep.hpp>
 #include <nhk2024b/controller_network.hpp>
-#include <nhk2024b/led_tape.hpp>
 
 robotics::logger::Logger logger{"robot1.app", "Robot1App"};
-
-class PseudoController {
-  robotics::system::Thread thread;
-
- public:
-  robotics::Node<robotics::types::JoyStick2D> stick_right;
-  robotics::Node<bool> button_square;
-  robotics::Node<bool> button_cross;
-  robotics::Node<bool> button_circle;
-  // robotics::Node<bool> button_triangle;
-
-  PseudoController() {
-    thread.SetThreadName("PseudoController");
-    thread.Start([this]() {
-      button_square.SetValue(false);
-      while (1) {
-        stick_right.SetValue({0, 0});
-        button_cross.SetValue(false);
-        button_circle.SetValue(false);
-        // button_triangle.SetValue(false);
-
-        ThisThread::sleep_for(100ms);
-
-        stick_right.SetValue({0, 1});
-
-        button_cross.SetValue(true);
-        button_circle.SetValue(true);
-        // button_triangle.SetValue(true);
-
-        ThisThread::sleep_for(100ms);
-      }
-    });
-  }
-
-  void Update() {}
-};
 
 class App {
   DigitalOut emc{PC_0};
@@ -82,12 +43,6 @@ class App {
   void UpdateEMC() {
     bool emc_state = emc_ctrl & emc_conn;
     emc.write(emc_state);
-
-    if (emc_state) {
-      nhk2024b::led_tape::ColorOrange();
-    } else {
-      nhk2024b::led_tape::ColorLightBlue();
-    }
   }
 
  public:
@@ -156,9 +111,6 @@ class App {
     emc.write(1);
     ican.read_start();
 
-    nhk2024b::led_tape::Init();
-    nhk2024b::led_tape::ColorLightBlue();
-
     logger.Info("Init - Done");
   }
 
@@ -176,7 +128,6 @@ class App {
 
       robot.Update(delta_s);
       ctrl_net.keep_alive->Update(delta_s);
-      nhk2024b::led_tape::Write();
 
       ican.reset();
 
@@ -222,12 +173,6 @@ int main0_alt0() {
 }
 
 int main_switch() {
-  robotics::logger::SuppressLogger("rxp.fep.nw");
-  robotics::logger::SuppressLogger("st.fep.nw");
-  robotics::logger::SuppressLogger("sr.fep.nw");
-
-  // nhk2024b::InitFEP();
-
   // nhk2024b::test::test_ps4_fep();
   return main0_alt0();
 }
