@@ -23,7 +23,7 @@ class Robot {
 
   void LinkController() {
     ctrl_deploy.SetChangeCallback(
-        [this](bool btn) { out_deploy.SetValue(btn ? 0.3 : 0); });
+        [this](bool btn) { out_deploy.SetValue(btn ? 1 : 0); });
     ctrl_unlock.SetChangeCallback(
         [this](bool btn) { out_unlock_duty.SetValue(1); });
     ctrl_move.SetChangeCallback([this](robotics::types::JoyStick2D stick) {

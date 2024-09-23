@@ -84,6 +84,9 @@ class App {
     robot.out_move_l >> actuators->move_l.in_velocity;
     robot.out_move_r >> actuators->move_r.in_velocity;
     robot.out_deploy >> actuators->deploy.in_velocity;
+    actuators->move_l.in_velocity.SetValue(0);
+    actuators->move_r.in_velocity.SetValue(0);
+    actuators->deploy.in_velocity.SetValue(0);
 
     robot.out_bridge_unlock_duty.SetChangeCallback([this](float duty) {
       actuators->servo_0.SetValue(102 + 85 * duty);
@@ -111,8 +114,6 @@ class App {
     ctrl->button_deploy >> robot.ctrl_deploy;
     ctrl->button_bridge_toggle >> robot.ctrl_bridge_toggle;
     ctrl->button_unassigned0 >> robot.ctrl_unlock;
-    /* ctrl->test_increase >> robot.ctrl_test_increment;
-    ctrl->test_decrease >> robot.ctrl_test_decrement; */
     ctrl->emc.SetChangeCallback([this](bool btn) {
       emc_ctrl ^= btn;
       emc.write(emc_ctrl & emc_conn);
@@ -121,6 +122,9 @@ class App {
 
     emc.write(1);
     actuators->Init();
+
+    nhk2024b::led_tape::Init();
+    nhk2024b::led_tape::ColorLightBlue();
 
     logger.Info("Init - Done");
   }
@@ -141,6 +145,7 @@ class App {
 
       ctrl_net.keep_alive->Update(delta_s);
 
+      nhk2024b::led_tape::Write();
       actuators->Tick();
 
       actuators->Read();
@@ -161,8 +166,9 @@ class App {
                     actuators->servo_2.GetValue(),
                     actuators->servo_3.GetValue()  //
         );
-        logger.Info("    m %f %f", actuators->move_l.in_velocity.GetValue(),
-                    actuators->move_r.in_velocity.GetValue());
+        logger.Info("    m %f %f %f", actuators->move_l.in_velocity.GetValue(),
+                    actuators->move_r.in_velocity.GetValue(),
+                    actuators->deploy.in_velocity.GetValue());
 
         // logger.Info("Network");
         /* {

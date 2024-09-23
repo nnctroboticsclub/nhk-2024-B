@@ -44,7 +44,7 @@ class Actuators {
         servo_3(*can_servo.NewNode(3)),
         move_l(can1, 2),
         move_r(can1, 3),
-        deploy(can1, 4) {}
+        deploy(can1, 5) {}
 
   void Init() {
     can1.read_start();
@@ -66,9 +66,9 @@ class Actuators {
       case 0:
         errors = move_l.Send() ? errors | 2 : errors & ~2;
         errors = move_r.Send() ? errors | 4 : errors & ~4;
-        errors = deploy.Send() ? errors | 8 : errors & ~8;
         break;
       case 1:
+        errors = deploy.Send() ? errors | 8 : errors & ~8;
         errors = can_servo.Send() ? errors | 1 : errors & ~1;
         break;
 
