@@ -42,10 +42,10 @@ class Robot {
     move.AddInput(value_move);
     move.output_ >> out_move;
 
-    /* arm_elevation.AddInput(zero);
+    arm_elevation.AddInput(zero);
     arm_elevation.AddInput(value_arm_elevation);
-    arm_elevation.output_ >> out_arm_elevation; */
-    value_arm_elevation >> out_arm_elevation;
+    arm_elevation.output_ >> out_arm_elevation;
+    // value_arm_elevation >> out_arm_elevation;
 
     arm_expansion.AddInput(zero);
     arm_expansion.AddInput(value_arm_expansion);
