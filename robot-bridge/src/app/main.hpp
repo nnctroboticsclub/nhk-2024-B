@@ -4,13 +4,11 @@
 // #include "identify.h"
 // #include "app.hpp"
 
-// #include <mbed-robotics/simple_can.hpp>
-#include <mbed-robotics/simple_can.hpp>
-#include <mbed-robotics/uart_stream.hpp>
-#include <robotics/logger/logger.hpp>
+#include <robotics/network/simple_can.hpp>
+#include <robotics/network/uart_stream.hpp>
+#include <logger/logger.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
-#include <robotics/platform/dout.hpp>
-
+#include <robotics/driver/dout.hpp>
 #include <nhk2024b/fep.hpp>
 #include <nhk2024b/controller_network.hpp>
 #include <ikako_m2006.h>

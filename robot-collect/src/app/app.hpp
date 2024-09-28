@@ -1,8 +1,8 @@
 #pragma once
 
-#include <robotics/node/BD621x.hpp>
-#include <robotics/platform/dout.mbed.hpp>
-#include <robotics/platform/pwm.mbed.hpp>
+#include <bd621x/BD621x.hpp>
+#include <robotics/driver/dout.mbed.hpp>
+#include <robotics/driver/pwm.mbed.hpp>
 
 namespace nhk2024b::robot3 {
 class Actuators {

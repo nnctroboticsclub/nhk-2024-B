@@ -27,12 +27,21 @@ target_include_directories(NHK2024BRuntime PUBLIC
   ./inc
 )
 
-target_link_libraries(NHK2024BRuntime PUBLIC syoch-robotics)
+target_link_libraries(NHK2024BRuntime PUBLIC
+  syoch-robotics-logger
+  syoch-robotics-common
+  ssp
+)
 
-add_library(NHK2024B STATIC)
-target_sources(NHK2024B PRIVATE)
+add_library(NHK2024B STATIC
+
+)
 target_link_libraries(NHK2024B PUBLIC
-  srobo_base_hxx im920_rs_hxx NHK2024BRsLib NHK2024BRuntime
-  mbed-os PS4_RX syoch-robotics
+  static-mbed-os
+  srobo_base_hxx
+  im920_rs_hxx
+  NHK2024BRsLib
+  NHK2024BRuntime
+  PS4_RX
 )
 

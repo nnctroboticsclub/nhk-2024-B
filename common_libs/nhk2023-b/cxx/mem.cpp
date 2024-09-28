@@ -4,8 +4,7 @@
 #include <stdexcept>
 #include <unordered_set>
 
-#include <robotics/logger/logger.hpp>
-#include <robotics/platform/thread.hpp>
+#include <logger/logger.hpp>
 
 static robotics::logger::Logger logger{"system.ffi", "FFISystem"};
 
@@ -25,8 +24,6 @@ void __ffi_free(void* ptr) {
     logger.Error("Double free detected on %p\n", ptr);
 
     while (1) {
-      using namespace std::chrono_literals;
-      robotics::system::SleepFor(1s);
     }
   }
   allocated_pointer.erase((uint32_t)ptr);

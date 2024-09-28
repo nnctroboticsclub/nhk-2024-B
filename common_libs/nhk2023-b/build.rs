@@ -16,12 +16,12 @@ fn main() {
     println!("cargo:rerun-if-changed=./inc/nhk2024b/ffi_mem.hpp");
 
     bindgen::Builder::default()
-        .header("../syoch-robotics/robotics/logger/logger.hpp")
+        .header("../../syoch-robotics/libs/logger/include/logger/logger.hpp")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks {}))
         .use_core()
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file(out_path.join("ffi_logger.rs"))
         .expect("Couldn't write bindings!");
-    println!("cargo:rerun-if-changed=../syoch-robotics/robotics/logger/logger.hpp");
+    println!("cargo:rerun-if-changed=../../syoch-robotics/libs/logger/include/logger/logger.hpp");
 }

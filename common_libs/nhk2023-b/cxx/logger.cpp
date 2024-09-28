@@ -1,6 +1,6 @@
 #pragma once
 
-#include <robotics/logger/logger.hpp>
+#include <logger/logger.hpp>
 
 #include <nhk2024b/types.hpp>
 

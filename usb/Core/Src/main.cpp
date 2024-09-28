@@ -27,9 +27,9 @@
 #include <srobo2/com/im920_srobo1.hpp>
 #include <srobo2/timer/hal_timer.hpp>
 
-#include <robotics/network/ssp/ssp.hpp>
-#include <robotics/network/ssp/value_store.hpp>
-#include <robotics/network/ssp/keep_alive.hpp>
+#include <ssp/ssp.hpp>
+#include <ssp/value_store.hpp>
+#include <ssp/keep_alive.hpp>
 
 #include <nhk2024b/ps4_con.hpp>
 #include <robotics/types/joystick_2d.hpp>

@@ -4,18 +4,13 @@ BUILD?=BUILD/${TARGET}
 .PHONY: all
 all: build
 
-$(BUILD)/build.ninja: CMakeLists.txt src/CMakeLists.txt
+$(BUILD)/build.ninja: CMakeLists.txt
 	[ -d $(BUILD) ] || mkdir -p $(BUILD)
 	cd $(BUILD); cmake \
 		-DCMAKE_BUILD_TYPE=Develop \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
 		-DMBED_TARGET=$(TARGET) \
-		--graphviz=test.dot \
 		-B . -S ../../ -G Ninja
-
-.PHONY: write
-write: build
-	sudo -E st-flash --connect-under-reset --format ihex write $(BUILD)/src/app.hex
 
 .PHONY: clean
 clean:
@@ -27,4 +22,3 @@ rebuild: clean build
 .PHONY: build
 build: $(BUILD)/build.ninja
 	cd $(BUILD); ninja -j 12
-	dot -T png -o dep.png BUILD/NUCLEO_F446RE/test.dot

@@ -7,10 +7,10 @@
 // #include <mbed-robotics/simple_can.hpp>
 #include <puropo.h>
 
-#include <mbed-robotics/uart_stream.hpp>
-#include <robotics/logger/logger.hpp>
+#include <robotics/network/uart_stream.hpp>
+#include <logger/logger.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
-#include <robotics/platform/dout.hpp>
+#include <robotics/driver/dout.hpp>
 
 #include "app.hpp"
 #include "collect.hpp"
@@ -196,7 +196,7 @@ int main_switch() {
   printf("main() started\n");
   printf("Build: " __DATE__ " - " __TIME__ "\n");
 
-  robotics::logger::Init();
+  robotics::logger::core::Init();
 
   main_0();
   return 0;

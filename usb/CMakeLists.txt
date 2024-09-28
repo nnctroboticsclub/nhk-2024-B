@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.5)
 message(STATUS "CMAKE_C_COMPILE_OBJECT: ${CMAKE_C_COMPILE_OBJECT}")
 message(STATUS "CMAKE_CXX_COMPILE_OBJECT: ${CMAKE_CXX_COMPILE_OBJECT}")
 
+
+
 # --------------------------
 # Toolchain setup
 # --------------------------
@@ -35,12 +37,9 @@ enable_language(C CXX ASM)
 # Subdirectories
 # --------------------------
 
-
-set(syoch-robotics-disable-features ON)
-set(syoch-robotics-disable-thread ON)
-add_subdirectory(syoch-robotics)
-
-add_subdirectory(nhk2023-b)
+set(SYOCH_ROBOTICS_TARGET "STM32 HAL" CACHE STRING "Implementation")
+set(NON_THREAD ON CACHE BOOL "Non-thread")
+add_subdirectory(../common_libs common_lib)
 
 # --------------------------
 # App
@@ -77,12 +76,14 @@ target_compile_definitions(app PRIVATE
   -DUSE_HAL_DRIVER
   -DSTM32F446xx
 )
-target_link_libraries(app PRIVATE
+target_link_libraries(app PUBLIC
   srobo_base_hxx
   im920_rs_hxx
   NHK2024BRsLib
   NHK2024BRuntime
-  syoch-robotics
+  syoch-robotics-logger
+  syoch-robotics-common
+  ssp
 )
 
 add_custom_target(app.hex DEPENDS app COMMAND ${CMAKE_OBJCOPY} -O ihex app app.hex)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <robotics/logger/logger.hpp>
+#include <logger/logger.hpp>
 #include <robotics/node/node.hpp>
 #include "ps4_con.hpp"
 #include "types.hpp"
@@ -138,7 +138,7 @@ void Init() {
 
   entries_1 = new Entries();
   entries_2 = new Entries();
-  entries_other= new Entries();
+  entries_other = new Entries();
 
   entries_1->Add(
       new Entry<robotics::types::JoyStick2D>(stick_left_value, stick_left));

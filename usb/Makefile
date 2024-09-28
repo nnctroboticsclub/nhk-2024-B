@@ -2,7 +2,7 @@
 default: build/app.hex
 
 build/build.ninja:
-	cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+	cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON --graphviz=graph.dot
 
 .PHONY: build/app.hex
 build/app.hex: build/build.ninja

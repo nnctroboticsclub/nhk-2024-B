@@ -4,7 +4,7 @@
 #include <robotics/types/joystick_2d.hpp>
 #include <robotics/filter/angled_motor.hpp>
 #include <robotics/filter/muxer.hpp>
-#include <robotics/logger/logger.hpp>
+#include <logger/logger.hpp>
 
 namespace nhk2024b {
 template <typename T>

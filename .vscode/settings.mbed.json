@@ -17,7 +17,7 @@
     "**/Thumbs.db": true,
     ".mbed": true,
     "mbed_settings.py": true,
-    "BUILD": true,
+    // "BUILD": true,
     /* "bno055": true,
     "ikakoMDC": true,
     "IkakoRobomas": true,

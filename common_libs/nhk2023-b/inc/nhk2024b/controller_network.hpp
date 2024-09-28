@@ -1,8 +1,8 @@
 #pragma once
 
-#include <robotics/network/ssp/ssp.hpp>
-#include <robotics/network/ssp/value_store.hpp>
-#include <robotics/network/ssp/keep_alive.hpp>
+#include <ssp/ssp.hpp>
+#include <ssp/value_store.hpp>
+#include <ssp/keep_alive.hpp>
 
 #include <nhk2024b/robot1/controller.hpp>
 #include <nhk2024b/robot2/controller.hpp>

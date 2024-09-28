@@ -1,9 +1,9 @@
 #pragma once
 
-#include <robotics/logger/logger.hpp>
+#include <logger/logger.hpp>
 #include <robotics/node/node.hpp>
-#include <robotics/network/ssp/ssp.hpp>
-#include <robotics/network/ssp/value_store.hpp>
+#include <ssp/ssp.hpp>
+#include <ssp/value_store.hpp>
 #include "../ps4_con.hpp"
 #include "../types.hpp"
 

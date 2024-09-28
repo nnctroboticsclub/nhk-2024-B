@@ -1,12 +1,12 @@
 #pragma once
 
-#include <mbed-robotics/uart_stream.hpp>
+#include <robotics/network/uart_stream.hpp>
 
-#include <robotics/platform/dout.hpp>
+#include <robotics/driver/dout.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
 
 namespace nhk2024b {
-  robotics::logger::Logger fep_logger("fep.nhk2024b", "FEP   LOG");
+robotics::logger::Logger fep_logger("fep.nhk2024b", "FEP   LOG");
 
 void InitFEP(bool reset_fep = false, int self_address = 7) {
   robotics::network::UARTStream uart{PC_6, PC_7, 115200};
@@ -42,8 +42,8 @@ void InitFEP(bool reset_fep = false, int self_address = 7) {
     auto result = fep_drv.Init();
     if (!result.IsOk()) {
       fep_logger.Error("Failed to init FEP Driver: %s",
-                   result.UnwrapError().c_str());
+                       result.UnwrapError().c_str());
     }
   }
 }
-}
+}  // namespace nhk2024b

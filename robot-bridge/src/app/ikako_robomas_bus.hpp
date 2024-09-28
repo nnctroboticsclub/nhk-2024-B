@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ikarashiCAN_mk2.h>
-#include <mbed-robotics/ikakorobomas_node.hpp>
+#include <robotics/drivers/ikakorobomas_node.hpp>
 
 namespace nhk2024b::common {
 class IkakoRobomasBus {

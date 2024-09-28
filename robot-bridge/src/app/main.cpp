@@ -14,7 +14,7 @@ int main() {
   printf("main() started\n");
   printf("Build: " __DATE__ " - " __TIME__ "\n");
 
-  robotics::logger::Init();
+  robotics::logger::core::Init();
 
   main_switch();
 

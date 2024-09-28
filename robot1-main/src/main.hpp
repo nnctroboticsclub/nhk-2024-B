@@ -5,12 +5,12 @@
 // #include "app.hpp"
 
 // #include <mbed-robotics/simple_can.hpp>
-#include <mbed-robotics/ikako_mdc.hpp>
-#include <mbed-robotics/simple_can.hpp>
-#include <mbed-robotics/uart_stream.hpp>
-#include <robotics/logger/logger.hpp>
+#include <ikako_mdc/ikako_mdc.hpp>
+#include <robotics/network/simple_can.hpp>
+#include <robotics/network/uart_stream.hpp>
+#include <logger/logger.hpp>
 #include <robotics/network/fep/fep_driver.hpp>
-#include <robotics/platform/dout.hpp>
+#include <robotics/driver/dout.hpp>
 #include <nhk2024b/fep.hpp>
 #include "robot1-main.hpp"
 #include <nhk2024b/controller_network.hpp>
