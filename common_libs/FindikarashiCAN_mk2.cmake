@@ -3,6 +3,9 @@ include(FetchContent)
 FetchContent_Populate(ikarashiCAN_mk2
   GIT_REPOSITORY git@github.com:nnctroboticsclub/ikarashiCAN_mk2.git
   GIT_TAG 2c2bfe57a470c430bb6d0e0ebd95760cf5d5ede3
+  SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/ikarashiCAN_mk2/src
+  BINARY_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/ikarashiCAN_mk2/build
+  SUBBUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/ikarashiCAN_mk2/subbuild
 )
 
 include(FindPackageHandleStandardArgs)

@@ -3,8 +3,9 @@ include(FetchContent)
 FetchContent_Populate(can_servo
   GIT_REPOSITORY git@github.com:nnctroboticsclub/can_servo.git
   GIT_TAG e68a8af81d92ede8c92f08270f93f54c58aa22ac
-  # SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/can_servo
-  # BINARY_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/can_servo/build
+  SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/can_servo/src
+  BINARY_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/can_servo/build
+  SUBBUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/can_servo/subbuild
 )
 
 include(FindPackageHandleStandardArgs)

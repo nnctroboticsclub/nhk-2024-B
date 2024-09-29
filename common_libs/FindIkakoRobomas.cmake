@@ -3,6 +3,9 @@ include(FetchContent)
 FetchContent_Populate(IkakoRobomas
   GIT_REPOSITORY git@github.com:nnctroboticsclub/IkakoRobomas.git
   GIT_TAG 98336d610bb255c57565b571e47c404c0070d49d
+  SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/IkakoRobomas/src
+  BINARY_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/IkakoRobomas/build
+  SUBBUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/IkakoRobomas/subbuild
 )
 
 include(FindPackageHandleStandardArgs)

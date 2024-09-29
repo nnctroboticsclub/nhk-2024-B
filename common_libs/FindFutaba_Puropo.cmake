@@ -1,31 +1,26 @@
-find_path(Futaba_Puropo_DIR puropo.h
-  PATHS
-    ENV ROBOCON_ROOT
-    ENV ROBOCON_INCLUDE
-    ${CMAKE_CURRENT_LIST_DIR}
-    /usr
-    /usr/local
-  PATH_SUFFIXES
-    include
-    Futaba_Puropo
-)
-mark_as_advanced(
-  Futaba_Puropo_DIR
+include(FetchContent)
+
+FetchContent_Populate(Futaba_Puropo
+  GIT_REPOSITORY git@github.com:nnctroboticsclub/Futaba_Puropo.git
+  GIT_TAG 2e5d6d59754e0f4622dc85e7a4ccaf80a666e47b
+  SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/Futaba_Puropo/src
+  BINARY_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/Futaba_Puropo/build
+  SUBBUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/.projects/Futaba_Puropo/subbuild
 )
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Futaba_Puropo
   REQUIRED_VARS
-    Futaba_Puropo_DIR
+    futaba_puropo_SOURCE_DIR
 )
 
 if(Futaba_Puropo_FOUND AND NOT TARGET Futaba_Puropo)
   add_library(Futaba_Puropo STATIC)
   target_include_directories(Futaba_Puropo PUBLIC
-    ${Futaba_Puropo_DIR}
+    ${futaba_puropo_SOURCE_DIR}
   )
   target_sources(Futaba_Puropo PUBLIC
-    ${Futaba_Puropo_DIR}/puropo.cpp
+    ${futaba_puropo_SOURCE_DIR}/puropo.cpp
   )
   target_link_libraries(Futaba_Puropo PUBLIC
     static-mbed-os
