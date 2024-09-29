@@ -1,7 +1,9 @@
-add_executable(app)
-target_sources(app PRIVATE
-  main.cpp
-)
+find_package(PS4_RX REQUIRED)
+find_package(ikarashiCAN_mk2 REQUIRED)
+find_package(can_servo REQUIRED)
+find_package(ikako_rohm_md REQUIRED)
+
+add_executable(app main.cpp)
 
 target_link_libraries(app PRIVATE
   mbed-os

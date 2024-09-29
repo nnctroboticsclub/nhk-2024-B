@@ -33,9 +33,9 @@ target_link_libraries(NHK2024BRuntime PUBLIC
   ssp
 )
 
-add_library(NHK2024B STATIC
+find_package(PS4_RX REQUIRED)
 
-)
+add_library(NHK2024B STATIC)
 target_link_libraries(NHK2024B PUBLIC
   static-mbed-os
   srobo_base_hxx
