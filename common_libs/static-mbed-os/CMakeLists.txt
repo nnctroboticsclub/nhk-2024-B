@@ -8,10 +8,18 @@ add_subdirectory(mbed-os)
 
 project(static-mbed-os)
 
-add_library(static-mbed-os STATIC source/mbed-os.cpp)
-target_link_libraries(static-mbed-os PRIVATE
+add_library(static-mbed-os-${MBED_TARGET} STATIC source/mbed-os.cpp)
+target_link_libraries(static-mbed-os-${MBED_TARGET} PRIVATE
   mbed-os
 )
+
+install(TARGETS static-mbed-os-${MBED_TARGET}
+  EXPORT static-mbed-os-${MBED_TARGET}-export
+  ARCHIVE DESTINATION lib
+  INCLUDES DESTINATION include
+  PUBLIC_HEADER DESTINATION include
+)
+
 
 # -----
 
@@ -19,9 +27,9 @@ get_target_property(MBED_OS_INCLUDE_INTERNAL mbed-os INTERFACE_INCLUDE_DIRECTORI
 message(STATUS "MBED_OS_INCLUDE_INTERNAL: ${MBED_OS_INCLUDE_INTERNAL}")
 
 foreach(dir ${MBED_OS_INCLUDE_INTERNAL})
-if(NOT EXISTS ${dir})
-list(REMOVE_ITEM MBED_OS_INCLUDE_INTERNAL ${dir})
-endif()
+  if(NOT EXISTS ${dir})
+    list(REMOVE_ITEM MBED_OS_INCLUDE_INTERNAL ${dir})
+  endif()
 endforeach()
 file(WRITE ${CMAKE_BINARY_DIR}/mbed-os-include-internal.txt "${MBED_OS_INCLUDE_INTERNAL}")
 

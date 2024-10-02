@@ -14,8 +14,8 @@ set_target_properties(NHK2024BRsLib
     IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/libnhk2024b_rs.a"
 )
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../common_libs/srobo_base $(CMAKE_CURRENT_BINARY_DIR)/srobo_base)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../common_libs/im920_rs $(CMAKE_CURRENT_BINARY_DIR)/im920_rs)
+find_package(im920_rs REQUIRED)
+find_package(srobo_base REQUIRED)
 
 add_library(NHK2024BRuntime STATIC
   cxx/mem.cpp

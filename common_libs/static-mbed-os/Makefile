@@ -10,6 +10,7 @@ $(BUILD)/build.ninja: CMakeLists.txt
 		-DCMAKE_BUILD_TYPE=Develop \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
 		-DMBED_TARGET=$(TARGET) \
+		-DCMAKE_INSTALL_PREFIX=/usr/arm-none-eabi/local \
 		-B . -S ../../ -G Ninja
 
 .PHONY: clean
@@ -22,3 +23,8 @@ rebuild: clean build
 .PHONY: build
 build: $(BUILD)/build.ninja
 	cd $(BUILD); ninja -j 12
+
+.PHONY: install
+install: $(BUILD)/build.ninja
+	cd $(BUILD); ninja -j 12
+	cd $(BUILD); sudo ninja -j 12 install

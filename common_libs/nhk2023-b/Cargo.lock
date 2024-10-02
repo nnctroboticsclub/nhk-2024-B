@@ -231,6 +231,7 @@ dependencies = [
 [[package]]
 name = "im920_rs"
 version = "0.1.0"
+source = "git+ssh://git@github.com/nnctroboticsclub/im920_rs.git#b9addc59d63d9afbc7bd3fbe6cfbd7da596303c6"
 dependencies = [
  "cbindgen",
  "srobo_base",
@@ -474,6 +475,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "srobo_base"
 version = "0.1.0"
+source = "git+ssh://git@github.com/nnctroboticsclub/srobo_base.git#2c638f84fcb3bdf4ee6bc9e651e6ce19dba98a29"
 dependencies = [
  "cbindgen",
 ]

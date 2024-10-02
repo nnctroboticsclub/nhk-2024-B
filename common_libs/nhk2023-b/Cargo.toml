@@ -11,5 +11,5 @@ cbindgen = "0.27.0"
 bindgen = "0.65.1"
 
 [dependencies]
-srobo_base = { path = "../srobo_base"}
-im920_rs = { path = "../im920_rs" }
+srobo_base = { git = "ssh://git@github.com/nnctroboticsclub/srobo_base.git" }
+im920_rs = { git = "ssh://git@github.com/nnctroboticsclub/im920_rs.git" }
