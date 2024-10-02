@@ -4,9 +4,3 @@ url = git@github.com:nnctroboticsclub/syoch-robotics
 [submodule "common_libs/ArduinoSTL"]
 path = common_libs/ArduinoSTL
 url = git@github.com:mike-matera/ArduinoSTL.git
-[submodule "common_libs/srobo_base"]
-	path = common_libs/srobo_base
-	url = git@github.com:nnctroboticsclub/srobo_base
-[submodule "common_libs/im920_rs"]
-	path = common_libs/im920_rs
-	url = git@github.com:nnctroboticsclub/im920_rs
