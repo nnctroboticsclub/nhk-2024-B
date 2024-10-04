@@ -6,7 +6,14 @@ all: build
 
 $(BUILD)/build.ninja: CMakeLists.txt src/CMakeLists.txt
 	[ -d $(BUILD) ] || mkdir -p $(BUILD)
-	cd $(BUILD); cmake -DCMAKE_BUILD_TYPE=Develop -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DMBED_TARGET=$(TARGET) -B . -S ../../ -G Ninja
+	cd $(BUILD); cmake \
+		-DCMAKE_BUILD_TYPE=Develop \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+		-DMBED_TARGET=$(TARGET) \
+		--graphviz=test.dot \
+		-B . \
+		-S ../../ \
+		-G Ninja
 
 .PHONY: write
 write: build
@@ -21,4 +28,5 @@ rebuild: clean build
 
 .PHONY: build
 build: $(BUILD)/build.ninja
-	cd $(BUILD); ninja -j 12
+	dot -Tpng $(BUILD)/test.dot -o dependency.png
+	cd $(BUILD); ninja -j 13

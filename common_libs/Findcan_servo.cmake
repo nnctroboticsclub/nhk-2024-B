@@ -14,6 +14,7 @@ find_package_handle_standard_args(can_servo
     can_servo_SOURCE_DIR
 )
 
+find_package(StaticMbedOS REQUIRED)
 find_package(ikarashiCAN_mk2 REQUIRED)
 
 if(can_servo_FOUND AND NOT TARGET can_servo)
@@ -25,7 +26,7 @@ if(can_servo_FOUND AND NOT TARGET can_servo)
     ${can_servo_SOURCE_DIR}/can_servo.cpp
   )
   target_link_libraries(can_servo PUBLIC
-    static-mbed-os
+    StaticMbedOS
     ikarashiCAN_mk2
   )
 endif()

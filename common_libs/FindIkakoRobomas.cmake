@@ -25,7 +25,6 @@ if(IkakoRobomas_FOUND AND NOT TARGET IkakoRobomas)
     ${ikakorobomas_SOURCE_DIR}/ikako_robomas.cpp
   )
   target_link_libraries(IkakoRobomas PUBLIC
-    static-mbed-os
     ikarashiCAN_mk2
     MotorController
   )

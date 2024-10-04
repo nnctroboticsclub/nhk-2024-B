@@ -14,6 +14,8 @@ find_package_handle_standard_args(MotorController
     motorcontroller_SOURCE_DIR
 )
 
+find_package(StaticMbedOS REQUIRED)
+
 if(MotorController_FOUND AND NOT TARGET MotorController)
   add_library(MotorController STATIC)
   target_include_directories(MotorController PUBLIC
@@ -29,7 +31,7 @@ if(MotorController_FOUND AND NOT TARGET MotorController)
     ${motorcontroller_SOURCE_DIR}/DisturbanceObserver/LowPassFilter/LowPassFilter.cpp
   )
   target_link_libraries(MotorController PUBLIC
-    static-mbed-os
+    StaticMbedOS
     ikarashiCAN_mk2
   )
 endif()

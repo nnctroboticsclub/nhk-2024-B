@@ -14,6 +14,8 @@ find_package_handle_standard_args(Futaba_Puropo
     futaba_puropo_SOURCE_DIR
 )
 
+find_package(StaticMbedOS REQUIRED)
+
 if(Futaba_Puropo_FOUND AND NOT TARGET Futaba_Puropo)
   add_library(Futaba_Puropo STATIC)
   target_include_directories(Futaba_Puropo PUBLIC
@@ -23,7 +25,7 @@ if(Futaba_Puropo_FOUND AND NOT TARGET Futaba_Puropo)
     ${futaba_puropo_SOURCE_DIR}/puropo.cpp
   )
   target_link_libraries(Futaba_Puropo PUBLIC
-    static-mbed-os
+    StaticMbedOS
   )
 endif()
 

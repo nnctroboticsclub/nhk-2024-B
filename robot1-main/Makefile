@@ -27,4 +27,3 @@ rebuild: clean build
 .PHONY: build
 build: $(BUILD)/build.ninja
 	cd $(BUILD); ninja -j 12
-	dot -T png -o dep.png BUILD/NUCLEO_F446RE/test.dot

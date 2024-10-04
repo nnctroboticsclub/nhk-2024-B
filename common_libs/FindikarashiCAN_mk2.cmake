@@ -14,6 +14,8 @@ find_package_handle_standard_args(ikarashiCAN_mk2
     ikarashican_mk2_SOURCE_DIR
 )
 
+find_package(StaticMbedOS REQUIRED)
+
 if(ikarashiCAN_mk2_FOUND AND NOT TARGET ikarashiCAN_mk2)
   add_library(ikarashiCAN_mk2 STATIC)
   target_include_directories(ikarashiCAN_mk2 PUBLIC
@@ -24,7 +26,7 @@ if(ikarashiCAN_mk2_FOUND AND NOT TARGET ikarashiCAN_mk2)
     ${ikarashican_mk2_SOURCE_DIR}/ikarashiCAN_mk2.cpp
   )
   target_link_libraries(ikarashiCAN_mk2 PUBLIC
-    static-mbed-os
+    StaticMbedOS
   )
 endif()
 

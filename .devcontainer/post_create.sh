@@ -20,4 +20,10 @@ WORKSPACE=$(mount | grep /workspaces | awk '{print $3}')
 
 git -C $WORKSPACE submodule update --init --recursive
 
+cat >> ~/.cargo/config << EOF
+[net]
+git-fetch-with-cli = true
+
+EOF
+
 python3 -m pip install -r $WORKSPACE/common_libs/mbed-os/requirements.txt

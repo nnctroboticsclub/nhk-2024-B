@@ -3,11 +3,13 @@ find_package(ikarashiCAN_mk2 REQUIRED)
 find_package(can_servo REQUIRED)
 find_package(ikako_rohm_md REQUIRED)
 
+# include(UseStaticMbedOS)
+
 add_executable(app main.cpp)
 
 target_link_libraries(app PRIVATE
+  # dummy-mbed-os
   mbed-os
-  static-mbed-os
   NHK2024B
   PS4_RX
   ikarashiCAN_mk2

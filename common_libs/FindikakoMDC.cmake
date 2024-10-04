@@ -14,6 +14,7 @@ find_package_handle_standard_args(ikakoMDC
     ikakomdc_SOURCE_DIR
 )
 
+find_package(StaticMbedOS REQUIRED)
 find_package(ikarashiCAN_mk2 REQUIRED)
 
 if(ikakoMDC_FOUND AND NOT TARGET ikakoMDC)
@@ -29,7 +30,7 @@ if(ikakoMDC_FOUND AND NOT TARGET ikakoMDC)
     ${ikakomdc_SOURCE_DIR}/PID/PID.cpp
   )
   target_link_libraries(ikakoMDC PUBLIC
-    static-mbed-os
+    StaticMbedOS
     ikarashiCAN_mk2
   )
 endif()

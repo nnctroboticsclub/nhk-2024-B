@@ -14,6 +14,8 @@ find_package_handle_standard_args(PS4_RX
     ps4_rx_SOURCE_DIR
 )
 
+find_package(StaticMbedOS REQUIRED)
+
 if(PS4_RX_FOUND AND NOT TARGET PS4_RX)
   add_library(PS4_RX STATIC)
   target_include_directories(PS4_RX PUBLIC
@@ -23,7 +25,7 @@ if(PS4_RX_FOUND AND NOT TARGET PS4_RX)
     ${ps4_rx_SOURCE_DIR}/PS4.cpp
   )
   target_link_libraries(PS4_RX PUBLIC
-    static-mbed-os
+    StaticMbedOS
   )
 endif()
 

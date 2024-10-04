@@ -10,7 +10,6 @@ my_mount_build:
 	[ -d controller-stm32/src/usb_rs/target ] || mkdir controller-stm32/src/usb_rs/target
 
 	mount | grep "/workspaces/nhk-2024-b/.cache" || sudo mount /dev/lvg-share/cache .cache
-	pwd
 
 
 	sudo mount --bind .cache/n24b_r1 robot1-main/BUILD
@@ -20,6 +19,7 @@ my_mount_build:
 	sudo mount --bind .cache/n24b_ct connection-test/BUILD
 	sudo mount --bind .cache/n24b_es esp32/build
 	sudo mount --bind .cache/n24b_us controller-stm32/src/usb_rs/target
+	sudo mount --bind .cache/libs common_libs/.projects
 
 my_umount_build:
 	sudo umount robot1-main/BUILD || :

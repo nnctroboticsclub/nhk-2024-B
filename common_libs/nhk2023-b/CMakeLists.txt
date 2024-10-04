@@ -37,7 +37,7 @@ find_package(PS4_RX REQUIRED)
 
 add_library(NHK2024B STATIC)
 target_link_libraries(NHK2024B PUBLIC
-  static-mbed-os
+  StaticMbedOS
   srobo_base_hxx
   im920_rs_hxx
   NHK2024BRsLib
