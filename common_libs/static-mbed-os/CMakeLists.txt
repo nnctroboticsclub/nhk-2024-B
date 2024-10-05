@@ -21,7 +21,7 @@ target_link_libraries(static-mbed-os-${MBED_TARGET} PUBLIC
 )
 install(
   TARGETS static-mbed-os-${MBED_TARGET}
-  ARCHIVE DESTINATION mbed-os@3297bae/lib
+  ARCHIVE DESTINATION share/cmake/mbed-os@3297bae/
 )
 
 # ---- Install Headers
@@ -54,8 +54,7 @@ install(
 
 get_target_property(MBED_OS_DEFINITIONS mbed-os INTERFACE_COMPILE_DEFINITIONS)
 
-list(INSERT MBED_OS_DEFINITIONS 0 "__MBED__=1")
-list(JOIN MBED_OS_DEFINITIONS " " MBED_OS_DEFINITIONS)
+list(JOIN MBED_OS_DEFINITIONS "\n" MBED_OS_DEFINITIONS)
 
 file(WRITE ${CMAKE_BINARY_DIR}/definitions.txt "${MBED_OS_DEFINITIONS}")
 install(

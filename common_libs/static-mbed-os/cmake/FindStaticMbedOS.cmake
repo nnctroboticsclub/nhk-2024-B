@@ -1,28 +1,18 @@
-message(STATUS "Finding for libstatic-mbed-os-${MBED_TARGET}.a")
-message(STATUS "  at $ENV{ROBOCON_ROOT}")
-message(STATUS "  at ${ROBOCON_ROOT}")
-message(STATUS "  at /usr/arm-none-eabi/local")
-find_file(StaticMbedOSArchive
-  NAMES
-    libstatic-mbed-os-${MBED_TARGET}.a
-  PATHS
-    ENV ROBOCON_ROOT
-    ${ROBOCON_ROOT}
-    /usr/arm-none-eabi/local
-  PATH_SUFFIXES
-    lib
+set(StaticMbedOSRoot ${CMAKE_CURRENT_LIST_DIR}/mbed-os@3297bae)
+
+set(StaticMbedOSArchive
+  ${StaticMbedOSRoot}/libstatic-mbed-os-${MBED_TARGET}.a
 )
-message(STATUS "StaticMbedOSArchive: ${StaticMbedOSArchive}")
-mark_as_advanced(StaticMbedOSArchive)
 
 
 file(READ
-  ${CMAKE_CURRENT_LIST_DIR}/mbed-os@3297bae/definitions.txt
+  ${StaticMbedOSRoot}/definitions.txt
   STATIC_MBED_OS_DEFINITIONS
 )
+string(REPLACE "\n" ";" STATIC_MBED_OS_DEFINITIONS ${STATIC_MBED_OS_DEFINITIONS})
 
 file(READ
-  ${CMAKE_CURRENT_LIST_DIR}/mbed-os@3297bae/includes.txt
+  ${StaticMbedOSRoot}/includes.txt
   STATIC_MBED_OS_INCLUDES
 )
 string(REPLACE "\n" ";" STATIC_MBED_OS_INCLUDES ${STATIC_MBED_OS_INCLUDES})
@@ -46,5 +36,8 @@ if(StaticMbedOS_FOUND AND NOT TARGET StaticMbedOS)
 
   target_compile_definitions(StaticMbedOS INTERFACE
     ${STATIC_MBED_OS_DEFINITIONS}
+  )
+  target_compile_definitions(StaticMbedOS INTERFACE
+    __MBED__
   )
 endif()

@@ -14,8 +14,6 @@ set_target_properties(NHK2024BRsLib
     IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/libnhk2024b_rs.a"
 )
 
-find_package(im920_rs REQUIRED)
-find_package(srobo_base REQUIRED)
 
 add_library(NHK2024BRuntime STATIC
   cxx/mem.cpp
@@ -34,6 +32,8 @@ target_link_libraries(NHK2024BRuntime PUBLIC
 )
 
 find_package(PS4_RX REQUIRED)
+find_package(im920_rs REQUIRED)
+find_package(srobo_base REQUIRED)
 
 add_library(NHK2024B STATIC)
 target_link_libraries(NHK2024B PUBLIC
