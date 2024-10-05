@@ -1,11 +1,14 @@
-add_executable(app)
-target_sources(app PRIVATE
+find_package(PS4_RX REQUIRED)
+find_package(ikarashiCAN_mk2 REQUIRED)
+
+add_executable(robot1)
+target_sources(robot1 PRIVATE
   main.cpp
 )
 
-target_link_libraries(app PRIVATE
+target_link_libraries(robot1 PRIVATE
   mbed-os
-  static-mbed-os
+  StaticMbedOS
   NHK2024B
   PS4_RX
   ikarashiCAN_mk2
@@ -19,4 +22,4 @@ target_link_libraries(app PRIVATE
   syoch-robotics-gpio
 )
 
-mbed_set_post_build(app)
+mbed_set_post_build(robot1)

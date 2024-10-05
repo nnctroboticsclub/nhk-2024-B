@@ -17,7 +17,7 @@ $(BUILD)/build.ninja: CMakeLists.txt src/CMakeLists.txt
 
 .PHONY: write
 write: build
-	sudo -E st-flash --connect-under-reset --format ihex --serial 0672FF575251717867212516 write $(BUILD)/src/app/app.hex
+	sudo -E st-flash --connect-under-reset --format ihex write $(BUILD)/src/robot2.hex
 
 .PHONY: clean
 clean:
@@ -28,5 +28,5 @@ rebuild: clean build
 
 .PHONY: build
 build: $(BUILD)/build.ninja
-	dot -Tpng $(BUILD)/test.dot -o dependency.png
+	# dot -Tpng $(BUILD)/test.dot -o dependency.png
 	cd $(BUILD); ninja -j 13
