@@ -21,7 +21,7 @@ cmake: $(BUILD)/build.ninja
 		-DMBED_TARGET=$(TARGET) \
 		-B . -S ../../ -G Ninja
 
-$(GRAPHVIZ)/source/dependency.dot: CMakeLists.txt src/CMakeLists.txt CMakeGraphVizOptions.cmake
+$(GRAPHVIZ)/source/dependency.dot: CMakeLists.txt
 	[ -d $(GRAPHVIZ) ] || mkdir -p $(GRAPHVIZ)
 	cmake \
 		-DCMAKE_BUILD_TYPE=Develop \
