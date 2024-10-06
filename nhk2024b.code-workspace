@@ -4,18 +4,6 @@
 			"path": "."
 		},
 		{
-			"path": "robot1-main",
-			"name": "[Mbed] Robot1"
-		},
-		{
-			"path": "robot-bridge",
-			"name": "[Mbed] Robot2"
-		},
-		{
-			"path": "robot-collect",
-			"name": "[Mbed] Robot3"
-		},
-		{
 			"path": "controller-stm32",
 			"name": "[Mbed] Controller"
 		},
@@ -50,6 +38,12 @@
 		{
 			"path": "common_libs/nhk2023-b",
 			"name": "[Rust] NHK2024B"
+		},
+		{
+			"path": "/workspaces/libs-cmake"
+		},
+		{
+			"path": "/workspaces/static-mbed-os"
 		}
 	],
 	"settings": {

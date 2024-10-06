@@ -3,7 +3,7 @@
 bash $(dirpath $0)/setup_rust.sh
 
 sudo apt update
-sudo apt install -y socat stlink-tools
+sudo apt install -y socat stlink-tools librsvg2-bin
 
 . $(dirpath $0)/setup_rust.sh
 
@@ -20,10 +20,10 @@ WORKSPACE=$(mount | grep /workspaces | awk '{print $3}')
 
 git -C $WORKSPACE submodule update --init --recursive
 
-cat >> ~/.cargo/config << EOF
-[net]
-git-fetch-with-cli = true
+mkdir -p /tmp/setup || true
 
-EOF
+git clone git@github.com:nnctroboticsclub/libs-cmake.git /tmp/libs-cmake
+git clone git@github.com:nnctroboticsclub/static-mbed-os.git /tmp/static-mbed-os
 
-python3 -m pip install -r $WORKSPACE/common_libs/mbed-os/requirements.txt
+make -C /tmp/libs-cmake install
+make -C /tmp/static-mbed-os install TARGET=NUCLEO_F446RE

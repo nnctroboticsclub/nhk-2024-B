@@ -1,17 +1,23 @@
-cmake_minimum_required(VERSION 3.19)
-cmake_policy(VERSION 3.19)
-
-set(MBED_APP_JSON_PATH ${CMAKE_SOURCE_DIR}/mbed_app.json)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
-  /workspaces/nhk-2024-b/common_libs
-  /workspaces/nhk-2024-b/common_libs/syoch-robotics/libs/cmake
-  /usr/arm-none-eabi/local/share/cmake
+add_executable(robot3)
+target_sources(robot3 PRIVATE
+  main.cpp
 )
 
-include(UseStaticMbedOS)
-project(NHK)
+find_package(ikarashiCAN_mk2 REQUIRED)
+find_package(PS4_RX REQUIRED)
+find_package(Futaba_Puropo REQUIRED)
 
-set(SYOCH_ROBOTICS_TARGET "Mbed" CACHE STRING "Thread implementation")
-add_subdirectory(../common_libs common_lib)
+target_link_libraries(robot3 PRIVATE
+  StaticMbedOS
+  syoch-robotics-logger
+  syoch-robotics-mbed-uart
+  syoch-robotics-gpio
+  fep
+  bd621x
+  ikarashiCAN_mk2
+  PS4_RX
+  NHK2024B
+  Futaba_Puropo
+)
 
-add_subdirectory(src)
+static_mbed_os_app_target(robot3)

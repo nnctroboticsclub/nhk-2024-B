@@ -1,41 +1,62 @@
-all:
+TARGET?=NUCLEO_F446RE
+BUILD?=Build/${TARGET}
+GRAPHVIZ?=Graphviz/${TARGET}
 
--include env.home.mk
--include syoch-robotics/makefile.d/all.mk
+.PHONY: all
+all: build
 
-lc:
-	wc -ml \
-		$$(find ./stm32-main/src -type f -a \( -name *.c -o -name *.cpp -o -name *.h -o -name *.hpp \)) \
-		$$(find ./stm32-enc/src -type f -a \( -name *.c -o -name *.cpp -o -name *.h -o -name *.hpp \)) \
-		$$(find ./esp32/main -type f -a \( -name *.c -o -name *.cpp -o -name *.h -o -name *.hpp \)) \
-		$$(find ./syoch-robotics -type f -a \( -name *.c -o -name *.cpp -o -name *.h -o -name *.hpp \))
+$(BUILD)/build.ninja: CMakeLists.txt
+	[ -d $(BUILD) ] || mkdir -p $(BUILD)
+	cd $(BUILD); cmake \
+		-DCMAKE_BUILD_TYPE=Develop \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+		-DMBED_TARGET=$(TARGET) \
+		-B . -S ../../ -G Ninja
 
-S1_LOG_TAG      := SerialProxy (UART: 0)
-S1_SKIP_COMPILE ?= 0
-S1_SERIAL       ?= 066AFF495057717867162927
-$(eval $(call STM32_DefineRules,s1,$(ESP32_IP),$(S1_LOG_TAG),$(PWD)/robot1-main,$(S1_SKIP_COMPILE),NUCLEO_F446RE,/mnt/st1,$(S1_SERIAL)))
+.PHONY: cmake
+cmake: $(BUILD)/build.ninja
+	cd $(BUILD); cmake \
+		-DCMAKE_BUILD_TYPE=Develop \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+		-DMBED_TARGET=$(TARGET) \
+		-B . -S ../../ -G Ninja
 
-S2_LOG_TAG      := SerialProxy (UART: 0)
-S2_SKIP_COMPILE ?= 0
-S2_SERIAL       ?= 066EFF303435554157113125
-$(eval $(call STM32_DefineRules,s2,$(ESP32_IP),$(S2_LOG_TAG),$(PWD)/robot-bridge,$(S2_SKIP_COMPILE),NUCLEO_F446RE,/mnt/st2,$(S2_SERIAL)))
+$(GRAPHVIZ)/source/dependency.dot: CMakeLists.txt src/CMakeLists.txt CMakeGraphVizOptions.cmake
+	[ -d $(GRAPHVIZ) ] || mkdir -p $(GRAPHVIZ)
+	cmake \
+		-DCMAKE_BUILD_TYPE=Develop \
+		-DMBED_TARGET=$(TARGET) \
+		--graphviz=$(GRAPHVIZ)/source/dependency.dot \
+		-B $(BUILD) -S $(CURDIR)
 
-S3_LOG_TAG      := SerialProxy (UART: 0)
-S3_SKIP_COMPILE ?= 0
-S3_SERIAL       ?= 066BFF333535554157134434
-$(eval $(call STM32_DefineRules,s3,$(ESP32_IP),$(S3_LOG_TAG),$(PWD)/robot-collect,$(S3_SKIP_COMPILE),NUCLEO_F446RE,/mnt/st3,$(S3_SERIAL)))
+.PHONY: write
+write: build
+	sudo -E st-flash --connect-under-reset --format ihex write $(BUILD)/src/robot1.hex
 
-S4_LOG_TAG      := SerialProxy (UART: 1)
-S4_SKIP_COMPILE ?= 0
-S4_SERIAL       ?= 066EFF303435554157113125
-$(eval $(call STM32_DefineRules,s4,$(ESP32_IP),$(S4_LOG_TAG),$(PWD)/connection-test,$(S4_SKIP_COMPILE),NUCLEO_F446RE,/mnt/st_nw,$(S4_SERIAL)))
+.PHONY: clean
+clean:
+	rm -rf $(BUILD)
 
-S5_LOG_TAG      := SerialProxy (UART: 1)
-S5_SKIP_COMPILE ?= 0
-S5_SERIAL       ?= 066AFF495057717867162927
-$(eval $(call STM32_DefineRules,s5,$(ESP32_IP),$(S5_LOG_TAG),$(PWD)/stm32-controller,$(S5_SKIP_COMPILE),NUCLEO_F446RE,/mnt/st_com,$(S5_SERIAL)))
+.PHONY: rebuild
+rebuild: clean build
 
-E_SKIP_COMPILE ?= 0
-$(eval $(call ESP32_DefineRules,e,$(PWD)/esp32,$(E_SKIP_COMPILE)))
+$(GRAPHVIZ)/svg/%.svg: $(GRAPHVIZ)/source/%
+	[ -d $(GRAPHVIZ)/svg ] || mkdir -p $(GRAPHVIZ)/svg
+	dot -Tsvg -o $@ $<
 
--include $(wildcard makefile.d/*.mk)
+$(GRAPHVIZ)/png/%.png: $(GRAPHVIZ)/source/%
+	[ -d $(GRAPHVIZ)/png ] || mkdir -p $(GRAPHVIZ)/png
+	dot -Tpng -o $@ $<
+
+$(GRAPHVIZ)/dest/%.pdf: $(GRAPHVIZ)/svg/%.svg
+	@[ -d $(GRAPHVIZ)/dest ] || mkdir -p $(GRAPHVIZ)/dest
+	rsvg-convert -f pdf -o $(GRAPHVIZ)/dest/$*.pdf $<
+
+.PHONY: graph
+graph: $(GRAPHVIZ)/source/dependency.dot
+	$(MAKE) -j 12 $(filter-out %.dependers.png, $(filter-out $(GRAPHVIZ)/png/dependency.dot.mbed%, $(patsubst $(GRAPHVIZ)/source/%, $(GRAPHVIZ)/png/%.png, $(wildcard $(GRAPHVIZ)/source/*))))
+
+
+.PHONY: build
+build: $(BUILD)/build.ninja
+	cd $(BUILD); ninja -j 13
