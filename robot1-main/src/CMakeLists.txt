@@ -7,7 +7,6 @@ target_sources(robot1 PRIVATE
 )
 
 target_link_libraries(robot1 PRIVATE
-  mbed-os
   StaticMbedOS
   NHK2024B
   PS4_RX
@@ -22,4 +21,4 @@ target_link_libraries(robot1 PRIVATE
   syoch-robotics-gpio
 )
 
-mbed_set_post_build(robot1)
+static_mbed_os_app_target(robot1)

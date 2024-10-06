@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-// #include "main.hpp"
+#include "main.hpp"
 
 int main() {
   static bool guard = false;
@@ -16,14 +16,14 @@ int main() {
   printf("main() started\n");
   printf("Build: " __DATE__ " - " __TIME__ "\n");
 
-  /* robotics::logger::Init();
+  robotics::logger::core::Init();
 
-  main_switch(); */
+  main_switch();
 
   printf("main() finished. Halting..");
 
   while (1) {
-    // ThisThread::sleep_for(1s);
+    ThisThread::sleep_for(1s);
   }
 
   return 0;

@@ -8,7 +8,7 @@ find_package(PS4_RX REQUIRED)
 find_package(Futaba_Puropo REQUIRED)
 
 target_link_libraries(robot3 PRIVATE
-  mbed-os
+  StaticMbedOS
   syoch-robotics-logger
   syoch-robotics-mbed-uart
   syoch-robotics-gpio
@@ -20,4 +20,4 @@ target_link_libraries(robot3 PRIVATE
   Futaba_Puropo
 )
 
-mbed_set_post_build(robot3)
+static_mbed_os_app_target(robot3)
