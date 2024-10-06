@@ -19,7 +19,8 @@ my_mount_build:
 	sudo mount --bind .cache/n24b_ct connection-test/BUILD
 	sudo mount --bind .cache/n24b_es esp32/build
 	sudo mount --bind .cache/n24b_us controller-stm32/src/usb_rs/target
-	sudo mount --bind .cache/libs common_libs/.projects
+	sudo mount --bind .cache/libs syoch-robotics/libs/cmake/.projects/
+	sudo mount --bind .cache/static-mbed-os common_libs/static-mbed-os/BUILD
 
 my_umount_build:
 	sudo umount robot1-main/BUILD || :
