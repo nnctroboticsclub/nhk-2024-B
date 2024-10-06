@@ -7,10 +7,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
   /workspaces/nhk-2024-b/common_libs/syoch-robotics/libs/cmake
   /usr/arm-none-eabi/local/share/cmake
 )
+
 include(UseStaticMbedOS)
+project(NHK)
 
 set(SYOCH_ROBOTICS_TARGET "Mbed" CACHE STRING "Thread implementation")
 add_subdirectory(../common_libs common_lib)
 
-project(NHK)
 add_subdirectory(src)

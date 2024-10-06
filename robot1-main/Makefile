@@ -13,6 +13,14 @@ $(BUILD)/build.ninja: CMakeLists.txt src/CMakeLists.txt
 		-DMBED_TARGET=$(TARGET) \
 		-B . -S ../../ -G Ninja
 
+.PHONY: cmake
+cmake: $(BUILD)/build.ninja
+	cd $(BUILD); cmake \
+		-DCMAKE_BUILD_TYPE=Develop \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+		-DMBED_TARGET=$(TARGET) \
+		-B . -S ../../ -G Ninja
+
 $(GRAPHVIZ)/source/dependency.dot: CMakeLists.txt src/CMakeLists.txt CMakeGraphVizOptions.cmake
 	[ -d $(GRAPHVIZ) ] || mkdir -p $(GRAPHVIZ)
 	cmake \
@@ -51,4 +59,4 @@ graph: $(GRAPHVIZ)/source/dependency.dot
 
 .PHONY: build
 build: $(BUILD)/build.ninja
-	cd $(BUILD); ninja -j 12 src/robot1.elf
+	cd $(BUILD); ninja -j 13
