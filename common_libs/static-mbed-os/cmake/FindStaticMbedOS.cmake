@@ -1,43 +1,12 @@
-set(StaticMbedOSRoot ${CMAKE_CURRENT_LIST_DIR}/mbed-os@3297bae)
+find_package(StaticMbedOSInternal REQUIRED)
 
-set(StaticMbedOSArchive
-  ${StaticMbedOSRoot}/libstatic-mbed-os-${MBED_TARGET}.a
-)
-
-
-file(READ
-  ${StaticMbedOSRoot}/definitions.txt
-  STATIC_MBED_OS_DEFINITIONS
-)
-string(REPLACE "\n" ";" STATIC_MBED_OS_DEFINITIONS ${STATIC_MBED_OS_DEFINITIONS})
-
-file(READ
-  ${StaticMbedOSRoot}/includes.txt
-  STATIC_MBED_OS_INCLUDES
-)
-string(REPLACE "\n" ";" STATIC_MBED_OS_INCLUDES ${STATIC_MBED_OS_INCLUDES})
-
+set(StaticMbedOS_Dummy ${CMAKE_CURRENT_LIST_FILE})
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(StaticMbedOS REQUIRED_VARS
-  StaticMbedOSArchive
-)
+find_package_handle_standard_args(StaticMbedOS REQUIRED_VARS StaticMbedOS_Dummy)
 
 if(StaticMbedOS_FOUND AND NOT TARGET StaticMbedOS)
-  add_library(StaticMbedOS UNKNOWN IMPORTED)
-  set_target_properties(StaticMbedOS PROPERTIES
-    IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
-    IMPORTED_LOCATION "${StaticMbedOSArchive}"
-  )
-
-  target_include_directories(StaticMbedOS INTERFACE
-    ${STATIC_MBED_OS_INCLUDES}
-  )
-
-  target_compile_definitions(StaticMbedOS INTERFACE
-    ${STATIC_MBED_OS_DEFINITIONS}
-  )
-  target_compile_definitions(StaticMbedOS INTERFACE
-    __MBED__
-  )
+  add_library(StaticMbedOS INTERFACE)
+  target_link_libraries(StaticMbedOS INTERFACE StaticMbedOSInternal)
+  target_link_options(StaticMbedOS INTERFACE "SHELL:-Wl,--whole-archive $<TARGET_FILE:StaticMbedOSInternal> -Wl,--no-whole-archive")
 endif()
