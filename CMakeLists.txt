@@ -12,8 +12,9 @@ include(UseStaticMbedOS)
 project(NHK)
 
 set(SYOCH_ROBOTICS_TARGET "Mbed" CACHE STRING "Thread implementation")
-add_subdirectory(common_libs common_lib)
+add_subdirectory(common_libs)
 
+add_subdirectory(connection-test)
 add_subdirectory(robot1-main)
 add_subdirectory(robot2-bridge)
 add_subdirectory(robot3-collect)

@@ -8,10 +8,6 @@
 			"name": "[Mbed] Controller"
 		},
 		{
-			"path": "connection-test",
-			"name": "[Mbed] Connection Test"
-		},
-		{
 			"path": "usb",
 			"name": "[Mbed] USB"
 		},

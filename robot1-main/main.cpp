@@ -22,9 +22,7 @@ int main() {
 
   printf("main() finished. Halting..");
 
-  while (1) {
+  while (true) {
     ThisThread::sleep_for(1s);
   }
-
-  return 0;
 }

@@ -3,15 +3,15 @@
 #include <iomanip>
 #include <string>
 
-#include <robotics/logger/logger.hpp>
-#include <robotics/platform/random.hpp>
-#include <robotics/platform/thread.hpp>
-#include <robotics/platform/dout.hpp>
+#include <logger/logger.hpp>
+#include <robotics/random/random.hpp>
+#include <robotics/thread/thread.hpp>
+#include <robotics/driver/dout.hpp>
 
-#include <mbed-robotics/simple_can.hpp>
+#include <robotics/network/simple_can.hpp>
 
-#include <robotics/network/ssp/ssp.hpp>
-#include <robotics/network/ssp/value_store.hpp>
+#include <ssp/ssp.hpp>
+#include <ssp/value_store.hpp>
 
 #include "platform.hpp"
 
@@ -130,7 +130,7 @@ class Network {
     robotics::logger::SuppressLogger("rx.rep.nw");
 
     printf("AA4\n");
-    std::shared_ptr<mbed::UnbufferedSerial> im920_uart_ =
+    auto im920_uart_ =
         std::make_shared<mbed::UnbufferedSerial>(PA_9, PA_10, 19200);
 
     printf("AA5\n");
@@ -141,47 +141,44 @@ class Network {
     printf("AA6\n");
     srobo2::com::CIM920 cim920_{tx_.GetTx(), rx_.GetRx(), timer_.GetTime()};
     printf("AA7\n");
-    srobo2::com::IM910_SRobo1 im920_{&cim920_};
-    robotics::network::SerialServiceProtocol<uint16_t> ssp_{im920_};
+    srobo2::com::IM920_SRobo1 im920_{&cim920_};
+    robotics::network::SerialServiceProtocol<uint16_t, bool> ssp_{im920_};
 
     robotics::Node<float> ctrl_a;
     auto value_store = ssp_.RegisterService<
-        robotics::network::ssp::ValueStoreService<Context>>();
+        robotics::network::ssp::ValueStoreService<Context, bool>>();
 
     ctrl_a.SetChangeCallback([this](float v) { logger.Info("CtrlA: %f", v); });
     value_store->AddController(0, 1, ctrl_a);
 
-    while (1) {
+    while (true) {
       robotics::system::SleepFor(1s);
     }
   }
 };
 
 class App {
-  // robotics::logger::Logger logger{"app", "\x1b[3;32m   App   \x1b[m"};
   Network<uint16_t> network;
 
  public:
-  App() {}
+  App() = default;
   void Main() { network.Main(); }
 };
 
 struct CanMessageData {
-  static int last_line;
+  static uint8_t last_line;
 
-  bool is_invalidated;
-  uint8_t line;
-  uint8_t data[8] = {};
-  uint8_t length;
+  bool is_invalidated = true;
+  uint8_t line = last_line;
+  std::array<std::byte, 8> data = {};
+  uint8_t length = 0;
 
   int rx_count = 0;
-
-  CanMessageData() : is_invalidated(true), line(last_line) {}
 
   static void AddLine() { last_line++; }
 };
 
-int CanMessageData::last_line = 0;
+uint8_t CanMessageData::last_line = 0;
 
 class CanDebug {
   const int kHeaderLines = 3;
@@ -195,7 +192,7 @@ class CanDebug {
 
   bool printf_lock_ = false;
 
-  void InitScreen() {
+  void InitScreen() const {
     printf("\x1b[2J\x1b[1;1H");
     printf("\x1b[?25l");
   }
@@ -212,9 +209,9 @@ class CanDebug {
       }
 
       printf("\x1b[%d;1H", kHeaderLines + 1 + data.line);
-      printf("%8d] %08X (%5d):", tick_, id, data.rx_count);
+      printf("%8d] %08lX (%5u):", tick_, id, data.rx_count);
       for (size_t i = 0; i < data.length; i++) {
-        printf(" %02X", data.data[i]);
+        printf(" %02X", static_cast<uint8_t>(data.data[i]));
       }
       printf("\x1b[0K\n");
 
@@ -233,7 +230,7 @@ class CanDebug {
     printf("\x1b[1;1H");
     printf("\x1b[2K");
     printf("Tick: %5d\x1b[0K\n", tick_);
-    printf("Messages: %5d\x1b[0K\n", messages_count_);
+    printf("Messages: %5ld\x1b[0K\n", messages_count_);
     printf("Last Failed: %5d\x1b[0K\n", last_failed_tick_);
     printf_lock_ = false;
   }
@@ -250,7 +247,7 @@ class CanDebug {
       auto&& msg = messages_[id];
       msg.is_invalidated = true;
       msg.rx_count++;
-      msg.length = data.size();
+      msg.length = static_cast<uint8_t>(data.size());
       std::copy(data.begin(), data.end(), msg.data);
     });
   }
@@ -265,11 +262,12 @@ class CanDebug {
   }
 
  public:
+  [[noreturn]]
   void Main() {
     Init();
     can_.Init();
 
-    while (1) {
+    while (true) {
       UpdateScreen();
       ShowHeader();
       tick_++;
@@ -281,42 +279,46 @@ class CanDebug {
 };
 
 class IM920Test {
- public:
-  void Main() {
-    auto thread = new robotics::system::Thread;
-    thread->SetStackSize(8192);
-    thread->SetThreadName("App");
-    thread->Start([]() {
-      auto logger = robotics::logger::Logger("main", "Main");
+  [[noreturn]]
+  void Task() const {
+    auto logger = robotics::logger::Logger("main", "Main");
 
-      auto uart = std::make_shared<mbed::UnbufferedSerial>(PA_9, PA_10, 19200);
-      auto tx = std::make_shared<srobo2::com::UARTCStreamTx>(uart);
-      auto rx = std::make_shared<srobo2::com::UARTCStreamRx>(uart);
-      auto timer = std::make_shared<srobo2::timer::MBedTimer>();
+    auto uart = std::make_shared<mbed::UnbufferedSerial>(PA_9, PA_10, 19200);
+    auto tx = std::make_shared<srobo2::com::UARTCStreamTx>(uart);
+    auto rx = std::make_shared<srobo2::com::UARTCStreamRx>(uart);
+    auto timer = std::make_shared<srobo2::timer::MBedTimer>();
 
-      auto im920 = std::make_shared<srobo2::com::CIM920>(
-          tx->GetTx(), rx->GetRx(), timer->GetTime());
+    auto im920 = std::make_shared<srobo2::com::CIM920>(tx->GetTx(), rx->GetRx(),
+                                                       timer->GetTime());
 
-      auto node_number = im920->GetNodeNumber(1.0);
-      logger.Info("Node Number: %d", node_number);
+    auto node_number = im920->GetNodeNumber(1.0);
+    logger.Info("Node Number: %d", node_number);
 
-      auto remote = 3 - node_number;
+    uint16_t remote = 3 - node_number;
 
-      auto version = im920->GetVersion(1.0);
-      logger.Info("Version: %s", version.c_str());
+    auto version = im920->GetVersion(1.0);
+    logger.Info("Version: %s", version.c_str());
 
-      im920->OnData([&logger](uint16_t from, uint8_t* data, size_t len) {
-        logger.Info("OnData: from %d", from);
-        logger.Hex(robotics::logger::core::Level::kInfo, data, len);
-      });
-
-      while (1) {
-        im920->Send(remote, (uint8_t*)"Hello", 5, 1.0);
-        robotics::system::SleepFor(1s);
-      }
+    im920->OnData([&logger](uint16_t from, uint8_t* data, size_t len) {
+      logger.Info("OnData: from %d", from);
+      logger.Hex(robotics::logger::core::Level::kInfo, data, len);
     });
 
-    while (1) {
+    while (true) {
+      im920->Send(remote, (uint8_t*)"Hello", 5, 1.0);
+      robotics::system::SleepFor(1s);
+    }
+  }
+
+ public:
+  [[noreturn]]
+  void Main() const {
+    auto thread = std::make_unique<robotics::system::Thread>();
+    thread->SetStackSize(8192);
+    thread->SetThreadName("App");
+    thread->Start([this]() { this->Task(); });
+
+    while (true) {
       robotics::system::SleepFor(100s);
     }
   }
@@ -329,14 +331,14 @@ int main() {
 
   robotics::system::Random::GetByte();
   robotics::system::SleepFor(20ms);
-  robotics::logger::Init();
+  robotics::logger::core::Init();
 
   printf("Starting App...\n");
 
-  auto app = new App();
+  auto app = std::make_unique<App>();
   app->Main();
 
-  while (1) {
+  while (true) {
     robotics::system::SleepFor(3600s);
   }
 

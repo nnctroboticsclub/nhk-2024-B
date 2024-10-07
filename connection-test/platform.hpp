@@ -2,6 +2,11 @@
 
 #include <cstdint>
 
+#ifndef __TEST_ON_HOST__
+#include <robotics/network/uart_stream.hpp>
+#include <mbed.h>
+#endif
+
 //* ####################
 //* Platform
 //* ####################
@@ -60,9 +65,7 @@ platform::Mode platform::_GetMode() { return platform::Mode::kDevice1; }
 
 #else
 
-#include <mbed-robotics/uart_stream.hpp>
-#include <mbed.h>
-BufferedSerial pc{USBTX, USBRX, 115200};
+const mbed::BufferedSerial pc{USBTX, USBRX, 115200};
 
 platform::Mode platform::_GetMode() {
   mbed::DigitalIn mode(PA_9);

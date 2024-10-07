@@ -15,9 +15,8 @@
 #include "robot1-main.hpp"
 #include <nhk2024b/controller_network.hpp>
 
-robotics::logger::Logger logger{"robot1.app", "Robot1App"};
-
 class App {
+  static inline robotics::logger::Logger logger{"robot1.app", "Robot1App"};
   DigitalOut emc{PC_0};
 
   nhk2024b::ControllerNetwork ctrl_net;
@@ -27,7 +26,7 @@ class App {
   bool emc_conn = true;
 
   nhk2024b::robot1::Refrige robot;
-  ikarashiCAN_mk2 ican{PB_8, PB_9, 0, (int)1e6};  // TODO: Fix this
+  ikarashiCAN_mk2 ican{PB_8, PB_9, 0, (int)1e6};
 
   robotics::registry::ikakoMDC mdc0;
   robotics::assembly::MotorPair<float> &motor0;
@@ -41,7 +40,7 @@ class App {
   robotics::assembly::MotorPair<float> &brake;
 
   void UpdateEMC() {
-    bool emc_state = emc_ctrl & emc_conn;
+    bool emc_state = emc_ctrl && emc_conn;
     emc.write(emc_state);
   }
 
@@ -107,7 +106,6 @@ class App {
     robot.out_collector >> collector.GetMotor();
     robot.out_brake >> brake.GetMotor();
 
-    // ps4.Init();
     emc.write(1);
     ican.read_start();
 
@@ -115,6 +113,8 @@ class App {
   }
 
   void Main() {
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
     logger.Info("Main loop");
     int i = 0;
 
@@ -122,8 +122,11 @@ class App {
     timer.reset();
     timer.start();
 
-    while (1) {
-      float delta_s = timer.read_ms() / 1000.0;
+    while (true) {
+      auto delta_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          timer.elapsed_time())
+                          .count();
+      auto delta_s = delta_ms / 1000.0;
       timer.reset();
 
       robot.Update(delta_s);
@@ -172,7 +175,4 @@ int main0_alt0() {
   return 0;
 }
 
-int main_switch() {
-  // nhk2024b::test::test_ps4_fep();
-  return main0_alt0();
-}
+int main_switch() { return main0_alt0(); }

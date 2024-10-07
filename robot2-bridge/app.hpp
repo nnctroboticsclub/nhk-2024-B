@@ -33,11 +33,10 @@ class Actuators {
   common::Rohm1chMD move_r;
   common::Rohm1chMD deploy;
 
-  Actuators(Config config)
+  explicit Actuators(Config const &config)
       : can1(config.can_1_rd, config.can_1_td, 0, (int)1E6),
         can2(config.can_2_rd, config.can_2_td, 0, (int)1E6),
         can_servo(can1, 1),
-        rohm_md(),
         servo_0(*can_servo.NewNode(0)),
         servo_1(*can_servo.NewNode(1)),
         servo_2(*can_servo.NewNode(2)),
@@ -72,7 +71,7 @@ class Actuators {
         errors = can_servo.Send() ? errors | 1 : errors & ~1;
         break;
 
-      case 2:
+      default:
         //
         break;
     }
