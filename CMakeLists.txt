@@ -15,5 +15,5 @@ set(SYOCH_ROBOTICS_TARGET "Mbed" CACHE STRING "Thread implementation")
 add_subdirectory(common_libs common_lib)
 
 add_subdirectory(robot1-main)
-add_subdirectory(robot-bridge)
-add_subdirectory(robot-collect)
+add_subdirectory(robot2-bridge)
+add_subdirectory(robot3-collect)
