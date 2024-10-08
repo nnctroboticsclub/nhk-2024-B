@@ -159,17 +159,15 @@ class Test {
 int main_0() {
   Thread thread{osPriorityNormal, 8192, nullptr, "Main"};
   thread.start([]() {
-    auto test = new Test();
+    auto test = std::make_unique<Test>();
 
     test->Init();
     test->Main();
   });
 
-  while (1) {
+  while (true) {
     ThisThread::sleep_for(100s);
   }
-
-  return 0;
 }
 
 void main_puropo_test() {  // プロポ実験

@@ -170,7 +170,7 @@ struct CanMessageData {
 
   bool is_invalidated = true;
   uint8_t line = last_line;
-  std::array<std::byte, 8> data = {};
+  std::array<std::uint8_t, 8> data = {};
   uint8_t length = 0;
 
   int rx_count = 0;
@@ -248,7 +248,7 @@ class CanDebug {
       msg.is_invalidated = true;
       msg.rx_count++;
       msg.length = static_cast<uint8_t>(data.size());
-      std::copy(data.begin(), data.end(), msg.data);
+      std::copy(data.begin(), data.end(), msg.data.begin());
     });
   }
 

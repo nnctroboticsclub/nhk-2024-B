@@ -60,3 +60,5 @@ graph: $(GRAPHVIZ)/source/dependency.dot
 .PHONY: build
 build: $(BUILD)/build.ninja
 	cd $(BUILD); ninja -j 13
+
+-include $(wildcard makefile.d/*.mk)
