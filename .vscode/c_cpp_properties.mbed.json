@@ -1,9 +1,0 @@
-{
-  "configurations": [
-    {
-      "name": "Compile DB",
-      "compileCommands": "BUILD/NUCLEO_F446RE/compile_commands.json"
-    }
-  ],
-  "version": 4
-}
