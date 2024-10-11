@@ -7,7 +7,10 @@ sudo apt install -y socat stlink-tools librsvg2-bin
 
 . $(dirpath $0)/setup_rust.sh
 
-sudo ln -s /opt/gcc-arm-none-eabi-10.3-2021.10/bin/* /usr/bin/
+ls -s /opt/gcc-arm-none-eabi-10.3-2021.10/bin | xargs -I {} sudo rm /usr/bin/{}
+wget https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz -O /tmp/gcc-arm-none-eabi-10.3-2021.10.tar.xz
+sudo tar -xf /tmp/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz /opt
+sudo ln  /opt/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-* /usr/bin/
 
 sudo groupadd -g 986 uucp-2
 sudo usermod -a -G uucp-2 vscode
