@@ -21,5 +21,9 @@ class DeviceID {
 
   /// @brief 符号なし 16bit で Device ID を取得
   uint8_t GetDeviceID() const { return id_; }
+
+  bool operator==(DeviceID const &rhs) const { return id_ == rhs.id_; }
+
+  bool operator!=(Deviceid const &rhs) const { return id_ != rhs.id_; }
 };
 }  // namespace robobus::types

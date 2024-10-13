@@ -5,6 +5,8 @@ GRAPHVIZ?=Graphviz/${TARGET}
 .PHONY: all
 all: build
 
+-include syoch-robotics/makefile.d/all.mk
+
 $(BUILD)/build.ninja: CMakeLists.txt
 	[ -d $(BUILD) ] || mkdir -p $(BUILD)
 	cd $(BUILD); cmake \

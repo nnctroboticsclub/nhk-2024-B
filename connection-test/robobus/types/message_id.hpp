@@ -15,7 +15,7 @@
 namespace robobus::types {
 /**
  * @class MessageID
- * @brief メッセージ ID (21bit) の Value Object
+ * @brief メッセージ ID (20bit) の Value Object
  */
 class MessageID {
   uint32_t id_;
@@ -23,32 +23,38 @@ class MessageID {
  public:
   /**
    * @brief コンストラクタ
-   * @param id 21bit Message ID
-   * @exception std::invalid_argument MessageID must be positive
-   * @exception std::invalid_argument MessageID must be less than 0x200000 (21
+   * @param id 20bit Message ID
+   * @exception std::invalid_argument MessageID must be less than 0x100000 (20
    * bit)
    */
   explicit MessageID(uint32_t id) : id_(id) {
-    if (0x2000 < id_) {
-      robotics::system::panic("MessageID must be less than 0x200000 (21 bit)");
+    if (0x100000 < id_) {
+      robotics::system::panic("MessageID must be less than 0x100000 (20 bit)");
     }
   }
 
-  /// @brief 21bit の Message ID を取得
+  /// @brief Control Transfer の Message ID を生成
+  static MessageID CreateControlTransfer(DeviceID sender_device_id,
+                                         DataCtrlMarker data_ctrl_marker) {
+    return MessageID((0x80 << 16) | (sender_device_id.GetDeviceID() << 8) |
+                     static_cast<uint32_t>(data_ctrl_marker));
+  }
+
+  /// @brief Message ID を取得
   uint32_t GetMsgID() const { return id_; }
 
   /// @brief メッセージの種類を取得
   MessageType GetMessageType() const {
-    auto kind = (id_ & 0x600000) >> 21;  // 0 ~ 3
+    auto kind = (id_ & 0x70000) >> 16;  // 0 ~ 7
     switch (kind) {
       case 0:
-        return MessageType::kP2P;
-      case 1:
-        return MessageType::kMulticast;
-      case 2:
-        return MessageType::kRawP2P;
-      case 3:
         return MessageType::kControl;
+      case 1:
+        return MessageType::kRawP2P;
+      case 2:
+        return MessageType::kP2P;
+      case 3:
+        return MessageType::kMulticast;
       default:
         robotics::system::panic(
             "Invalid message type, this should not happen (maybe bit shift "

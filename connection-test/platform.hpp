@@ -68,8 +68,8 @@ platform::Mode platform::_GetMode() { return platform::Mode::kDevice1; }
 const mbed::BufferedSerial pc{USBTX, USBRX, 115200};
 
 platform::Mode platform::_GetMode() {
-  mbed::DigitalIn mode(PA_9);
-
+  mbed::DigitalIn mode(PA_9, PinMode::PullDown);
+  //
   return mode.read() ? platform::Mode::kDevice1 : platform::Mode::kDevice2;
 }
 

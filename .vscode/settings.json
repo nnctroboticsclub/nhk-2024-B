@@ -14,5 +14,5 @@
     "usb": true,
   },
   "editor.inlayHints.enabled": "on",
-  "sonarlint.pathToCompileCommands": "${workspaceFolder}/Build/NUCLEO_F446RE/compile_commands.json",
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/robot3-collect-esp32/build/compile_commands.json",
 }
