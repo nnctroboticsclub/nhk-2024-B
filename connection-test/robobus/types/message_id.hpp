@@ -36,7 +36,7 @@ class MessageID {
   /// @brief Control Transfer の Message ID を生成
   static MessageID CreateControlTransfer(DeviceID sender_device_id,
                                          DataCtrlMarker data_ctrl_marker) {
-    return MessageID((0x80 << 16) | (sender_device_id.GetDeviceID() << 8) |
+    return MessageID((0x0 << 16) | (sender_device_id.GetDeviceID() << 8) |
                      static_cast<uint32_t>(data_ctrl_marker));
   }
 

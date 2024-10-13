@@ -26,16 +26,45 @@ robotics::logger::Logger chore_logger_{"robo-bus.nw", "RoboBus"};
 using ByteStream = robotics::network::Stream<uint8_t>;
 
 using robotics::logger::core::Level;
-using types::DeviceID;
 
 namespace control_stream {
 using robotics::network::RD16;
+using types::DataCtrlMarker;
+using types::DeviceID;
+using types::MessageID;
+
+struct CANMessage {
+  MessageID id;
+  std::array<uint8_t, 8> data;
+};
+
 struct ControlStreamControlData {
   uint16_t seq;
   uint16_t remote_seq;
 
   uint16_t chunk_rd16;
   uint16_t whole_rd16;
+
+  static ControlStreamControlData FromCANMessage(CANMessage const &msg) {
+    ControlStreamControlData data;
+    data.seq = (msg.data[0] << 8) | msg.data[1];
+    data.remote_seq = (msg.data[2] << 8) | msg.data[3];
+    data.chunk_rd16 = (msg.data[4] << 8) | msg.data[5];
+    data.whole_rd16 = (msg.data[6] << 8) | msg.data[7];
+    return data;
+  }
+
+  CANMessage ToCANMessage(DeviceID device_id, bool is_to_server) const {
+    auto marker = is_to_server ? DataCtrlMarker::kServerCtrl
+                               : DataCtrlMarker::kClientCtrl;
+
+    CANMessage msg{.id = MessageID::CreateControlTransfer(device_id, marker),
+                   .data = {(seq >> 8) & 0xFF, seq & 0xFF,                //
+                            (remote_seq >> 8) & 0xFF, remote_seq & 0xFF,  //
+                            (chunk_rd16 >> 8) & 0xFF, chunk_rd16 & 0xFF,  //
+                            (whole_rd16 >> 8) & 0xFF, whole_rd16 & 0xFF}};
+    return msg;
+  }
 };
 
 struct ControlStream {
@@ -44,7 +73,12 @@ struct ControlStream {
   RD16 rx_whole_rd16;
   RD16 tx_whole_rd16;
 
-  void FeedTx() {
+  CANMessage tx_data;
+  CANMessage tx_ctrl;
+  CANMessage rx_data;
+  CANMessage rx_ctrl;
+
+  void FeedTx(std::vector<uint8_t> const &data) {
     RD16 tx_chunk_rd16;
     tx_chunk_rd16 << tx_ctrl.seq;
   }
@@ -60,15 +94,14 @@ class RoboBus {
   void ProcessControlMessage(types::MessageID id,
                              std::vector<uint8_t> const &data) const {
     auto data_ctrl_marker = id.GetDataCtrlMarker();
-    auto sender_device_id = id.GetSenderDeviceID();
-    if (!data_ctrl_marker || !sender_device_id) {
+    auto device_id = id.GetSenderDeviceID();
+    if (!data_ctrl_marker || !device_id) {
       logger_.Error("Invalid control message");
       return;
     }
 
     // Accept with motherboard? or id=self_device_id
-    if (!is_motherboard_ &&
-        *sender_device_id != self_device_id_.GetDeviceID()) {
+    if (!is_motherboard_ && *device_id != self_device_id_) {
       return;
     }
 
@@ -76,9 +109,9 @@ class RoboBus {
     this->logger_.Debug("Received message: %08X", id);
     this->logger_.Hex(Level::kDebug, data.data(), data.size());
 
-    logger_.Info("Control message between %d (marker: %d)",
-                 sender_device_id->GetDeviceID(),
-                 static_cast<int>(*data_ctrl_marker));
+    logger_.Debug("Control message between %d (marker: %d)",
+                  device_id->GetDeviceID(),
+                  static_cast<int>(*data_ctrl_marker));
   }
   void ProcessRawP2PMessage(
       [[maybe_unused]] types::MessageID _id,

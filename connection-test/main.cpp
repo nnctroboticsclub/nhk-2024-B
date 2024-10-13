@@ -51,8 +51,8 @@ class RoboBusTest {
     auto can = static_cast<std::unique_ptr<robotics::network::CANBase>>(
         std::move(simple_can));
 
-    auto robobus = std::make_unique<RoboBus>(
-        DeviceID(platform::GetSelfAddress()), is_motherboard, std::move(can));
+    auto robobus =
+        std::make_unique<RoboBus>(device_id, is_motherboard, std::move(can));
 
     using namespace std::chrono_literals;
     while (true) {
