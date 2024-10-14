@@ -29,55 +29,31 @@ class Robot {
   Node<bool> ctrl_button_arm_open;
   Node<bool> ctrl_button_arm_close;
 
-  Node<float> out_move;
+  Node<float> out_move_l;
+  Node<float> out_move_r;
   Node<float> out_arm_elevation;
   Node<float> out_arm_expansion;
 
-  Node<bool> emc_state;
-
  private:
-  Node<float> value_move;
-  Node<float> value_arm_elevation;
-  Node<float> value_arm_expansion;
-
-  Node<float> zero;
-
-  Muxer<float> move;
-  Muxer<float> arm_elevation;
-  Muxer<float> arm_expansion;
 
   void UpdateMove() {
-    float forward_back = ctrl_stick_move.GetValue()[1];
+    auto stick = ctrl_stick_move.GetValue();
 
-    value_move.SetValue(forward_back);
+    auto left = (stick[0] + stick[1]) / 1.41;
+    auto right = (stick[0] - stick[1]) / 1.41;
+
+    if (abs(left) > 1 || abs(right) > 1) {
+      auto max = std::max(abs(left), abs(right));
+      left /= max;
+      right /= max;
+    }
+
+    out_move_l.SetValue(left * 0.95);
+    out_move_r.SetValue(right * 0.95);
   }
 
  public:
-  Robot() {  //
-    zero.SetValue(0);
-
-    move.AddInput(zero);
-    move.AddInput(value_move);
-    move.output_ >> out_move;
-
-    arm_elevation.AddInput(zero);
-    arm_elevation.AddInput(value_arm_elevation);
-    arm_elevation.output_ >> out_arm_elevation;
-    // value_arm_elevation >> out_arm_elevation;
-
-    arm_expansion.AddInput(zero);
-    arm_expansion.AddInput(value_arm_expansion);
-    arm_expansion.output_ >> out_arm_expansion;
-
-    emc_state.SetChangeCallback([this](bool emc) {
-      auto i = emc ? 1 : 0;
-      logger.Info("Select i = %d", i);
-      move.Select(i);
-      arm_elevation.Select(i);
-      arm_expansion.Select(i);
-    });
-
-    emc_state.SetValue(0);
+  Robot() {
   }
 
   void LinkController() {
@@ -86,13 +62,13 @@ class Robot {
 
     // ボタンの設定
     ctrl_button_arm_up.SetChangeCallback(
-        [this](bool btn) { value_arm_elevation.SetValue(btn ? 1 : 0); });
+        [this](bool btn) { out_arm_elevation.SetValue(btn ? 1 : 0); });
     ctrl_button_arm_down.SetChangeCallback(
-        [this](bool btn) { value_arm_elevation.SetValue(btn ? -1 : 0); });
+        [this](bool btn) { out_arm_elevation.SetValue(btn ? -1 : 0); });
     ctrl_button_arm_open.SetChangeCallback(
-        [this](bool btn) { value_arm_expansion.SetValue(btn ? 1 : 0); });
+        [this](bool btn) { out_arm_expansion.SetValue(btn ? 1 : 0); });
     ctrl_button_arm_close.SetChangeCallback(
-        [this](bool btn) { value_arm_expansion.SetValue(btn ? -1 : 0); });
+        [this](bool btn) { out_arm_expansion.SetValue(btn ? -1 : 0); });
   }
 };
 }  // namespace nhk2024b::robot3
