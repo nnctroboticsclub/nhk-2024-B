@@ -6,6 +6,6 @@ dst2:
 
 dst:
 	clear
-	rm Build/NUCLEO_F446RE/connection-test/CMakeFiles/connection-test.dir/main.cpp.obj
+	rm Build/NUCLEO_F446RE/connection-test/CMakeFiles/connection-test.dir/main.cpp.obj || true
 	$(MAKE)
 	$(MAKE) -j 2 dst1 dst2
