@@ -17,6 +17,7 @@ target_link_libraries(robot2 PRIVATE
   syoch-robotics-ikako-robomas
   ikako_rohm_md
   can_servo
+  Futaba_Puropo
 )
 
 static_mbed_os_app_target(robot2)

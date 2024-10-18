@@ -27,8 +27,8 @@ class Robot {
     ctrl_unlock.SetChangeCallback(
         [this](bool btn) { out_unlock_duty.SetValue(btn ? 1 : 0); });
     ctrl_move.SetChangeCallback([this](robotics::types::JoyStick2D stick) {
-      auto left = (stick[0] + stick[1]) / 1.41;
-      auto right = (stick[0] - stick[1]) / 1.41;
+      auto left = (-stick[0] + stick[1]) / 1.41;
+      auto right = (-stick[0] - stick[1]) / 1.41;
 
       if (abs(left) > 1 || abs(right) > 1) {
         auto max = std::max(abs(left), abs(right));
@@ -36,8 +36,8 @@ class Robot {
         right /= max;
       }
 
-      out_move_l.SetValue(left * 0.95);
-      out_move_r.SetValue(right * 0.95);
+      out_move_l.SetValue(-left * 0.95);
+      out_move_r.SetValue(-right * 0.95);
     });
 
     ctrl_bridge_toggle.SetChangeCallback([this](bool value) {
