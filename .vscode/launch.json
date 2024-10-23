@@ -5,6 +5,19 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "lldb",
+      "request": "custom",
+      "name": "Custom launch",
+      "targetCreateCommands": [
+        "target create ${workspaceFolder}/Build/NUCLEO_F446RE/connection-test/connection-test",
+        "gdb-remote 127.0.0.1:3333"
+      ],
+      "initCommands": [],
+      "processCreateCommands": [
+        "settings set target.run-args value1 value2 value3",
+      ]
+    },
+    {
       "name": "(gdb) connection-test",
       "type": "cppdbg",
       "request": "launch",

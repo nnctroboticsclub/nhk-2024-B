@@ -24,7 +24,8 @@
 				"mhutchie.git-graph",
 				"rust-lang.rust-analyzer",
 				"shd101wyy.markdown-preview-enhanced",
-				"yzhang.markdown-all-in-one"
+				"yzhang.markdown-all-in-one",
+				"wk-j.save-and-run"
 			]
 		}
 	}
