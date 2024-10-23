@@ -13,6 +13,7 @@
 #include <nhk2024b/controller_network.hpp>
 #include <ikako_m2006.h>
 #include "NHKPuropo.h"
+#include <nhk2024b/fep_ps4_con.hpp>
 #include "app.hpp"
 #include "bridge.hpp"
 
@@ -93,7 +94,8 @@ class App {
 
   // nhk2024b::ControllerNetwork ctrl_net;
   // nhk2024b::robot2::Controller *ctrl;
-  PuropoController ctrl{PA_0, PA_1};
+  // PuropoController ctrl{PA_0, PA_1};
+  nhk2024b::ps4_con::PS4Con ctrl{PC_6, PC_7};
 
   Robot robot;
 
@@ -155,14 +157,16 @@ class App {
 
     logger.Info("Init - Link");
 
-    ctrl.stick1 >> robot.ctrl_move;
-    ctrl.button1 >> robot.ctrl_deploy;
-    ctrl.button2 >> robot.ctrl_bridge_toggle;
-    ctrl.button3 >> robot.ctrl_unlock;
-    ctrl.button4.SetChangeCallback([this](bool btn) {
+    ctrl.stick_left >> robot.ctrl_move;
+    ctrl.button_triangle >> robot.ctrl_deploy;
+    ctrl.button_share >> robot.ctrl_bridge_toggle;
+    ctrl.button_circle >> robot.ctrl_unlock;
+    ctrl.button_square.SetChangeCallback([this](bool btn) {
       emc_ctrl ^= btn;
       emc.write(emc_ctrl & emc_conn);
     });
+    ctrl.Init();
+
     robot.LinkController();
 
     emc.write(1);
@@ -186,7 +190,7 @@ class App {
       previous = current;
 
       // ctrl_net.keep_alive->Update(delta_s);
-      ctrl.Tick();
+      ctrl.Update();
 
       actuators->Tick();
 
@@ -194,15 +198,15 @@ class App {
       int status_actuators_send_ = actuators->Send();
       can_send_failed = status_actuators_send_ != 0;
 
-      if (i % 50 == 0 && false) {
-        auto stick = ctrl.stick1.GetValue();
+      if (i % 50 == 0 && true) {
+        auto stick = ctrl.stick_left.GetValue();
         logger.Info("Status");
         logger.Info("  actuators_send %d", status_actuators_send_);
-        logger.Info("  ctrl.status [%d]", ctrl.status.GetValue());
+        // logger.Info("  ctrl.status [%d]", ctrl.status.GetValue());
         logger.Info("Report");
         logger.Info("  s %f, %f", stick[0], stick[1]);
-        logger.Info("  b d%d, b%d", ctrl.button1.GetValue(),
-                    ctrl.button2.GetValue());
+        logger.Info("  b d%d, b%d", ctrl.button_circle.GetValue(),
+                    ctrl.button_cross.GetValue());
         logger.Info("  o s %f %f | %f %f",  ///
                     actuators->servo_0.GetValue(),
                     actuators->servo_1.GetValue(),
@@ -250,8 +254,8 @@ class App {
                       bpvf, bwgf);
         }
       } else {
-        ctrl.puropo.print_debug();
-        printf("\n");
+        // ctrl.puropo.print_debug();
+        // printf("\n");
       }
       i += 1;
       ThisThread::sleep_for(1ms);
