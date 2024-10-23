@@ -17,6 +17,14 @@
 
 ## Control Transfer
 
+### Control Marker
+
+|    value    | Desc |
+| :---------: | :--- |
+| kServerData | 0    |
+| kServerCtrl | 1    |
+| kClientData | 2    |
+| kClientCtrl | 3    |
 ### Control Pipe
 
 | byte | desc     |

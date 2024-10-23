@@ -6,6 +6,9 @@ find_package(can_servo REQUIRED)
 add_executable(connection-test)
 target_compile_features(connection-test PUBLIC cxx_std_20)
 
+target_compile_options(connection-test PRIVATE
+  -gdwarf-3)
+
 target_sources(connection-test PRIVATE
   main.cpp
 )

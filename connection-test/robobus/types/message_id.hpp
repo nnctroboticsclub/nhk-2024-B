@@ -130,5 +130,7 @@ class MessageID {
       return std::nullopt;
     }
   }
+
+  bool operator==(MessageID const &rhs) const { return id_ == rhs.id_; }
 };
 }  // namespace robobus::types
