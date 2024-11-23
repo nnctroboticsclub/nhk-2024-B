@@ -4,6 +4,10 @@
 			"path": "."
 		},
 		{
+			"path": "framework-test",
+			"name": "[HOST] framework test"
+		},
+		{
 			"path": "controller-stm32",
 			"name": "[Mbed] Controller"
 		},
@@ -133,7 +137,12 @@
 			"unordered_set": "cpp",
 			"freertos.h": "c",
 			"inttypes.h": "c",
-			"task.h": "c"
+			"task.h": "c",
+			"mstd_functional": "cpp",
+			"mstd_atomic": "cpp",
+			"fw-note": "cpp",
+			"coroutine": "cpp",
+			"expected": "cpp"
 		}
 	}
 }
