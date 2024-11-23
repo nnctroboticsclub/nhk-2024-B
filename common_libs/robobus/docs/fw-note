@@ -1,0 +1,32 @@
+using DeviceID = uint8_t;
+
+template <typename ReturnType>
+class Coroutine {};
+
+template <typename T>
+concept Interface = requires(T t) {
+  { t.Watch([](auto) {}) };
+};
+
+class VelocityController {};
+
+class Context {
+  template <Interface InterfaceType>
+  Coroutine<InterfaceType> AcquireDevice(DeviceID id) {
+    return Coroutine<InterfaceType>{};
+  }
+};
+class Module {};
+class Joystick {};
+
+Module test_mod(Context ctx, struct { Joystick move; } input) {
+  auto motor_1 = co_await ctx.AcquireDevice<VelocityController>(0x41);
+  auto motor_2 = co_await ctx.AcquireDevice<VelocityController>(0x42);
+
+  input.move.Watch([](Vector2D const &stick) {
+    DebugTree().Node("Move", "-----").Set(stick.ToString());
+
+    motor_1 = (stick[0] - stick[1]) / 1.41;
+    motor_2 = (stick[0] + stick[1]) / 1.41;
+  });
+}

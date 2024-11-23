@@ -35,9 +35,9 @@ class SignalTx {
 /// @tparam T Signal が通知するデータの型
 template <typename T>
 class SignalRx {
+ public:
   std::weak_ptr<Signal<T>> signal_;
 
- public:
   SignalRx() = delete;
 
   SignalRx(std::shared_ptr<SignalTx<T>> signal_tx)
@@ -68,6 +68,7 @@ class SignalRx {
 /// @tparam T Signal が通知するデータの型
 template <typename T>
 class Signal {
+ public:
   std::vector<std::function<void(T)>> slots;
 
  private:
