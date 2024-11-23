@@ -7,3 +7,7 @@ $(BUILD)/build.ninja: CMakeLists.txt
 .PHONY: build
 build: $(BUILD)/build.ninja
 	ninja -C $(BUILD)
+
+.PHONY: run
+run: build
+	$(BUILD)/framework-test
