@@ -15,9 +15,9 @@ BaseCoroutine Task(SharedContext<Clock> ctx, int number,
                    std::chrono::milliseconds offset) {
   co_await ctx.Sleep(std::chrono::milliseconds(100));
   co_await ctx.Sleep(offset);
-  printf("Task%d started (%s)\n", number, ctx.ContextId().c_str());
+  ctx.Logger().Info("Task%d started (%s)", number, ctx.ContextId().c_str());
   while (true) {
-    printf("Task%d\n", number);
+    ctx.Logger().Info("Task%d", number);
     co_await ctx.Sleep(std::chrono::seconds(1));
   }
 
@@ -31,7 +31,7 @@ int main() {
   robotics::logger::core::Init();
 
   auto ctx = SharedRootContext<Clock>();
-  ctx.GetLoop().LaunchDebugThread();
+  // ctx.GetLoop().LaunchDebugThread();
 
   robotics::logger::SuppressLogger("loop.robobus");
 

@@ -17,17 +17,15 @@ struct RootContext {
   Loop<Clock> loop_{};
 
  public:
-  RootContext() { printf("RootContext created at %p\n", this); }
-
-  void Run() { loop_.Run(); }
+  auto Run() -> void { loop_.Run(); }
 
   auto GetLoop() -> Loop<Clock>& { return loop_; }
 
-  auto AddChild(SharedContext<Clock> sub_context) {
+  auto AddChild(SharedContext<Clock> sub_context) -> void {
     child_contexts_.emplace_back(sub_context);
   }
 
-  inline auto AddTask(std::coroutine_handle<> coroutine) {
+  inline auto AddTask(std::coroutine_handle<> coroutine) -> void {
     loop_.AddTask(coroutine);
   }
 };
@@ -40,19 +38,19 @@ class SharedRootContext {
   std::shared_ptr<RootCtx> root = std::make_shared<RootCtx>();
 
  public:
-  auto Root() { return root; }
+  auto Root() -> std::shared_ptr<RootCtx> { return root; }
 
-  auto Run() { root->Run(); }
+  auto Run() -> void { root->Run(); }
 
   auto GetLoop() -> Loop<Clock>& { return root->GetLoop(); }
 
-  auto Child(std::string tag) {
+  auto Child(std::string tag) -> SharedContext<Clock> {
     auto ctx = SharedContext<Clock>(root, {}, tag);
     root->AddChild(ctx);
     return ctx;
   }
 
-  inline auto AddTask(std::coroutine_handle<> coroutine) {
+  inline auto AddTask(std::coroutine_handle<> coroutine) -> void {
     root->AddTask(coroutine);
   }
 };
