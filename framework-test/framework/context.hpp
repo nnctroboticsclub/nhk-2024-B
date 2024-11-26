@@ -101,4 +101,8 @@ class SharedContext {
   }
 
   auto Logger() -> robotics::logger::Logger& { return ctx->Logger(); }
+
+  inline auto AddTask(std::coroutine_handle<> coroutine) -> void {
+    Root().lock()->AddTask(coroutine);
+  }
 };

@@ -24,6 +24,15 @@ BaseCoroutine Task(SharedContext<Clock> ctx, int number,
   co_return;
 }
 
+void LaunchLoopTask(SharedContext<Clock> ctx) {
+  ctx.AddTask(Task(ctx.Child("Task1"), 1, std::chrono::milliseconds(0)).handle);
+  ctx.AddTask(Task(ctx.Child("Task2"), 2, std::chrono::milliseconds(1)).handle);
+  ctx.AddTask(
+      Task(ctx.Child("Task3"), 3, std::chrono::milliseconds(250)).handle);
+  ctx.AddTask(
+      Task(ctx.Child("Task4"), 4, std::chrono::milliseconds(500)).handle);
+}
+
 int main() {
   using namespace std::chrono_literals;
 
@@ -35,12 +44,7 @@ int main() {
 
   robotics::logger::SuppressLogger("loop.robobus");
 
-  ctx.AddTask(Task(ctx.Child("Task1"), 1, std::chrono::milliseconds(0)).handle);
-  ctx.AddTask(Task(ctx.Child("Task2"), 2, std::chrono::milliseconds(1)).handle);
-  ctx.AddTask(
-      Task(ctx.Child("Task3"), 3, std::chrono::milliseconds(250)).handle);
-  ctx.AddTask(
-      Task(ctx.Child("Task4"), 4, std::chrono::milliseconds(500)).handle);
+  LaunchLoopTask(ctx.Child("Loop"));
 
   ctx.Run();
 
