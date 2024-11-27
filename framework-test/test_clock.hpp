@@ -4,7 +4,7 @@
 
 class TestClock {
  public:
-  using duration = std::chrono::milliseconds;
+  using duration = std::chrono::duration<float, std::milli>;
   using rep = duration::rep;
   using period = duration::period;
   using time_point = std::chrono::time_point<TestClock, duration>;

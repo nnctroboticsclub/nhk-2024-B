@@ -17,7 +17,10 @@ struct RootContext {
   Loop<Clock> loop_{};
 
  public:
-  auto Run() -> void { loop_.Run(); }
+  [[noreturn]]
+  auto Run() -> void {
+    loop_.Run();
+  }
 
   auto GetLoop() -> Loop<Clock>& { return loop_; }
 
@@ -40,7 +43,10 @@ class SharedRootContext {
  public:
   auto Root() -> std::shared_ptr<RootCtx> { return root; }
 
-  auto Run() -> void { root->Run(); }
+  [[noreturn]]
+  auto Run() -> void {
+    root->Run();
+  }
 
   auto GetLoop() -> Loop<Clock>& { return root->GetLoop(); }
 

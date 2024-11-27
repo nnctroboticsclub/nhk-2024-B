@@ -28,9 +28,10 @@ class Loop {
     const auto now = time.Now();
 
     for (auto &&[c_time, coro] : resume_list_) {
-      // logger.Debug("%p: grace = %d", coro.address(), (c_time - now).count());
-      if (c_time - now < minimum_grace) {
-        minimum_grace = c_time - now;
+      auto grace = c_time - now;
+
+      if (0 < grace.count() && grace < minimum_grace) {
+        minimum_grace = grace;
       }
 
       if (c_time <= now) {
@@ -74,10 +75,10 @@ class Loop {
   }
 
   //* Root context
+  [[noreturn]]
   void Run() {
     logger.Trace("Starting main loop");
     while (true) {
-      // logger.Trace("Main loop iteration");
       for (auto const &coroutine : coroutines_) {
         if (coroutine.done()) {
           logger.Info("Remove the %p", coroutine.address());
@@ -87,8 +88,6 @@ class Loop {
 
       time.Tick();
       ProcessResumeList();
-
-      // std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
   }
 

@@ -16,6 +16,10 @@ run_t: build
 run: build
 	Build/framework-test
 
+.PHONY: debug
+debug: build
+	gdb Build/framework-test
+
 .PHONY: watch-threads
 watch-threads:
 	watch -n 1 -t ps H -C framework-test -o \"pid tid cmd comm\"

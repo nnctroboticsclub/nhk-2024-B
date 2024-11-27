@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "cppdbg",
+      "request": "launch",
+      "name": "framework-test (lldb)",
+      "program": "${workspaceFolder}/Build/framework-test",
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ],
+  "compounds": []
+}
