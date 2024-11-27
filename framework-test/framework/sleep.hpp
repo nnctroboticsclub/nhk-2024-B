@@ -18,8 +18,9 @@ struct SleepAwaiter {
       : ctx(ctx), duration(duration) {}
 
   // Sleep が実行済かどうか
-  // 今回は常に false を返す (Sleep した後は true
-  // になる．しかし，その時コルーチンは廃棄されているので)．
+  // 今回は常に false を返す
+  //  (Sleep した後は true
+  //  になる．しかし，その時コルーチンは廃棄されているので)．
   bool await_ready() const { return false; }
 
   void await_suspend(std::coroutine_handle<> handle) {

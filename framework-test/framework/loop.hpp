@@ -28,7 +28,7 @@ class Loop {
     const auto now = time.Now();
 
     for (auto &&[c_time, coro] : resume_list_) {
-      logger.Debug("%p: grace = %d", coro.address(), (c_time - now).count());
+      // logger.Debug("%p: grace = %d", coro.address(), (c_time - now).count());
       if (c_time - now < minimum_grace) {
         minimum_grace = c_time - now;
       }
