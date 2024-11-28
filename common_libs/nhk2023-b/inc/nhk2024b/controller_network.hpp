@@ -29,8 +29,6 @@ class ControllerNetwork {
   ControllerNetwork() {}
 
   void Init(uint16_t node_number) {
-    static char print_buf[512];
-
     auto uart = std::make_shared<mbed::UnbufferedSerial>(PA_9, PA_10, 19200);
 
     auto tx = new srobo2::com::UARTCStreamTx(uart);
