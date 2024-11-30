@@ -44,10 +44,7 @@
 			"name": "[Rust] NHK2024B"
 		},
 		{
-			"path": "/workspaces/libs-cmake"
-		},
-		{
-			"path": "/workspaces/static-mbed-os"
+			"path": "/tmp/static-mbed-os"
 		}
 	],
 	"settings": {
