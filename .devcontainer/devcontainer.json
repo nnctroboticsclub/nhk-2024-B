@@ -1,13 +1,9 @@
 {
 	"name": "ESP-IDF & MBedOS 6",
-	"image": "mcr.microsoft.com/devcontainers/base:jammy",
+	"image": "ghcr.io/syoch/robotics:bookworm-1.0.0",
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
-		"ghcr.io/syoch/devcontainers/device-forward:1.0.2": {},
-		"ghcr.io/syoch/devcontainers/mbed-cli:1.0.3": {},
-		"ghcr.io/syoch/devcontainers/esp-idf:1.0.3": {
-			"target": "release/v5.2"
-		}
+		"ghcr.io/syoch/devcontainers/device-forward:1.0.2": {}
 	},
 	"postCreateCommand": "./.devcontainer/post_create.sh",
 	"mounts": [],
