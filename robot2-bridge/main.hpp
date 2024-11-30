@@ -77,7 +77,9 @@ class App {
   using Actuators = nhk2024b::robot2::Actuators;
   using Robot = nhk2024b::robot2::Robot;
 
-  DigitalOut emc{PB_7};
+  float unlock = 128.0f;
+
+  DigitalOut emc{D13};
 
   Actuators *actuators = new Actuators{(Actuators::Config){
       .can_1_rd = PB_5,
@@ -86,16 +88,10 @@ class App {
       .can_2_td = PB_9,
   }};
 
-  nhk2024b::common::CanServo *servo0;
-  nhk2024b::common::CanServo *servo1;
-  nhk2024b::common::Rohm1chMD *move_l;
-  nhk2024b::common::Rohm1chMD *move_r;
-  nhk2024b::common::Rohm1chMD *deploy;
-
   // nhk2024b::ControllerNetwork ctrl_net;
   // nhk2024b::robot2::Controller *ctrl;
   // PuropoController ctrl{PA_0, PA_1};
-  nhk2024b::ps4_con::PS4Con ctrl{PC_6, PC_7};
+  nhk2024b::ps4_con::PS4Con ctrl{PA_0, PA_1};
 
   Robot robot;
 
@@ -107,13 +103,11 @@ class App {
   bool emc_conn = true;
 
   void UpdateEMC() {
-    bool emc_state = emc_ctrl & emc_conn;
+    bool emc_state = emc_ctrl && emc_conn;
     emc.write(emc_state);
   }
 
  public:
-  App() {}
-
   void Init() {
     logger.Info("Init - Ctrl");
 
@@ -130,24 +124,23 @@ class App {
 
     robot.out_move_l >> actuators->move_l.velocity;
     robot.out_move_r >> actuators->move_r.velocity;
-    robot.out_deploy >> actuators->deploy.in_velocity;
+    robot.out_deploy >> actuators->deploy.velocity;
     actuators->move_l.velocity.SetValue(0);
     actuators->move_r.velocity.SetValue(0);
-    actuators->deploy.in_velocity.SetValue(0);
 
     robot.out_bridge_unlock_duty.SetChangeCallback([this](float duty) {
-      actuators->servo_0.SetValue(102 + 85 * duty);
-      actuators->servo_1.SetValue(177.8 - 85 * duty);
+      actuators->servo_0.SetValue(102.0f + 85.0f * duty);
+      actuators->servo_1.SetValue(177.8f - 85.0f * duty);
     });
-    actuators->servo_0.SetValue(102);
-    actuators->servo_1.SetValue(177.8);
+    actuators->servo_0.SetValue(102.0f);
+    actuators->servo_1.SetValue(177.8f);
 
     robot.out_unlock_duty.SetChangeCallback([this](float duty) {
-      actuators->servo_2.SetValue(128 - 128 * duty);
-      actuators->servo_3.SetValue(128 - 128 * duty);
+      actuators->servo_2.SetValue(96.0f - 96.0f * duty);
+      actuators->servo_3.SetValue(96.0f - 96.0f * duty);
     });
-    actuators->servo_2.SetValue(128);
-    actuators->servo_3.SetValue(128);
+    actuators->servo_2.SetValue(96.0f);
+    actuators->servo_3.SetValue(96.0f);
 
     logger.Info("Init - LED");
     actuators->move_l.velocity.SetChangeCallback(
@@ -158,14 +151,28 @@ class App {
     logger.Info("Init - Link");
 
     ctrl.stick_left >> robot.ctrl_move;
-    ctrl.button_triangle >> robot.ctrl_deploy;
-    ctrl.button_share >> robot.ctrl_bridge_toggle;
+    ctrl.button_cross >> robot.ctrl_deploy;
+    ctrl.button_square >> robot.ctrl_bridge_toggle;
     ctrl.button_circle >> robot.ctrl_unlock;
-    ctrl.button_square.SetChangeCallback([this](bool btn) {
+
+    ctrl.button_options.SetChangeCallback([this](bool btn) {
       emc_ctrl ^= btn;
       emc.write(emc_ctrl & emc_conn);
     });
     ctrl.Init();
+
+    actuators->move_l.factor.SetValue(0.2f);
+    actuators->move_r.factor.SetValue(0.2f);
+    ctrl.trigger_r.SetChangeCallback([this](float v) {
+      actuators->move_l.factor.SetValue(0.2f + 0.8f * v);
+      actuators->move_r.factor.SetValue(0.2f + 0.8f * v);
+    });
+
+    actuators->deploy.factor.SetValue(0.6f);
+
+    actuators->deploy.velocity.SetValue(0);
+    actuators->move_l.velocity.SetValue(0);
+    actuators->move_r.velocity.SetValue(0);
 
     robot.LinkController();
 
@@ -174,7 +181,7 @@ class App {
 
     logger.Info("Init - Done");
   }
-
+  [[noreturn]]
   void Main() {
     logger.Info("Main loop");
     int i = 0;
@@ -186,7 +193,6 @@ class App {
 
     while (true) {
       float current = timer.read_ms() / 1000.0;
-      float delta_s = current - previous;
       previous = current;
 
       // ctrl_net.keep_alive->Update(delta_s);
@@ -205,7 +211,7 @@ class App {
         // logger.Info("  ctrl.status [%d]", ctrl.status.GetValue());
         logger.Info("Report");
         logger.Info("  s %f, %f", stick[0], stick[1]);
-        logger.Info("  b d%d, b%d", ctrl.button_circle.GetValue(),
+        logger.Info("  b d(cir)%d, b(crs)%d", ctrl.button_circle.GetValue(),
                     ctrl.button_cross.GetValue());
         logger.Info("  o s %f %f | %f %f",  ///
                     actuators->servo_0.GetValue(),
@@ -215,10 +221,10 @@ class App {
         );
         logger.Info("    m %f %f %f", actuators->move_l.velocity.GetValue(),
                     actuators->move_r.velocity.GetValue(),
-                    actuators->deploy.in_velocity.GetValue());
+                    actuators->deploy.velocity.GetValue());
 
         logger.Info("Network");
-        {
+        /* {
           auto can = actuators->can1.get_can_instance()->get_can();
           auto esr = can->CanHandle.Instance->ESR;
           auto rec = (esr >> 24) & 0xff;
@@ -227,8 +233,6 @@ class App {
           auto boff = (esr >> 2) & 1;
           auto bpvf = (esr >> 1) & 1;
           auto bwgf = (esr >> 0) & 1;
-          auto rerr = can_rderror(can);
-          auto terr = can_tderror(can);
 
           logger.Info("  can1");
           logger.Info("    REC = %d, TEC = %d LEC = %d", rec, tec, lec);
@@ -252,7 +256,7 @@ class App {
           logger.Info("    REC = %d, TEC = %d LEC = %d", rec, tec, lec);
           logger.Info("    Bus Off?: %d, Passive?: %d, Warning?: %d", boff,
                       bpvf, bwgf);
-        }
+        } */
       } else {
         // ctrl.puropo.print_debug();
         // printf("\n");
