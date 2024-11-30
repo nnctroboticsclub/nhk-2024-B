@@ -1,6 +1,6 @@
 {
 	"name": "ESP-IDF & MBedOS 6",
-	"image": "ghcr.io/syoch/robotics:bookworm-1.0.0",
+	"image": "ghcr.io/syoch/robotics:bookworm-1.2.1",
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		"ghcr.io/syoch/devcontainers/device-forward:1.0.2": {}
