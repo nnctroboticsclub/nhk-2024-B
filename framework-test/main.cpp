@@ -1,52 +1,77 @@
 #include <chrono>
-
-#include <robotics/thread/thread.hpp>
-#include <thread>
+#include <iostream>
 
 #include "framework/context.hpp"
 #include "framework/base_coroutine.hpp"
+
 #include "test_clock.hpp"
 #include "measurement.hpp"
 
-using robotics::logger::Logger;
+#include "framework/debug_node.hpp"
+
 using Clock = TestClock;
+
 using std::chrono_literals::operator""s;
 using std::chrono_literals::operator""ms;
 
-Coroutine<void> Task(SharedContext<Clock> ctx, int number,
+class Label {
+ public:
+  void RenderTo(render::BaseRenderer& renderer) {
+    renderer.RenderHTML("<label>Test</label>");
+  }
+};
+
+class SimpleRenderer : public render::BaseRenderer {
+ public:
+  ~SimpleRenderer() override = default;
+
+  void RenderHTML(std::string const& html) override {
+    std::cout << "$HTML:" << html << std::endl;
+  }
+
+  void RenderComponent(render::ComponentByteCode const& component) override {
+    std::cout << "RenderComponent" << std::endl;
+  }
+};
+
+Coroutine<void> Task(SharedContext<Clock> ctx,
                      std::chrono::milliseconds delay) {
   auto logger = ctx.Logger();
 
+  logger.RenameTag("   Test  ");
+
+  auto renderer = SimpleRenderer{};
+  DebugNode<Label> node(1, "Test", Label{});
+  node.Render(renderer);
+
+  co_await ctx.Sleep(delay);
+
   while (true) {
-    logger.Info("%*c#", 3 * number, ' ');
-    co_await ctx.Sleep(delay);
+    const auto now = ctx.GetLoop().time.Now().time_since_epoch();
+    const auto now_s =
+        std::chrono::duration_cast<std::chrono::seconds>(now).count();
+
+    logger.Info("%10d", now_s);
+    co_await ctx.Sleep(1s);
   }
 
   co_return;
 }
 
 void LaunchLoopTask(SharedContext<Clock> ctx) {
-  ctx.AddTask(Task(ctx, 1, 2000ms / (1)).handle);
-  ctx.AddTask(Task(ctx, 2, 2000ms / (2)).handle);
-  ctx.AddTask(Task(ctx, 3, 2000ms / (3)).handle);
-  ctx.AddTask(Task(ctx, 4, 2000ms / (4)).handle);
-  ctx.AddTask(Task(ctx, 5, 2000ms / (5)).handle);
-  ctx.AddTask(Task(ctx, 6, 2000ms / (6)).handle);
-  ctx.AddTask(Task(ctx, 7, 2000ms / (7)).handle);
-  ctx.AddTask(Task(ctx, 8, 2000ms / (8)).handle);
-  ctx.AddTask(Task(ctx, 9, 2000ms / (9)).handle);
+  ctx.AddTask(Task(ctx, 1000ms / 1).handle);
+  ctx.AddTask(Task(ctx, 1000ms / 2).handle);
+  ctx.AddTask(Task(ctx, 1000ms / 3).handle);
 }
 
 int main() {
-  using namespace std::chrono_literals;
-
   robotics::system::SleepFor(20ms);
   robotics::logger::core::Init();
 
   robotics::logger::SuppressLogger("loop.robobus");
 
   auto ctx = SharedRootContext<Clock>();
-  ctx.GetLoop().LaunchDebugThread();
+  // ctx.GetLoop().LaunchDebugThread();
 
   LaunchLoopTask(ctx.Child("Loop"));
 

@@ -92,6 +92,9 @@ class Loop {
   }
 
   void LaunchDebugThread() {
+    static robotics::logger::Logger logger{"debug.loop.robobus",
+                                           "Loop\x1b[32mDebug\x1b[m"};
+
     robotics::system::Thread thread;
     thread.SetThreadName("Loop-Debug");
     thread.Start([this]() {

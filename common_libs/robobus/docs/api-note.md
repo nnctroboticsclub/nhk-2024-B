@@ -3,7 +3,6 @@
 ```cpp
 class Serializable {
   void SerializeTo(Stream<uint8_t> st);
-  std::vector<uint8_t> Pack();
 };
 
 class DebugTree: public Serializable {

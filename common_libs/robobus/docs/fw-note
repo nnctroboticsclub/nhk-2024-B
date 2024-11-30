@@ -1,20 +1,17 @@
 using DeviceID = uint8_t;
 
-template <typename ReturnType>
-class Coroutine {};
-
 template <typename T>
 concept Interface = requires(T t) {
-  { t.Watch([](auto) {}) };
+  {
+    t.Watch([](auto) {})
+  };
 };
 
 class VelocityController {};
 
 class Context {
   template <Interface InterfaceType>
-  Coroutine<InterfaceType> AcquireDevice(DeviceID id) {
-    return Coroutine<InterfaceType>{};
-  }
+  Coroutine<InterfaceType> AcquireDevice(DeviceID id);
 };
 class Module {};
 class Joystick {};
