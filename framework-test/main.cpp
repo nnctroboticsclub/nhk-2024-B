@@ -1,48 +1,34 @@
 #include <chrono>
 #include <iostream>
 
+#include <fmt/format.h>
+
 #include "framework/context.hpp"
 #include "framework/base_coroutine.hpp"
 
 #include "test_clock.hpp"
 #include "measurement.hpp"
 
-#include "framework/debug_node.hpp"
-
 using Clock = TestClock;
 
 using std::chrono_literals::operator""s;
 using std::chrono_literals::operator""ms;
 
-class Label {
+class SimpleDebugAdapter : public DebugAdapter {
  public:
-  void RenderTo(render::BaseRenderer& renderer) {
-    renderer.RenderHTML("<label>Test</label>");
-  }
-};
-
-class SimpleRenderer : public render::BaseRenderer {
- public:
-  ~SimpleRenderer() override = default;
-
-  void RenderHTML(std::string const& html) override {
-    std::cout << "$HTML:" << html << std::endl;
-  }
-
-  void RenderComponent(render::ComponentByteCode const& component) override {
-    std::cout << "RenderComponent" << std::endl;
+  void Message(std::string_view path, std::string_view text) override {
+    std::cout << path << ": " << text << std::endl;
   }
 };
 
 Coroutine<void> Task(SharedContext<Clock> ctx,
                      std::chrono::milliseconds delay) {
   auto logger = ctx.Logger();
+  auto test_debug = ctx.GetDebugInfo("test_debug");
 
   logger.RenameTag("   Test  ");
 
-  auto renderer = SimpleRenderer{};
-  DebugNode<Label> node(1, "Test", Label{});
-  node.Render(renderer);
+  logger.Info("Started 'Task' (cid = %s)", ctx.ContextId().c_str());
 
   co_await ctx.Sleep(delay);
 
@@ -51,7 +37,8 @@ Coroutine<void> Task(SharedContext<Clock> ctx,
     const auto now_s =
         std::chrono::duration_cast<std::chrono::seconds>(now).count();
 
-    logger.Info("%10d", now_s);
+    test_debug.Message(fmt::format("Time: {}", now_s));
+
     co_await ctx.Sleep(1s);
   }
 
@@ -59,9 +46,9 @@ Coroutine<void> Task(SharedContext<Clock> ctx,
 }
 
 void LaunchLoopTask(SharedContext<Clock> ctx) {
-  ctx.AddTask(Task(ctx, 1000ms / 1).handle);
-  ctx.AddTask(Task(ctx, 1000ms / 2).handle);
-  ctx.AddTask(Task(ctx, 1000ms / 3).handle);
+  ctx.AddTask(Task(ctx.Child("a"), 1000ms / 1).handle);
+  ctx.AddTask(Task(ctx.Child("b"), 1000ms / 2).handle);
+  ctx.AddTask(Task(ctx.Child("c"), 1000ms / 3).handle);
 }
 
 int main() {
@@ -72,6 +59,7 @@ int main() {
 
   auto ctx = SharedRootContext<Clock>();
   // ctx.GetLoop().LaunchDebugThread();
+  ctx.SetDebugAdapter(std::make_shared<SimpleDebugAdapter>());
 
   LaunchLoopTask(ctx.Child("Loop"));
 

@@ -1,11 +1,12 @@
 #pragma once
 
-#include "root_context.hpp"
-
 #include <optional>
 #include <cstring>
 
 #include <logger/logger.hpp>
+
+#include "root_context.hpp"
+#include "debug_info.hpp"
 
 template <typename Clock>
   requires std::chrono::is_clock_v<Clock>
@@ -17,18 +18,24 @@ template <typename Clock>
 struct Context {
  private:
   std::string tag_;
+  std::string path_;
 
   std::vector<SharedContext<Clock>> child_contexts_;
-  std::weak_ptr<Context<Clock>> parent_context;
 
   std::weak_ptr<RootContext<Clock>> root_ctx;
 
+  std::vector<DebugInfo<Clock>> debug_infos_;
   std::optional<robotics::logger::Logger> logger;
 
  public:
-  explicit Context(std::weak_ptr<RootContext<Clock>> root,
-                   std::weak_ptr<Context<Clock>> parent, std::string const& tag)
-      : root_ctx(root), parent_context(parent), tag_(tag) {}
+  explicit Context(std::weak_ptr<RootContext<Clock>> root, std::string_view tag,
+                   std::string_view parent_path)
+      : root_ctx(root),
+        tag_(tag),
+        path_(std::string(parent_path) + "." + std::string(tag)) {}
+
+  explicit Context(std::weak_ptr<RootContext<Clock>> root, std::string_view tag)
+      : root_ctx(root), tag_(tag), path_(tag) {}
 
   auto Root() -> std::weak_ptr<RootContext<Clock>> { return root_ctx; }
 
@@ -36,25 +43,14 @@ struct Context {
     child_contexts_.emplace_back(sub_context);
   }
 
-  auto Parent() -> std::weak_ptr<Context<Clock>> {
-    return parent_context.lock();
-  }
-
-  auto ContextId() -> std::string {
-    std::string context_id = "";
-    if (auto parent = Parent().lock()) {
-      context_id = parent->ContextId() + ".";
-    } else {
-      context_id = "";
-    }
-
-    context_id += tag_;
-
-    return context_id;
-  }
+  auto ContextId() -> std::string { return path_; }
 
   inline auto AddTask(std::coroutine_handle<> coroutine) -> void {
     Root().loop.AddTask(coroutine);
+  }
+
+  auto AddDebugInfo(DebugInfo<Clock> debug_info) {
+    debug_infos_.emplace_back(debug_info);
   }
 
   auto Logger() -> robotics::logger::Logger& {
@@ -77,20 +73,21 @@ class SharedContext {
   std::shared_ptr<Context<Clock>> ctx;
 
  public:
-  SharedContext(std::weak_ptr<RootContext<Clock>> root,
-                std::weak_ptr<Context<Clock>> parent, std::string tag)
-      : ctx(std::make_shared<Context<Clock>>(root, parent, tag)) {}
+  SharedContext(std::weak_ptr<RootContext<Clock>> root, std::string_view tag)
+      : ctx(std::make_shared<Context<Clock>>(root, tag)) {}
+
+  SharedContext(std::weak_ptr<RootContext<Clock>> root, std::string_view tag,
+                std::string_view parent_path)
+      : ctx(std::make_shared<Context<Clock>>(root, tag, parent_path)) {}
 
   auto Root() -> std::weak_ptr<RootContext<Clock>> { return ctx->Root(); }
-
-  auto Parent() -> std::weak_ptr<Context<Clock>> { return ctx->Parent(); }
 
   auto GetLoop() -> Loop<Clock>& { return Root().lock()->GetLoop(); }
 
   auto ContextId() -> std::string { return ctx->ContextId(); }
 
   auto Child(std::string tag) -> SharedContext<Clock> {
-    auto child = SharedContext<Clock>(Root(), ctx, tag);
+    auto child = SharedContext<Clock>(Root(), tag, ContextId());
     ctx->AddChild(child);
 
     return child;
@@ -101,6 +98,10 @@ class SharedContext {
   }
 
   auto Logger() -> robotics::logger::Logger& { return ctx->Logger(); }
+
+  auto GetDebugInfo(std::string const& tag) -> DebugInfo<Clock> {
+    return DebugInfo<Clock>(*this, ContextId() + "." + tag);
+  }
 
   inline auto AddTask(std::coroutine_handle<> coroutine) -> void {
     Root().lock()->AddTask(coroutine);
