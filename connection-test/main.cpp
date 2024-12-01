@@ -6,47 +6,19 @@
 #include <logger/log_sink.hpp>
 #include <robotics/utils/no_mutex_lifo.hpp>
 
-#include <robobus/context.hpp>
-#include <robobus/base_coroutine.hpp>
+#include <robobus/context/context.hpp>
+#include <robobus/coroutine/coroutine.hpp>
 
-#include <mbed.h>
-
-class MbedClock {
- public:
-  using duration = std::chrono::duration<float, std::milli>;
-  using rep = duration::rep;
-  using period = duration::period;
-  using time_point = std::chrono::time_point<MbedClock, duration>;
-
- private:
-  static mbed::Timer timer_;
-
- public:
-  static void Init() {
-    timer_.reset();
-    timer_.start();
-  }
-
-  static time_point now() {
-    auto delta_ms = timer_.read_ms();
-    auto duration = MbedClock::duration(delta_ms);
-
-    return time_point(duration);
-  }
-};
-
-mbed::Timer MbedClock::timer_;
-
-template <>
-struct std::chrono::is_clock<MbedClock> : std::true_type {};
-
-template <>
-const bool std::chrono::is_clock_v<MbedClock> = true;
+#include "mbed_clock.hpp"
 
 using Clock = MbedClock;
 
 using std::chrono_literals::operator""s;
 using std::chrono_literals::operator""ms;
+using robobus::context::SharedContext;
+using robobus::context::SharedRootContext;
+using robobus::coroutine::Coroutine;
+using robobus::debug::DebugAdapter;
 
 class SimpleLogSink : public robotics::logger::LogSink {
  public:

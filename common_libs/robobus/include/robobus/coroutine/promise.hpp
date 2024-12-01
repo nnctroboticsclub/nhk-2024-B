@@ -6,6 +6,7 @@
 #include <vector>
 #include <functional>
 
+namespace robobus::coroutine {
 //* Forward declaration
 template <typename ReturnType>
 struct Coroutine;
@@ -82,3 +83,4 @@ struct Promise<void> : public BasePromise<void> {
  private:
   bool finished = false;
 };
+}  // namespace robobus::coroutine

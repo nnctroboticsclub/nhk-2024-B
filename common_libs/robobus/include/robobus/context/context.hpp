@@ -6,8 +6,10 @@
 #include <logger/logger.hpp>
 
 #include "root_context.hpp"
-#include "debug_info.hpp"
+#include "../debug/debug_info.hpp"
+#include "../runtime/sleep.hpp"
 
+namespace robobus::context {
 template <typename Clock>
   requires std::chrono::is_clock_v<Clock>
 class SharedContext;
@@ -24,7 +26,7 @@ struct Context {
 
   std::weak_ptr<RootContext<Clock>> root_ctx;
 
-  std::vector<DebugInfo<Clock>> debug_infos_;
+  std::vector<debug::DebugInfo<Clock>> debug_infos_;
   std::optional<robotics::logger::Logger> logger;
 
  public:
@@ -49,7 +51,7 @@ struct Context {
     Root().loop.AddTask(coroutine);
   }
 
-  auto AddDebugInfo(DebugInfo<Clock> debug_info) {
+  auto AddDebugInfo(debug::DebugInfo<Clock> debug_info) {
     debug_infos_.emplace_back(debug_info);
   }
 
@@ -82,7 +84,7 @@ class SharedContext {
 
   auto Root() -> std::weak_ptr<RootContext<Clock>> { return ctx->Root(); }
 
-  auto GetLoop() -> Loop<Clock>& { return Root().lock()->GetLoop(); }
+  auto GetLoop() -> runtime::Loop<Clock>& { return Root().lock()->GetLoop(); }
 
   auto ContextId() -> std::string { return ctx->ContextId(); }
 
@@ -94,16 +96,17 @@ class SharedContext {
   }
 
   auto Sleep(std::chrono::milliseconds duration) {
-    return ::Sleep(GetLoop(), duration);
+    return runtime::Sleep(GetLoop(), duration);
   }
 
   auto Logger() -> robotics::logger::Logger& { return ctx->Logger(); }
 
-  auto GetDebugInfo(std::string const& tag) -> DebugInfo<Clock> {
-    return DebugInfo<Clock>(*this, ContextId() + "." + tag);
+  auto GetDebugInfo(std::string const& tag) -> debug::DebugInfo<Clock> {
+    return debug::DebugInfo<Clock>(*this, ContextId() + "." + tag);
   }
 
   inline auto AddTask(std::coroutine_handle<> coroutine) -> void {
     Root().lock()->AddTask(coroutine);
   }
 };
+}  // namespace robobus::context

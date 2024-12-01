@@ -2,9 +2,10 @@
 
 #include <memory>
 
-#include "sleep.hpp"
-#include "debug_adapter.hpp"
+#include "../debug/debug_adapter.hpp"
+#include "../runtime/loop.hpp"
 
+namespace robobus::context {
 template <typename Clock>
   requires std::chrono::is_clock_v<Clock>
 class SharedContext;
@@ -15,9 +16,9 @@ template <typename Clock>
 struct RootContext {
  private:
   std::vector<SharedContext<Clock>> child_contexts_;
-  Loop<Clock> loop_{};
+  runtime::Loop<Clock> loop_{};
 
-  std::optional<std::shared_ptr<DebugAdapter>> debug_adapter_;
+  std::optional<std::shared_ptr<debug::DebugAdapter>> debug_adapter_;
 
  public:
   [[noreturn]]
@@ -25,13 +26,14 @@ struct RootContext {
     loop_.Run();
   }
 
-  auto GetLoop() -> Loop<Clock>& { return loop_; }
+  auto GetLoop() -> runtime::Loop<Clock>& { return loop_; }
 
-  auto SetDebugAdapter(std::shared_ptr<DebugAdapter> adapter) -> void {
+  auto SetDebugAdapter(std::shared_ptr<debug::DebugAdapter> adapter) -> void {
     debug_adapter_ = adapter;
   }
 
-  auto GetDebugAdapter() -> std::optional<std::shared_ptr<DebugAdapter>> {
+  auto GetDebugAdapter()
+      -> std::optional<std::shared_ptr<debug::DebugAdapter>> {
     return debug_adapter_;
   }
 
@@ -59,13 +61,14 @@ class SharedRootContext {
     root->Run();
   }
 
-  auto GetLoop() -> Loop<Clock>& { return root->GetLoop(); }
+  auto GetLoop() -> runtime::Loop<Clock>& { return root->GetLoop(); }
 
-  auto SetDebugAdapter(std::shared_ptr<DebugAdapter> adapter) -> void {
+  auto SetDebugAdapter(std::shared_ptr<debug::DebugAdapter> adapter) -> void {
     root->SetDebugAdapter(adapter);
   }
 
-  auto GetDebugAdapter() -> std::optional<std::shared_ptr<DebugAdapter>> {
+  auto GetDebugAdapter()
+      -> std::optional<std::shared_ptr<debug::DebugAdapter>> {
     return root->DebugAdapter();
   }
 
@@ -79,3 +82,4 @@ class SharedRootContext {
     root->AddTask(coroutine);
   }
 };
+}  // namespace robobus::context

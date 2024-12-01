@@ -9,6 +9,7 @@
 
 #include "time_context.hpp"
 
+namespace robobus::runtime {
 /// @brief コルーチンベースプログラムで用いるコンテキスト
 template <typename Clock>
   requires std::chrono::is_clock_v<Clock>
@@ -49,7 +50,8 @@ class Loop {
     if (minimum_grace != Clock::duration::max() &&
         minimum_grace > std::chrono::milliseconds(100)) {
       logger.Debug("Sleeping for %d", minimum_grace.count());
-      robotics::system::SleepFor(std::chrono::duration_cast<std::chrono::milliseconds>(minimum_grace));
+      robotics::system::SleepFor(
+          std::chrono::duration_cast<std::chrono::milliseconds>(minimum_grace));
     }
   }
 
@@ -109,3 +111,4 @@ class Loop {
     });
   }
 };
+}  // namespace robobus::runtime

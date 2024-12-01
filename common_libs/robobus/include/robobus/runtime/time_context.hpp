@@ -2,6 +2,7 @@
 
 #include <chrono>
 
+namespace robobus::runtime {
 template <typename ClockT>
   requires std::chrono::is_clock_v<ClockT>
 class TimeContext {
@@ -38,3 +39,5 @@ class TimeContext {
 
   auto Now() const -> time_point { return now_; }
 };
+
+}  // namespace robobus::runtime

@@ -1,29 +1,14 @@
 #pragma once
 
 #include <coroutine>
-#include <optional>
 #include <type_traits>
 
 #include "promise.hpp"
 
-//* Forward declaration
+namespace robobus::coroutine {
+
 template <typename ReturnType>
 struct CoroutineAwaiter;
-
-//* Coroutine
-template <typename ReturnType>
-struct Coroutine {
-  using coro_handle = std::coroutine_handle<Promise<ReturnType>>;
-  using promise_type = Promise<ReturnType>;
-
-  explicit Coroutine(coro_handle handle) : handle(handle) {}
-
-  coro_handle handle;
-
-  auto operator co_await() {
-    return CoroutineAwaiter<ReturnType>{handle.promise()};
-  }
-};
 
 //* CoroutineAwaiter
 template <std::move_constructible ReturnType>
@@ -59,3 +44,4 @@ struct CoroutineAwaiter<void> {
  private:
   Promise<void> &promise;
 };
+}  // namespace robobus::coroutine

@@ -7,6 +7,7 @@
 
 #include "loop.hpp"
 
+namespace robobus::runtime {
 /// @brief Sleep を行うための awaiter
 template <typename Clock>
   requires std::chrono::is_clock_v<Clock>
@@ -40,3 +41,4 @@ template <typename Clock>
 auto Sleep(Loop<Clock> &ctx, typename Clock::duration duration) {
   return SleepAwaiter(ctx, duration);
 }
+}  // namespace robobus::runtime
