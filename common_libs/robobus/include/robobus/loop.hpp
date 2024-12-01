@@ -49,7 +49,7 @@ class Loop {
     if (minimum_grace != Clock::duration::max() &&
         minimum_grace > std::chrono::milliseconds(100)) {
       logger.Debug("Sleeping for %d", minimum_grace.count());
-      std::this_thread::sleep_for(minimum_grace);
+      robotics::system::SleepFor(std::chrono::duration_cast<std::chrono::milliseconds>(minimum_grace));
     }
   }
 
@@ -92,6 +92,7 @@ class Loop {
   }
 
   void LaunchDebugThread() {
+    using namespace std::chrono_literals;
     static robotics::logger::Logger logger{"debug.loop.robobus",
                                            "Loop\x1b[32mDebug\x1b[m"};
 
@@ -102,7 +103,8 @@ class Loop {
         logger.Info("Elapsed: %d, Now: %d, resume_list: %d entries",
                     time.ElapsedTime().count(),
                     time.Now().time_since_epoch().count(), resume_list_.size());
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        robotics::system::SleepFor(1s);
       }
     });
   }

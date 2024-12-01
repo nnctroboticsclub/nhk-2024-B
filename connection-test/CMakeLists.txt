@@ -1,3 +1,9 @@
+FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt
+  GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
+FetchContent_MakeAvailable(fmt)
+
 find_package(ikarashiCAN_mk2 REQUIRED)
 find_package(MotorController REQUIRED)
 find_package(IkakoRobomas REQUIRED)
@@ -29,6 +35,9 @@ target_link_libraries(connection-test PRIVATE
   IkakoRobomas
   can_servo
   rd16
+
+  fmt::fmt
+  robobus
 )
 
 static_mbed_os_app_target(connection-test)

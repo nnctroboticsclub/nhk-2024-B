@@ -1,7 +1,7 @@
 #pragma once
 
-#include "framework/context.hpp"
-#include "framework/base_coroutine.hpp"
+#include <robobus/context.hpp>
+#include <robobus/base_coroutine.hpp>
 
 #include <chrono>
 

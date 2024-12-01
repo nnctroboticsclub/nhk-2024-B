@@ -61,6 +61,18 @@
     "streambuf": "cpp",
     "thread": "cpp",
     "typeinfo": "cpp",
-    "fw-note": "cpp"
+    "fw-note": "cpp",
+    "span": "cpp",
+    "any": "cpp",
+    "bitset": "cpp",
+    "codecvt": "cpp",
+    "complex": "cpp",
+    "map": "cpp",
+    "set": "cpp",
+    "source_location": "cpp",
+    "fstream": "cpp",
+    "ranges": "cpp",
+    "typeindex": "cpp",
+    "variant": "cpp"
   },
 }

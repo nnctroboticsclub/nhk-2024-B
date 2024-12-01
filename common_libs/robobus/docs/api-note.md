@@ -5,28 +5,8 @@ class Serializable {
   void SerializeTo(Stream<uint8_t> st);
 };
 
-class DebugTree: public Serializable {
-  DebugTree(uint32_t id, String name);
-  DebugNode Node(String name, String initial_text);
-  DebugTree Tree(String name);
-
-  // Some Serializable members
-};
-
-class DebugNode: public Serializable {
-  DebugNode(uint32_t id, String name, String initial_text);
-  void Update(String text);
-  uint32_t Id();
-
-  // Some Serializable members
-};
-
 class Context {
   T &UseProperty<T>(uint8_t id); // --> NVN [ModuleID: 8bit][instance_id: 16bit][id: 8bit]
-
-  DebugTree RootDebugTree();
-  DebugTree DebugTree();
-  Module Child(String name);
 
   std::shared_ptr<Controller> AcquireDevice<Controller>(uint32_t id);
 };

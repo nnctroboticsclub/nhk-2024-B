@@ -3,8 +3,11 @@
 
 #include <fmt/format.h>
 
-#include "framework/context.hpp"
-#include "framework/base_coroutine.hpp"
+#include <logger/log_sink.hpp>
+#include <robotics/utils/no_mutex_lifo.hpp>
+
+#include <robobus/context.hpp>
+#include <robobus/base_coroutine.hpp>
 
 #include "test_clock.hpp"
 #include "measurement.hpp"
@@ -14,10 +17,21 @@ using Clock = TestClock;
 using std::chrono_literals::operator""s;
 using std::chrono_literals::operator""ms;
 
+class SimpleLogSink : public robotics::logger::LogSink {
+ public:
+  void Log(robotics::logger::core::Level level, const char* tag,
+           const char* msg) override {
+    std::cout << fmt::format("$1$log${:d}${:d}{:s}${:d}{:s}$\n",
+                             static_cast<int>(level), strlen(tag), tag,
+                             strlen(msg), msg);
+  }
+};
+
 class SimpleDebugAdapter : public DebugAdapter {
  public:
   void Message(std::string_view path, std::string_view text) override {
-    std::cout << path << ": " << text << std::endl;
+    std::cout << fmt::format("$1$dbg${:d}{:s}${:d}{:s}$\n", path.size(), path,
+                             text.size(), text);
   }
 };
 
@@ -53,6 +67,8 @@ void LaunchLoopTask(SharedContext<Clock> ctx) {
 
 int main() {
   robotics::system::SleepFor(20ms);
+  robotics::logger::global_log_sink = new SimpleLogSink();
+
   robotics::logger::core::Init();
 
   robotics::logger::SuppressLogger("loop.robobus");

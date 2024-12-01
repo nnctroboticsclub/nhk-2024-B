@@ -17,6 +17,7 @@ FetchContent_MakeAvailable(fmt)
 
 add_compile_options(-fdiagnostics-color=always)
 add_subdirectory(common_libs/syoch-robotics/libs)
+add_subdirectory(common_libs/framework)
 
 add_executable(framework-test
     main.cpp
@@ -28,4 +29,5 @@ target_link_libraries(framework-test
     syoch-robotics-thread
 
     fmt::fmt
+    robobus
 )
