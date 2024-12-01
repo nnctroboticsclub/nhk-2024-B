@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.19)
 cmake_policy(VERSION 3.19)
 
+add_compile_options(-fdiagnostics-color=always)
+
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard")
 set(MBED_APP_JSON_PATH ${CMAKE_SOURCE_DIR}/mbed_app.json)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
