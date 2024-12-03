@@ -9,10 +9,10 @@
 #include <robotics/random/random.hpp>
 #include <robotics/thread/thread.hpp>
 
-// #include "im920_test.hpp"
-// #include "can_debug.hpp"
-#include "robobus/robo-bus.hpp"
-#include "platform.hpp"
+#include <robo-bus.hpp>
+#include "../platform.hpp"
+
+namespace apps::robobus_test {
 using robobus::internal::MultiUpdatable;
 using robobus::internal::Signal;
 using robobus::internal::SignalRx;
@@ -334,32 +334,6 @@ class ControlStreamOnCAN {
   inline void Tick(float delta_time_s) { st_->Tick(delta_time_s); }
 };
 
-/// @brief MBed OS によって提供される Timer を用いた std::chrono で定義される
-/// Clock の実装
-class MBedClock {
-  static mbed::Timer timer;
-
- public:
-  using rep = std::chrono::microseconds::rep;
-  using period = std::chrono::microseconds::period;
-  using duration = std::chrono::microseconds;
-  using time_point = std::chrono::time_point<MBedClock>;
-
-  static constexpr bool is_steady = true;
-
-  static void Init();
-
-  static auto now() -> time_point {
-    auto base = time_point();
-    auto now = timer.elapsed_time().count();
-
-    return base + duration(now);
-  }
-};
-
-mbed::Timer MBedClock::timer;
-void MBedClock::Init() { MBedClock::timer.start(); }
-
 /// @brief テスト
 class RoboBusTest {
   static inline Logger logger{"test->robo-bus.nw", "RoboBusTest"};
@@ -502,23 +476,8 @@ class RoboBusTest {
     Test();
   }
 };
+}  // namespace apps::robobus_test
 
-int main() {
-  using namespace std::chrono_literals;
-  printf("# main()\n");
-
-  robotics::system::Random::GetByte();
-  robotics::system::SleepFor(20ms);
-  robotics::logger::core::Init();
-
-  MBedClock::Init();
-
-  printf("Starting App...\n");
-
-  auto app = std::make_unique<RoboBusTest>();
-  app->Main();
-
-  while (1) {
-    robotics::system::SleepFor(1s);
-  }
+namespace apps {
+using RoboBusTest = apps::robobus_test::RoboBusTest;
 }
