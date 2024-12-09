@@ -340,11 +340,80 @@ class RoboBusTest {
 
   bool is_motherboard_ = false;
 
-  robotics::network::SimpleCAN simple_can{PB_8, PB_9, (int)1E6};
+  robotics::network::SimpleCAN simple_can{PB_8, PB_9, (int)50E3};
   std::shared_ptr<robotics::network::CANBase> can_;
   // std::unique_ptr<robobus::robobus::RoboBus> robobus_;
 
   std::shared_ptr<ControlStreamOnCAN> cstream_;
+
+  void CheckCANWorking() {
+    if (!can_) {
+      logger.Error("CAN is not initialized");
+      return;
+    }
+
+    if (auto result = simple_can.GetInstance().mode(mbed::CAN::Mode::Normal);
+        result == 0) {
+      logger.Error("Failed to enter GlobalTest mode");
+    }
+
+    simple_can.GetInstance().reset();
+
+    using enum platform::Mode;
+    auto mode = platform::GetMode();
+
+    int msg_count = 0;
+    bool loop_running = true;
+
+    uint32_t msg_id;
+    uint32_t msg_id_stop;
+    uint32_t remote_msg_id;
+    uint32_t remote_msg_id_stop;
+
+    switch (mode) {
+      case kDevice1:
+        msg_id = 0x3FFFFF0;
+        remote_msg_id = 0x3FFFFF2;
+
+        msg_id_stop = 0x3FFFFF1;
+        remote_msg_id_stop = 0x3FFFFF3;
+        break;
+      case kDevice2:
+        msg_id = 0x3FFFFF2;
+        remote_msg_id = 0x3FFFFF0;
+
+        msg_id_stop = 0x3FFFFF3;
+        remote_msg_id_stop = 0x3FFFFF1;
+        break;
+    }
+
+    CANDataType dummy_data = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
+
+    simple_can.OnRx([&](uint32_t id, std::vector<uint8_t> const &data) {
+      if (id == msg_id_stop) {
+        loop_running = false;
+      } else if (id == remote_msg_id) {
+        logger.Info("\x1b[32m%08lx\x1b[m count=%d", id, msg_count);
+        msg_count += 1;
+      }
+    });
+    simple_can.OnTx([&](uint32_t id, std::vector<uint8_t> const &data) {
+      logger.Info("%08lx (-->)", id);
+    });
+
+    while (loop_running) {
+      if (simple_can.Send(msg_count > 4 ? msg_id_stop : msg_id, dummy_data) !=
+          1) {
+        logger.Error("Failed to send message");
+      }
+      robotics::system::SleepFor(200ms);
+    }
+    if (simple_can.Send(msg_id_stop, dummy_data) != 1) {
+      logger.Error("Failed to send message");
+    }
+
+    logger.Info("Received Message count: %d", msg_count);
+  }
 
   void Test() const {
     auto cpipe_dev_id = DeviceID(1);
@@ -447,7 +516,6 @@ class RoboBusTest {
  public:
   void Main() {
     using enum platform::Mode;
-
     auto mode = platform::GetMode();
 
     DeviceID device_id{0};
@@ -473,7 +541,9 @@ class RoboBusTest {
     // robobus_ = std::make_unique<RoboBus>(device_id, is_motherboard_, can_);
     // robobus_->DebugCAN();
 
-    Test();
+    CheckCANWorking();
+
+    // Test();
   }
 };
 }  // namespace apps::robobus_test

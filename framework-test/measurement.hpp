@@ -1,9 +1,12 @@
 #pragma once
 
-#include <robobus/context.hpp>
-#include <robobus/base_coroutine.hpp>
+#include <robobus/context/context.hpp>
+#include <robobus/coroutine/coroutine.hpp>
 
 #include <chrono>
+
+using robobus::context::SharedContext;
+using robobus::coroutine::Coroutine;
 
 template <typename Clock>
 class Measurement {

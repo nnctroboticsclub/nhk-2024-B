@@ -6,8 +6,8 @@
 #include <logger/log_sink.hpp>
 #include <robotics/utils/no_mutex_lifo.hpp>
 
-#include <robobus/context.hpp>
-#include <robobus/base_coroutine.hpp>
+#include <robobus/context/context.hpp>
+#include <robobus/coroutine/coroutine.hpp>
 
 #include "test_clock.hpp"
 #include "measurement.hpp"
@@ -27,7 +27,7 @@ class SimpleLogSink : public robotics::logger::LogSink {
   }
 };
 
-class SimpleDebugAdapter : public DebugAdapter {
+class SimpleDebugAdapter : public robobus::debug::DebugAdapter {
  public:
   void Message(std::string_view path, std::string_view text) override {
     std::cout << fmt::format("$1$dbg${:d}{:s}${:d}{:s}$\n", path.size(), path,
@@ -66,6 +66,8 @@ void LaunchLoopTask(SharedContext<Clock> ctx) {
 }
 
 int main() {
+  using robobus::context::SharedRootContext;
+
   robotics::system::SleepFor(20ms);
   robotics::logger::global_log_sink = new SimpleLogSink();
 

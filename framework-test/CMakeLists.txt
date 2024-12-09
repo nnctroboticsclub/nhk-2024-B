@@ -5,19 +5,16 @@ project(framework-test)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard")
 set(SYOCH_ROBOTICS_TARGET "Emulation" CACHE STRING "syoch-robotics target")
 
-
-include(FetchContent)
-
-FetchContent_Declare(
-  fmt
-  GIT_REPOSITORY https://github.com/fmtlib/fmt
-  GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
-FetchContent_MakeAvailable(fmt)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+  /usr/arm-none-eabi/local/share/cmake
+)
 
 
 add_compile_options(-fdiagnostics-color=always)
 add_subdirectory(common_libs/syoch-robotics/libs)
-add_subdirectory(common_libs/framework)
+add_subdirectory(common_libs/robobus)
+
+find_package(fmt REQUIRED)
 
 add_executable(framework-test
     main.cpp
