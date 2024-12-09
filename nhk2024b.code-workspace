@@ -4,6 +4,10 @@
 			"path": "."
 		},
 		{
+			"path": "./common_libs/robobus/tools",
+			"name": "[Rust] Robobus Tools"
+		},
+		{
 			"path": "framework-test",
 			"name": "[HOST] framework test"
 		},
@@ -32,19 +36,14 @@
 			"name": "[Rust] USB"
 		},
 		{
-			"path": "common_libs/srobo_base",
-			"name": "[Rust] srobo_base"
-		},
-		{
-			"path": "common_libs/im920_rs",
-			"name": "[Rust] im920_rs"
-		},
-		{
 			"path": "common_libs/nhk2023-b",
 			"name": "[Rust] NHK2024B"
 		},
 		{
 			"path": "/tmp/static-mbed-os"
+		},
+		{
+			"path": "/tmp/libs-cmake"
 		}
 	],
 	"settings": {

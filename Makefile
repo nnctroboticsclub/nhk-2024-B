@@ -13,7 +13,7 @@ $(BUILD)/build.ninja: CMakeLists.txt
 		-DCMAKE_BUILD_TYPE=Develop \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
 		-DMBED_TARGET=$(TARGET) \
-		-B . -S ../../ -G Ninja
+		-B . -S ../ -G Ninja
 
 .PHONY: cmake
 cmake: $(BUILD)/build.ninja
@@ -21,7 +21,7 @@ cmake: $(BUILD)/build.ninja
 		-DCMAKE_BUILD_TYPE=Develop \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
 		-DMBED_TARGET=$(TARGET) \
-		-B . -S ../../ -G Ninja
+		-B . -S ../ -G Ninja
 
 $(GRAPHVIZ)/source/dependency.dot: CMakeLists.txt
 	[ -d $(GRAPHVIZ) ] || mkdir -p $(GRAPHVIZ)

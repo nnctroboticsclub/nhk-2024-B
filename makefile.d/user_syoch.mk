@@ -6,17 +6,17 @@ my_mount_build:
 	mount | grep "/workspaces/nhk-2024-b/.cache" || sudo mount /dev/lvg-share/cache .cache
 
 
-	sudo mount --bind .cache/n24b Build
+	sudo mount --bind .cache/n24b build
 	sudo mount --bind .cache/n24b_es esp32/build
 	sudo mount --bind .cache/n24b_us controller-stm32/src/usb_rs/target
 
 my_umount_build:
-	sudo umount Build || :
+	sudo umount build || :
 	sudo umount esp32/build || :
 	sudo umount controller-stm32/src/usb_rs/target || :
 	sudo umount .cache || :
 
 my_prune_build:
-	rm -rf Build*
+	rm -rf build*
 	rm -rf esp32/build*
 	rm -rf controller-stm32/src/usb_rs/target*
