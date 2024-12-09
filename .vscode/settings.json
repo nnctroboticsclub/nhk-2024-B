@@ -14,7 +14,12 @@
     "usb": true,
   },
   "editor.inlayHints.enabled": "on",
-  "sonarlint.pathToCompileCommands": "${workspaceFolder}/Build/NUCLEO_F446RE/compile_commands.json",
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/build/compile_commands.json",
+  "cmake.configureArgs": [
+    "-DCMAKE_BUILD_TYPE=Debug",
+    "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "-DMBED_TARGET=NUCLEO_F446RE"
+  ]
   /* "saveAndRun": {
     "commands": [
       {

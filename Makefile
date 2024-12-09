@@ -1,5 +1,5 @@
 TARGET?=NUCLEO_F446RE
-BUILD?=Build/${TARGET}
+BUILD?=build
 GRAPHVIZ?=Graphviz/${TARGET}
 
 .PHONY: all
