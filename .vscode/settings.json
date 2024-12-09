@@ -14,12 +14,12 @@
     "usb": true,
   },
   "editor.inlayHints.enabled": "on",
-  "sonarlint.pathToCompileCommands": "${workspaceFolder}/robot3-collect-esp32/build/compile_commands.json",
-  "saveAndRun": {
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/Build/NUCLEO_F446RE/compile_commands.json",
+  /* "saveAndRun": {
     "commands": [
       {
         "cmd": "clear; bash scripts/on_save.sh ${file}",
       }
     ]
-  }
+  } */
 }
