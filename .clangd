@@ -1,0 +1,58 @@
+If:
+  PathMatch: .*
+
+CompileFlags:
+  Remove:
+    - -mlongcalls
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
+    - -fconcepts-diagnostics-depth=*
+  CompilationDatabase: "build"
+
+Diagnostics:
+  UnusedIncludes: Strict
+  ClangTidy:
+    Add: modernize*
+    Remove: modernize-use-trailing-return-type
+    CheckOptions:
+      readability-identifier-naming.VariableCase: snake_case
+
+InlayHints:
+  Enabled: Yes
+  Designators: No
+  DeducedTypes: Yes
+  ParameterNames: Yes
+
+---
+
+If:
+  PathMatch:
+    - src/robot1-main.*
+    - src/robot2-bridge.*
+    - src/robot3-collect.*
+    - src/connection-test.*
+    - common_libs.*
+    - syoch-robotics.*
+  PathExclude:
+    - src/99-serial-monitor.*
+    - lib/emulation.*
+
+CompileFlags:
+  Add:
+    - -Wall
+    - -Wextra
+    - -xc++
+    - -target
+    - arm-none-eabi
+    - -include/opt/arm-none-eabi/arm-none-eabi/include/c++/13.3.1/arm-none-eabi/bits/c++config.h
+    - -isystem/opt/arm-none-eabi/arm-none-eabi/include/c++/13.3.1
+    - -isystem/opt/arm-none-eabi/arm-none-eabi/include/c++/13.3.1/arm-none-eabi
+    - -isystem/opt/arm-none-eabi/arm-none-eabi/include/c++/13.3.1/backward
+    - -isystem/opt/arm-none-eabi/lib/gcc/arm-none-eabi/13.3.1/include
+    - -isystem/opt/arm-none-eabi/lib/gcc/arm-none-eabi/13.3.1/include-fixed
+    - -isystem/opt/arm-none-eabi/arm-none-eabi/include
+    - --sysroot=/opt/arm-none-eabi
+  Remove:
+    - -W*
+    - -fconcepts
+  Compiler: clang

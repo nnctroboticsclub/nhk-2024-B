@@ -1,7 +1,5 @@
 find_package(fmt REQUIRED)
 find_package(ikarashiCAN_mk2 REQUIRED)
-find_package(MotorController REQUIRED)
-find_package(IkakoRobomas REQUIRED)
 find_package(can_servo REQUIRED)
 
 add_executable(connection-test)
@@ -26,8 +24,6 @@ target_link_libraries(connection-test PRIVATE
   srobo_base_hxx
   im920_rs_hxx
   ikarashiCAN_mk2
-  MotorController
-  IkakoRobomas
   can_servo
   rd16
 

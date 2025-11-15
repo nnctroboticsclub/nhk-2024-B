@@ -1,4 +1,4 @@
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(target_arch = "arm", no_std)]
 
 pub use im920_rs::ffi::{
     __ffi_cim920_get_node_number, __ffi_cim920_get_version, __ffi_cim920_new, __ffi_cim920_on_data,
@@ -12,5 +12,5 @@ pub use srobo_base::{
 
 mod allocator;
 mod common;
-mod ffi_mem;
-mod logger;
+// mod logger;
+mod mem;

@@ -1,16 +1,9 @@
-#include <cinttypes>
-// #include <mbed.h>
-
-// #include "identify.h"
-// #include "app.hpp"
-
-// #include <mbed-robotics/simple_can.hpp>
 #include <puropo.h>
 
-#include <robotics/network/uart_stream.hpp>
 #include <logger/logger.hpp>
-#include <robotics/network/fep/fep_driver.hpp>
 #include <robotics/driver/dout.hpp>
+#include <robotics/network/fep/fep_driver.hpp>
+#include <robotics/network/uart_stream.hpp>
 
 #include "app.hpp"
 #include "collect.hpp"
@@ -92,10 +85,10 @@ class Test {
     puropo.button3 >> robot.ctrl_button_arm_up;
     puropo.button4 >> robot.ctrl_button_arm_down;
 
-    puropo.button5.SetChangeCallback([this](bool btn) {
-      ctrl_emc = btn ? 0 : 1;  // pressed = 0 (stop actuators)
+    puropo.button5 >> [this](bool btn) {
+      ctrl_emc = btn ? false : true;  // pressed = 0 (stop actuators)
       UpdateEMC();
-    });
+    };
 
     robot.out_move >> actuators.move_motor;
     robot.out_arm_elevation >> actuators.arm_elevation_motor;
@@ -105,11 +98,11 @@ class Test {
     puropo.button5.SetValue(false);
 
     hard_emc_gpio.fall([this]() {
-      this->hard_emc = 0;
+      this->hard_emc = false;
       this->UpdateEMC();
     });
     hard_emc_gpio.rise([this]() {
-      this->hard_emc = 1;
+      this->hard_emc = true;
       this->UpdateEMC();
     });
     this->hard_emc = hard_emc_gpio.read();
@@ -125,14 +118,11 @@ class Test {
     timer.reset();
     timer.start();
 
-    float previous = 0;
-
     int i = 0;
-    while (1) {
-      if (i % 1000 == 0) logger.Info("Update");
+    while (true) {
+      if (i % 1000 == 0)
+        logger.Info("Update");
       puropo.Tick();
-
-      float current = timer.read_ms() / 1000.f;
 
       if (i % 200 == 0) {
         logger.Info("Report");
@@ -170,11 +160,12 @@ int main_0() {
   }
 }
 
+[[noreturn]]
 void main_puropo_test() {  // プロポ実験
   auto puropo = Puropo{PC_6, PC_7};
   puropo.start();
   printf("\x1b[2J");
-  while (1) {
+  while (true) {
     printf("\x1b[0;0H");
     printf("is_ok: %s\n", puropo.is_ok() ? "OK" : "NG");
     printf("ch1: %6.4lf, %6.4lf, %6.4lf, %6.4lf\n",  //

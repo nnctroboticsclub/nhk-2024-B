@@ -8,30 +8,6 @@
 			"name": "[Rust] Robobus Tools"
 		},
 		{
-			"path": "framework-test",
-			"name": "[HOST] framework test"
-		},
-		{
-			"path": "controller-stm32",
-			"name": "[Mbed] Controller"
-		},
-		{
-			"path": "robot3-collect-esp32",
-			"name": "[ESP32] Collecter"
-		},
-		{
-			"path": "usb",
-			"name": "[Mbed] USB"
-		},
-		{
-			"path": "esp32",
-			"name": "[ESP-IDF] ESP32"
-		},
-		{
-			"path": "debugger-client",
-			"name": "[Host] Debugger (Client)"
-		},
-		{
 			"path": "controller-stm32/src/usb_rs",
 			"name": "[Rust] USB"
 		},

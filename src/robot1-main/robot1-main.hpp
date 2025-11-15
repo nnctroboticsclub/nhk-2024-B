@@ -1,8 +1,8 @@
 #pragma once
 
 #include <nhk2024b/types.hpp>
-#include <math.h>
 
+#include <numbers>
 #include <robotics/filter/angled_motor.hpp>
 #include <robotics/node/node.hpp>
 #include <robotics/types/joystick_2d.hpp>
@@ -56,17 +56,18 @@ class Refrige {
   }
 
   void LinkController() {
-    ctrl_move.SetChangeCallback([this](robotics::JoyStick2D stick) {
-      double setmotor[4] = {
-          7 * M_PI / 4,  //
-          1 * M_PI / 4,  //
-          3 * M_PI / 4,  //
-          5 * M_PI / 4   //
+    ctrl_move >> [this](robotics::JoyStick2D stick) {
+      constexpr auto kPi = std::numbers::pi;
+      std::array<double, 4> setmotor = {
+          7 * kPi / 4,  //
+          1 * kPi / 4,  //
+          3 * kPi / 4,  //
+          5 * kPi / 4   //
       };
 
       float factor = 0;
 
-      if (abs(stick[0]) > abs(stick[1]) * 2) {
+      if (fabs(stick[0]) > fabs(stick[1]) * 2) {
         factor = kMoveFactorFast;
       } else {
         factor = kMoveFactorNormal;
@@ -84,40 +85,42 @@ class Refrige {
       out_motor4.SetValue(
           (cos(setmotor[3]) * stick[0] + sin(setmotor[3]) * stick[1]) * factor *
           -1);
-    });
+    };
     // ↓ボタンの作動
 
-    ctrl_turning_right.SetChangeCallback([this](float trigger) {
+    ctrl_turning_right >> [this](float trigger) {
       out_motor1.SetValue(-trigger * kRotationFactor);
       out_motor2.SetValue(-trigger * kRotationFactor);
       out_motor3.SetValue(-trigger * kRotationFactor);
       out_motor4.SetValue(-trigger * kRotationFactor);
-    });
+    };
 
-    ctrl_turning_left.SetChangeCallback([this](float trigger) {
+    ctrl_turning_left >> [this](float trigger) {
       out_motor1.SetValue(trigger * kRotationFactor);
       out_motor2.SetValue(trigger * kRotationFactor);
       out_motor3.SetValue(trigger * kRotationFactor);
       out_motor4.SetValue(trigger * kRotationFactor);
-    });
+    };
 
-    ctrl_unlock.SetChangeCallback([this](bool btn) {
+    ctrl_unlock >> [this](bool) {
       out_unlock.SetValue(-0.6);
       unlock_timer = 0.1;
-    });
+    };
 
-    ctrl_brake_back.SetChangeCallback(
-        [this](bool btn) { out_brake.SetValue(btn ? -1 : 0); });
+    ctrl_brake_back >> [this](bool btn) {
+      out_brake.SetValue(btn ? -1 : 0);
+    };
 
-    ctrl_brake.SetChangeCallback(
-        [this](bool btn) { out_brake.SetValue(btn ? 1 : 0); });
+    ctrl_brake >> [this](bool btn) {
+      out_brake.SetValue(btn ? 1 : 0);
+    };
 
-    ctrl_unlock.SetChangeCallback([this](bool btn) {
+    ctrl_unlock >> [this](bool) {
       out_unlock.SetValue(-0.6);
       unlock_timer = 0.1;
-    });
+    };
 
-    ctrl_collector.SetChangeCallback([this](bool btn) {
+    ctrl_collector >> [this](bool btn) {
       collecter_state = (collecter_state + btn) % 3;
       if (collecter_state == 0) {
         out_collector.SetValue(0);
@@ -126,7 +129,7 @@ class Refrige {
       } else {
         out_collector.SetValue(-0.7);
       }
-    });
+    };
   }
 };
 }  // namespace nhk2024b::robot1

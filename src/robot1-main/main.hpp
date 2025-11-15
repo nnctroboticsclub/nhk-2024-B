@@ -1,10 +1,3 @@
-#include <cinttypes>
-// #include <mbed.h>
-
-// #include "identify.h"
-// #include "app.hpp"
-
-// #include <mbed-robotics/simple_can.hpp>
 #include <ikako_mdc/ikako_mdc.hpp>
 #include <robotics/network/simple_can.hpp>
 #include <robotics/network/uart_stream.hpp>
@@ -66,20 +59,20 @@ class App {
     ctrl_net.Init(0x0011);
     ctrl = ctrl_net.ConnectToPipe1();
 
-    ctrl_net.keep_alive->connection_available.SetChangeCallback([this](bool v) {
+    ctrl_net.keep_alive->connection_available.OnChanged([this](bool v) {
       emc_conn = v;
 
       UpdateEMC();
     });
 
-    ctrl->buttons.SetChangeCallback([this](DPad dpad) {
+    ctrl->buttons.OnChanged([this](DPad dpad) {
       robot.ctrl_brake.SetValue(dpad & DPad::kLeft);
       robot.ctrl_brake_back.SetValue(dpad & DPad::kRight);
       robot.ctrl_collector.SetValue(dpad & DPad::kDown);
       robot.ctrl_unlock.SetValue(dpad & DPad::kUp);
     });
 
-    ctrl->emc.SetChangeCallback([this](bool btn) {
+    ctrl->emc.OnChanged([this](bool btn) {
       emc_ctrl = emc_ctrl ^ btn;
 
       UpdateEMC();

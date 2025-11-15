@@ -21,7 +21,7 @@ include(/usr/arm-none-eabi/share/cmake/StaticMbedOSToolchain-NUCLEO_F446RE.cmake
 project(NHK)
 add_subdirectory(common_libs)
 
-add_subdirectory(connection-test)
-add_subdirectory(robot1-main)
-add_subdirectory(robot2-bridge)
-add_subdirectory(robot3-collect)
+# add_subdirectory(connection-test)
+add_subdirectory(src/robot1-main)
+add_subdirectory(src/robot2-bridge)
+add_subdirectory(src/robot3-collect)
