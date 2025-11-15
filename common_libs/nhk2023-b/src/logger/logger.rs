@@ -60,7 +60,7 @@ impl Logger {
             robotics_logger_GenericLogger_Log(
                 &mut self.logger,
                 level.into(),
-                "%*s\0".as_ptr() as *const i8,
+                "%*s\0".as_ptr() as *const u8,
                 message_length as i32,
                 c_message_ptr as *const i8,
             );
